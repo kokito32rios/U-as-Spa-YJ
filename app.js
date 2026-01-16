@@ -26,6 +26,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
+// Ruta de login
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'login.html'));
+});
+
 // Ruta del catálogo - Página pública
 app.get('/catalogo.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'catalogo.html'));
@@ -42,10 +47,12 @@ app.get('/api/test', (req, res) => {
 // Importar rutas
 const serviciosRoutes = require('./routes/servicios.routes');
 const catalogoRoutes = require('./routes/catalogo.routes');
+const authRoutes = require('./routes/auth.routes');
 
 // Usar rutas
 app.use('/api/servicios', serviciosRoutes);
 app.use('/api/catalogo', catalogoRoutes);
+app.use('/api/auth', authRoutes);
 
 // TODO: Agregar más rutas aquí
 // const authRoutes = require('./routes/auth.routes');
