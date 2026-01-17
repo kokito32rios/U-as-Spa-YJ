@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Admin - Uñas Spa Yaneth Jiménez</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/css/dashboard.css" />
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>💅 Admin Panel</h2>
+          <p id="user-welcome">Bienvenid@</p>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a
+            href="#agendamiento"
+            class="nav-item active"
+            onclick="cambiarSeccion('agendamiento')"
+          >
+            <span class="nav-icon">📅</span>
+            <span>Agendamiento</span>
+          </a>
+          <a
+            href="#servicios"
+            class="nav-item"
+            onclick="cambiarSeccion('servicios')"
+          >
+            <span class="nav-icon">✨</span>
+            <span>Servicios</span>
+          </a>
+          <a
+            href="#usuarios"
+            class="nav-item"
+            onclick="cambiarSeccion('usuarios')"
+          >
+            <span class="nav-icon">👥</span>
+            <span>Usuarios</span>
+          </a>
+          <a
+            href="#comisiones"
+            class="nav-item"
+            onclick="cambiarSeccion('comisiones')"
+          >
+            <span class="nav-icon">💰</span>
+            <span>Comisiones</span>
+          </a>
+          <a
+            href="#galeria"
+            class="nav-item"
+            onclick="cambiarSeccion('galeria')"
+          >
+            <span class="nav-icon">🖼️</span>
+            <span>Galería</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="btn-logout" onclick="cerrarSesion()">
+            <span>🚪</span> Cerrar Sesión
+          </button>
+        </div>
+      </aside>
+
+      <!-- CONTENIDO PRINCIPAL -->
+      <main class="main-content">
+        <!-- HEADER -->
+        <header class="content-header">
+          <h1 id="section-title">Gestión de Agendamiento</h1>
+          <div class="header-actions">
+            <button class="btn btn-primary" onclick="abrirModalNuevaCita()">
+              + Nueva Cita
+            </button>
+          </div>
+        </header>
+
+        <!-- SECCIÓN: AGENDAMIENTO -->
+        <section id="seccion-agendamiento" class="content-section active">
+          <!-- Filtros -->
+          <div class="filters-bar">
+            <div class="filter-group">
+              <label>Fecha:</label>
+              <input type="date" id="filtro-fecha" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Estado:</label>
+              <select id="filtro-estado" class="filter-input">
+                <option value="">Todos</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="confirmada">Confirmada</option>
+                <option value="completada">Completada</option>
+                <option value="cancelada">Cancelada</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Manicurista:</label>
+              <select id="filtro-manicurista" class="filter-input">
+                <option value="">Todas</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="aplicarFiltros()">
+              Filtrar
+            </button>
+            <button class="btn-text" onclick="limpiarFiltros()">Limpiar</button>
+          </div>
+
+          <!-- Tabla de Citas -->
+          <div class="table-container">
+            <div id="citas-loader" class="loader-center">
+              <div class="spinner"></div>
+              <p>Cargando citas...</p>
+            </div>
+
+            <table id="tabla-citas" class="data-table hidden">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Cliente</th>
+                  <th>Servicio</th>
+                  <th>Manicurista</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="citas-tbody">
+                <!-- Se llena dinámicamente -->
+              </tbody>
+            </table>
+
+            <div id="citas-vacio" class="empty-state hidden">
+              <p class="empty-icon">📅</p>
+              <h3>No hay citas</h3>
+              <p>No se encontraron citas con los filtros seleccionados</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECCIÓN: SERVICIOS (Placeholder) -->
+        <section id="seccion-servicios" class="content-section">
+          <p>Módulo de Servicios en desarrollo...</p>
+        </section>
+
+        <!-- SECCIÓN: USUARIOS (Placeholder) -->
+        <section id="seccion-usuarios" class="content-section">
+          <p>Módulo de Usuarios en desarrollo...</p>
+        </section>
+
+        <!-- SECCIÓN: COMISIONES (Placeholder) -->
+        <section id="seccion-comisiones" class="content-section">
+          <p>Módulo de Comisiones en desarrollo...</p>
+        </section>
+
+        <!-- SECCIÓN: GALERÍA (Placeholder) -->
+        <section id="seccion-galeria" class="content-section">
+          <p>Módulo de Galería en desarrollo...</p>
+        </section>
+      </main>
+    </div>
+
+    <!-- MODAL: NUEVA/EDITAR CITA -->
+    <div id="modal-cita" class="modal-overlay hidden">
+      <div class="modal-large">
+        <div class="modal-header">
+          <h3 id="modal-cita-titulo">Nueva Cita</h3>
+          <button class="modal-close" onclick="cerrarModalCita()">✕</button>
+        </div>
+
+        <form id="form-cita" class="modal-body">
+          <input type="hidden" id="cita-id" />
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Cliente *</label>
+              <select id="cita-cliente" class="form-input" required>
+                <option value="">Seleccionar cliente</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Manicurista *</label>
+              <select id="cita-manicurista" class="form-input" required>
+                <option value="">Seleccionar manicurista</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Servicio *</label>
+              <select id="cita-servicio" class="form-input" required>
+                <option value="">Seleccionar servicio</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Fecha *</label>
+              <input type="date" id="cita-fecha" class="form-input" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Hora de Inicio *</label>
+              <select id="cita-hora" class="form-input" required disabled>
+                <option value="">
+                  Primero selecciona manicurista, servicio y fecha
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Estado</label>
+              <select id="cita-estado" class="form-input">
+                <option value="pendiente">Pendiente</option>
+                <option value="confirmada">Confirmada</option>
+                <option value="completada">Completada</option>
+                <option value="cancelada">Cancelada</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Notas del Cliente</label>
+            <textarea
+              id="cita-notas-cliente"
+              class="form-input"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Notas de la Manicurista</label>
+            <textarea
+              id="cita-notas-manicurista"
+              class="form-input"
+              rows="3"
+            ></textarea>
+          </div>
+        </form>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="cerrarModalCita()">
+            Cancelar
+          </button>
+          <button
+            class="btn btn-primary"
+            onclick="guardarCita()"
+            id="btn-guardar-cita"
+          >
+            Guardar Cita
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: MENSAJES -->
+    <div id="modal-mensaje" class="modal-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-icon" id="mensaje-icon"></div>
+        <h3 id="mensaje-titulo"></h3>
+        <p id="mensaje-texto"></p>
+        <button class="btn-modal" onclick="cerrarModalMensaje()">
+          Entendido
+        </button>
+      </div>
+    </div>
+
+    <script src="/js/dashboard-admin.js"></script>
+  </body>
+</html>

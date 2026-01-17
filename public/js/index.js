@@ -99,7 +99,7 @@ window.addEventListener('scroll', () => {
 });
 
 // =============================================
-// VERIFICAR SESIÓN ACTIVA
+// VERIFICAR SESIÓN ACTIVA (sin auto-redirigir)
 // =============================================
 const token = localStorage.getItem('token');
 if (token) {
@@ -109,14 +109,24 @@ if (token) {
         // Verificar si el token no ha expirado
         if (payload.exp * 1000 > Date.now()) {
             const rol = payload.nombre_rol;
-            // Cambiar el botón de login por ir al dashboard
+            
+            // Solo cambiar el navbar, NO redirigir
             const navLogin = document.querySelector('.nav-login');
             if (navLogin) {
                 navLogin.textContent = 'Mi Cuenta';
                 navLogin.href = `/dashboard-${rol}.html`;
             }
+            
+            // Cambiar botón hero de "Agendar Cita" a "Ir al Dashboard"
+            const heroButtons = document.querySelectorAll('.cta-section a, .hero-buttons a[href="/login.html"]');
+            heroButtons.forEach(btn => {
+                if (btn.href.includes('login.html')) {
+                    btn.textContent = 'Ir a Mi Dashboard';
+                    btn.href = `/dashboard-${rol}.html`;
+                }
+            });
         } else {
-            // Token expirado
+            // Token expirado, limpiar
             localStorage.removeItem('token');
         }
     } catch (e) {
