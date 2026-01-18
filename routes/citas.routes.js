@@ -16,8 +16,8 @@ router.post('/', verificarToken, citasController.crearCita);
 // PUT /api/citas/:id - Actualizar cita
 router.put('/:id', verificarToken, citasController.actualizarCita);
 
-// DELETE /api/citas/:id - Cancelar cita
-router.delete('/:id', verificarToken, citasController.cancelarCita);
+// DELETE /api/citas/:id - Eliminar cita
+router.delete('/:id', verificarToken, citasController.eliminarCita);
 
 // GET /api/citas/manicuristas - Obtener manicuristas disponibles
 router.get('/helpers/manicuristas', verificarToken, citasController.obtenerManicuristasDisponibles);

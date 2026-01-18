@@ -147,6 +147,13 @@
     color: var(--text-dark);
 }
 
+.form-help {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-top: 4px;
+    display: block;
+}
+
 .form-input {
     width: 100%;
     padding: 12px;

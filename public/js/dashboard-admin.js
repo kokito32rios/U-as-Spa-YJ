@@ -174,6 +174,9 @@ async function abrirModalNuevaCita() {
     document.getElementById('cita-id').value = '';
     document.getElementById('cita-estado').value = 'pendiente';
     
+    // Deshabilitar botón guardar hasta que se seleccione horario
+    document.getElementById('btn-guardar-cita').disabled = true;
+    
     // Cargar datos
     await cargarClientes();
     await cargarManicuristas();
@@ -266,12 +269,28 @@ async function guardarCita() {
     }
     
     const id = document.getElementById('cita-id').value;
+    const selectHora = document.getElementById('cita-hora');
+    const hora = selectHora.value;
+    
+    // Validación adicional: verificar que se haya seleccionado un horario válido
+    if (!hora || hora === '') {
+        mostrarMensaje('warning', '⚠️', 'Horario requerido', 'Por favor selecciona un horario disponible');
+        selectHora.focus();
+        return;
+    }
+    
+    // Verificar que el select no esté deshabilitado (no hay horarios disponibles)
+    if (selectHora.disabled) {
+        mostrarMensaje('warning', '⚠️', 'Sin horarios disponibles', 'No hay horarios disponibles para la fecha y manicurista seleccionadas');
+        return;
+    }
+    
     const datos = {
         email_cliente: document.getElementById('cita-cliente').value,
         email_manicurista: document.getElementById('cita-manicurista').value,
         id_servicio: document.getElementById('cita-servicio').value,
         fecha: document.getElementById('cita-fecha').value,
-        hora_inicio: document.getElementById('cita-hora').value + ':00',
+        hora_inicio: hora + ':00',
         notas_cliente: document.getElementById('cita-notas-cliente').value
     };
     
@@ -443,18 +462,32 @@ async function editarCita(idCita) {
 // CONFIRMAR CANCELAR CITA
 // =============================================
 function confirmarCancelar(idCita) {
-    if (confirm('¿Estás seguro de que deseas cancelar esta cita?')) {
-        cancelarCita(idCita);
-    }
+    mostrarConfirmacion(
+        '¿Cancelar cita?',
+        '¿Estás seguro de que deseas cancelar esta cita? Esta acción cambiará el estado a "cancelada".',
+        () => cancelarCita(idCita)
+    );
 }
 
 // =============================================
-// CANCELAR CITA
+// CONFIRMAR ELIMINAR CITA
+// =============================================
+function confirmarEliminar(idCita) {
+    mostrarConfirmacion(
+        '⚠️ ¿Eliminar cita?',
+        'Esta acción eliminará permanentemente la cita de la base de datos. ¿Estás seguro?',
+        () => eliminarCita(idCita)
+    );
+}
+
+// =============================================
+// CANCELAR CITA (cambia estado a cancelada)
 // =============================================
 async function cancelarCita(idCita) {
     try {
         const response = await fetchConToken(`/api/citas/${idCita}`, {
-            method: 'DELETE'
+            method: 'PUT',
+            body: JSON.stringify({ estado: 'cancelada' })
         });
         
         const data = await response.json();
@@ -469,6 +502,40 @@ async function cancelarCita(idCita) {
     } catch (error) {
         console.error('Error:', error);
         mostrarMensaje('error', '❌', 'Error', 'No se pudo cancelar la cita');
+    }
+}
+
+// =============================================
+// ELIMINAR CITA (borra de la BD)
+// =============================================
+async function eliminarCita(idCita) {
+    try {
+        const response = await fetchConToken(`/api/citas/${idCita}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarMensaje('success', '✓', 'Éxito', 'Cita eliminada exitosamente');
+            cargarCitas();
+        } else {
+            mostrarMensaje('error', '❌', 'Error', data.message);
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('error', '❌', 'Error', 'No se pudo eliminar la cita');
+    }
+}
+
+// =============================================
+// MOSTRAR CONFIRMACIÓN
+// =============================================
+function mostrarConfirmacion(titulo, mensaje, callback) {
+    const confirmar = confirm(`${titulo}\n\n${mensaje}`);
+    if (confirmar) {
+        callback();
     }
 }
 
@@ -515,10 +582,12 @@ async function cargarHorariosDisponibles() {
     const idCita = document.getElementById('cita-id').value;
     
     const selectHora = document.getElementById('cita-hora');
+    const btnGuardar = document.getElementById('btn-guardar-cita');
     
     if (!manicurista || !fecha || !servicio) {
         selectHora.disabled = true;
-        selectHora.innerHTML = '<option value="">Primero selecciona manicurista, servicio y fecha</option>';
+        selectHora.innerHTML = '<option value="">Selecciona manicurista, servicio y fecha</option>';
+        btnGuardar.disabled = true;
         return;
     }
     
@@ -542,15 +611,26 @@ async function cargarHorariosDisponibles() {
                 data.horarios.map(h => 
                     `<option value="${h.hora}">${h.hora}</option>`
                 ).join('');
+            
+            // Habilitar botón guardar solo cuando se seleccione un horario
+            selectHora.addEventListener('change', function() {
+                btnGuardar.disabled = !this.value;
+            });
+            
+            // Si no hay horario seleccionado, deshabilitar botón
+            btnGuardar.disabled = true;
         } else {
             selectHora.disabled = true;
-            selectHora.innerHTML = '<option value="">No hay horarios disponibles</option>';
+            const mensaje = data.mensaje || 'No hay horarios disponibles';
+            selectHora.innerHTML = `<option value="">${mensaje}</option>`;
+            btnGuardar.disabled = true;
         }
         
     } catch (error) {
         console.error('Error:', error);
         selectHora.disabled = true;
         selectHora.innerHTML = '<option value="">Error al cargar horarios</option>';
+        btnGuardar.disabled = true;
     }
 }
 

@@ -89,6 +89,14 @@ exports.crearCita = async (req, res) => {
                 message: 'Faltan campos requeridos'
             });
         }
+        
+        // Validar formato de hora
+        if (!/^\d{2}:\d{2}(:\d{2})?$/.test(hora_inicio)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Formato de hora inválido'
+            });
+        }
 
         // Obtener duración del servicio
         const [servicios] = await db.query(
@@ -277,15 +285,14 @@ exports.actualizarCita = async (req, res) => {
 };
 
 // =============================================
-// ELIMINAR/CANCELAR CITA
+// ELIMINAR CITA (DELETE real de la BD)
 // =============================================
-exports.cancelarCita = async (req, res) => {
+exports.eliminarCita = async (req, res) => {
     try {
         const { id } = req.params;
 
         const [result] = await db.query(`
-            UPDATE citas
-            SET estado = 'cancelada'
+            DELETE FROM citas
             WHERE id_cita = ?
         `, [id]);
 
@@ -298,14 +305,14 @@ exports.cancelarCita = async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Cita cancelada exitosamente'
+            message: 'Cita eliminada exitosamente'
         });
 
     } catch (error) {
-        console.error('Error al cancelar cita:', error);
+        console.error('Error al eliminar cita:', error);
         res.status(500).json({
             success: false,
-            error: 'Error al cancelar la cita'
+            error: 'Error al eliminar la cita'
         });
     }
 };
@@ -343,6 +350,8 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
     try {
         const { manicurista, fecha, id_servicio, id_cita_excluir } = req.query;
 
+        console.log('📅 Solicitud de horarios:', { manicurista, fecha, id_servicio, id_cita_excluir });
+
         if (!manicurista || !fecha || !id_servicio) {
             return res.status(400).json({
                 success: false,
@@ -357,6 +366,7 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
         );
 
         if (servicios.length === 0) {
+            console.log('❌ Servicio no encontrado:', id_servicio);
             return res.status(404).json({
                 success: false,
                 message: 'Servicio no encontrado'
@@ -364,6 +374,54 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
         }
 
         const duracion = servicios[0].duracion_minutos;
+        console.log('⏱️ Duración del servicio:', duracion, 'minutos');
+
+        // Obtener día de la semana (1=lunes, 7=domingo)
+        const fechaObj = new Date(fecha + 'T00:00:00');
+        const diaSemana = fechaObj.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
+        const diaAjustado = diaSemana === 0 ? 7 : diaSemana; // Convertir domingo de 0 a 7
+
+        console.log('📆 Día de la semana:', diaAjustado, '(1=Lun, 7=Dom)');
+
+        // Obtener horario laboral de la manicurista para ese día
+        const [horarios] = await db.query(`
+            SELECT hora_inicio, hora_fin
+            FROM horarios_trabajo
+            WHERE email_manicurista = ?
+            AND dia_semana = ?
+            AND activo = 1
+        `, [manicurista, diaAjustado]);
+
+        console.log('🕐 Horarios encontrados en BD:', horarios);
+
+        if (horarios.length === 0) {
+            console.log('⚠️ No hay horarios laborales para este día');
+            return res.json({
+                success: true,
+                horarios: [],
+                mensaje: 'La manicurista no trabaja este día'
+            });
+        }
+
+        const horarioLaboral = horarios[0];
+        console.log('✅ Horario laboral:', horarioLaboral);
+
+        // Verificar si hay excepciones para esta fecha
+        const [excepciones] = await db.query(`
+            SELECT todo_el_dia, hora_inicio, hora_fin
+            FROM excepciones_horario
+            WHERE email_manicurista = ?
+            AND fecha = ?
+        `, [manicurista, fecha]);
+
+        if (excepciones.length > 0 && excepciones[0].todo_el_dia) {
+            console.log('🚫 Hay excepción de horario (día completo bloqueado)');
+            return res.json({
+                success: true,
+                horarios: [],
+                mensaje: 'La manicurista no está disponible este día'
+            });
+        }
 
         // Obtener citas existentes de esa manicurista en esa fecha
         let queryExcluir = '';
@@ -384,29 +442,45 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
             ORDER BY hora_inicio
         `, params);
 
-        // Generar horarios disponibles (8:00 - 20:00 cada 30 min)
+        console.log('📋 Citas ocupadas:', citasOcupadas);
+
+        // Convertir horario laboral a minutos
+        const [horaInicioH, horaInicioM] = horarioLaboral.hora_inicio.split(':').map(Number);
+        const [horaFinH, horaFinM] = horarioLaboral.hora_fin.split(':').map(Number);
+        const minutosInicio = horaInicioH * 60 + horaInicioM;
+        const minutosFin = horaFinH * 60 + horaFinM;
+
+        console.log('⏰ Rango laboral en minutos:', minutosInicio, '-', minutosFin);
+
+        // Generar horarios disponibles cada 30 min
         const horariosDisponibles = [];
-        const horaInicio = 8 * 60; // 8:00 AM en minutos
-        const horaFin = 20 * 60; // 8:00 PM en minutos
         const intervalo = 30;
 
-        for (let minutos = horaInicio; minutos <= horaFin; minutos += intervalo) {
+        for (let minutos = minutosInicio; minutos < minutosFin; minutos += intervalo) {
             const hora = Math.floor(minutos / 60);
             const min = minutos % 60;
             const horaStr = `${hora.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:00`;
             
             // Calcular hora fin de esta cita potencial
             const minutosFinCita = minutos + duracion;
+            
+            // Verificar que no se pase del horario laboral
+            if (minutosFinCita > minutosFin) {
+                continue;
+            }
+            
             const horaFinCita = `${Math.floor(minutosFinCita / 60).toString().padStart(2, '0')}:${(minutosFinCita % 60).toString().padStart(2, '0')}:00`;
 
-            // Verificar si hay solapamiento
+            // Verificar si hay solapamiento con citas existentes
             const haySolapamiento = citasOcupadas.some(cita => {
                 return (
-                    (horaStr < cita.hora_fin && horaFinCita > cita.hora_inicio)
+                    (horaStr >= cita.hora_inicio && horaStr < cita.hora_fin) ||
+                    (horaFinCita > cita.hora_inicio && horaFinCita <= cita.hora_fin) ||
+                    (horaStr <= cita.hora_inicio && horaFinCita >= cita.hora_fin)
                 );
             });
 
-            if (!haySolapamiento && minutosFinCita <= horaFin) {
+            if (!haySolapamiento) {
                 horariosDisponibles.push({
                     hora: horaStr.substring(0, 5),
                     disponible: true
@@ -414,13 +488,15 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
             }
         }
 
+        console.log('✅ Horarios disponibles generados:', horariosDisponibles.length);
+
         res.json({
             success: true,
             horarios: horariosDisponibles
         });
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Error en obtenerHorariosDisponibles:', error);
         res.status(500).json({
             success: false,
             error: 'Error al obtener horarios disponibles'
