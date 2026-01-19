@@ -155,12 +155,7 @@ function renderizarCitas(citas) {
                         <button class="btn-icon btn-edit" onclick="editarCita(${cita.id_cita})" title="Editar">
                             ✏️
                         </button>
-                        ${cita.estado !== 'cancelada' ? `
-                            <button class="btn-icon btn-warning" onclick="confirmarCancelar(${cita.id_cita})" title="Cancelar cita">
-                                ⚠️
-                            </button>
-                        ` : ''}
-                        <button class="btn-icon btn-delete" onclick="confirmarEliminar(${cita.id_cita})" title="Eliminar permanentemente">
+                        <button class="btn-icon btn-delete" onclick="confirmarCancelar(${cita.id_cita})" title="Cancelar">
                             🗑️
                         </button>
                     </div>
