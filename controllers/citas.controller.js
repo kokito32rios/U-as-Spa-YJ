@@ -451,12 +451,27 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
         const minutosFin = horaFinH * 60 + horaFinM;
 
         console.log('⏰ Rango laboral en minutos:', minutosInicio, '-', minutosFin);
+        
+        // Obtener hora actual si es hoy
+        const hoy = new Date();
+        const fechaHoy = hoy.toISOString().split('T')[0];
+        const esHoy = fecha === fechaHoy;
+        const horaActualMinutos = esHoy ? (hoy.getHours() * 60 + hoy.getMinutes()) : 0;
+        
+        if (esHoy) {
+            console.log('📍 Es hoy, hora actual en minutos:', horaActualMinutos, `(${hoy.getHours()}:${hoy.getMinutes()})`);
+        }
 
         // Generar horarios disponibles cada 30 min
         const horariosDisponibles = [];
         const intervalo = 30;
 
         for (let minutos = minutosInicio; minutos < minutosFin; minutos += intervalo) {
+            // Si es hoy, no mostrar horarios pasados
+            if (esHoy && minutos <= horaActualMinutos) {
+                continue;
+            }
+            
             const hora = Math.floor(minutos / 60);
             const min = minutos % 60;
             const horaStr = `${hora.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:00`;

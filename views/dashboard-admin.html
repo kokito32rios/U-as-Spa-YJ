@@ -273,6 +273,27 @@
       </div>
     </div>
 
+    <!-- MODAL: CONFIRMACIÓN -->
+    <div id="modal-confirmacion" class="modal-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-icon-confirm" id="confirm-icon">⚠️</div>
+        <h3 id="confirm-titulo">¿Estás seguro?</h3>
+        <p id="confirm-mensaje">Esta acción no se puede deshacer.</p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="cerrarModalConfirmacion()">
+            Cancelar
+          </button>
+          <button
+            class="btn btn-primary"
+            id="btn-confirmar"
+            onclick="ejecutarAccionConfirmada()"
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script src="/js/dashboard-admin.js"></script>
   </body>
 </html>

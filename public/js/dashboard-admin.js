@@ -463,13 +463,17 @@ async function editarCita(idCita) {
     }
 }
 
+// Variable para almacenar la acción a confirmar
+let accionPendiente = null;
+
 // =============================================
 // CONFIRMAR CANCELAR CITA
 // =============================================
 function confirmarCancelar(idCita) {
-    mostrarConfirmacion(
+    mostrarModalConfirmacion(
+        '⚠️',
         '¿Cancelar cita?',
-        '¿Estás seguro de que deseas cancelar esta cita? Esta acción cambiará el estado a "cancelada".',
+        'Esta acción cambiará el estado de la cita a "cancelada". La cita permanecerá en el historial.',
         () => cancelarCita(idCita)
     );
 }
@@ -478,11 +482,43 @@ function confirmarCancelar(idCita) {
 // CONFIRMAR ELIMINAR CITA
 // =============================================
 function confirmarEliminar(idCita) {
-    mostrarConfirmacion(
-        '⚠️ ¿Eliminar cita?',
-        'Esta acción eliminará permanentemente la cita de la base de datos. ¿Estás seguro?',
+    mostrarModalConfirmacion(
+        '🗑️',
+        '¿Eliminar cita?',
+        'Esta acción eliminará permanentemente la cita de la base de datos. Esta acción NO se puede deshacer.',
         () => eliminarCita(idCita)
     );
+}
+
+// =============================================
+// MOSTRAR MODAL DE CONFIRMACIÓN
+// =============================================
+function mostrarModalConfirmacion(icono, titulo, mensaje, callback) {
+    document.getElementById('confirm-icon').textContent = icono;
+    document.getElementById('confirm-titulo').textContent = titulo;
+    document.getElementById('confirm-mensaje').textContent = mensaje;
+    
+    accionPendiente = callback;
+    
+    document.getElementById('modal-confirmacion').classList.remove('hidden');
+}
+
+// =============================================
+// CERRAR MODAL DE CONFIRMACIÓN
+// =============================================
+function cerrarModalConfirmacion() {
+    document.getElementById('modal-confirmacion').classList.add('hidden');
+    accionPendiente = null;
+}
+
+// =============================================
+// EJECUTAR ACCIÓN CONFIRMADA
+// =============================================
+function ejecutarAccionConfirmada() {
+    if (accionPendiente) {
+        accionPendiente();
+        cerrarModalConfirmacion();
+    }
 }
 
 // =============================================
@@ -535,21 +571,18 @@ async function eliminarCita(idCita) {
 }
 
 // =============================================
-// MOSTRAR CONFIRMACIÓN
-// =============================================
-function mostrarConfirmacion(titulo, mensaje, callback) {
-    const confirmar = confirm(`${titulo}\n\n${mensaje}`);
-    if (confirmar) {
-        callback();
-    }
-}
-
-// =============================================
-// CERRAR SESIÓN
+// CERRAR SESIÓN (con confirmación)
 // =============================================
 function cerrarSesion() {
-    localStorage.removeItem('token');
-    window.location.href = '/login.html';
+    mostrarModalConfirmacion(
+        '🚪',
+        '¿Cerrar sesión?',
+        '¿Estás seguro de que deseas cerrar tu sesión?',
+        () => {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+    );
 }
 
 // =============================================
@@ -664,10 +697,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    document.getElementById('modal-confirmacion').addEventListener('click', (e) => {
+        if (e.target.id === 'modal-confirmacion') {
+            cerrarModalConfirmacion();
+        }
+    });
+    
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             cerrarModalCita();
             cerrarModalMensaje();
+            cerrarModalConfirmacion();
         }
     });
 });
