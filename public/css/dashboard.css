@@ -12,11 +12,9 @@
    ============================================= */
 .sidebar {
   width: 260px;
-  background: linear-gradient(
-    180deg,
-    var(--primary-color),
-    var(--primary-dark)
-  );
+  background: linear-gradient(180deg,
+      var(--primary-color),
+      var(--primary-dark));
   color: var(--white);
   display: flex;
   flex-direction: column;
@@ -206,11 +204,9 @@ textarea.form-input {
 }
 
 .btn-primary {
-  background: linear-gradient(
-    135deg,
-    var(--primary-color),
-    var(--secondary-color)
-  );
+  background: linear-gradient(135deg,
+      var(--primary-color),
+      var(--secondary-color));
   color: var(--white);
 }
 
@@ -422,6 +418,7 @@ textarea.form-input {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -447,6 +444,7 @@ textarea.form-input {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -606,11 +604,9 @@ textarea.form-input {
 
 .btn-modal {
   padding: 12px 32px;
-  background: linear-gradient(
-    135deg,
-    var(--primary-color),
-    var(--secondary-color)
-  );
+  background: linear-gradient(135deg,
+      var(--primary-color),
+      var(--secondary-color));
   color: var(--white);
   border: none;
   border-radius: 8px;
@@ -674,4 +670,506 @@ textarea.form-input {
   .table-container {
     overflow-x: auto;
   }
+}
+
+/* =============================================
+   AGENDA - CALENDARIO
+   ============================================= */
+.agenda-header {
+  background: var(--white);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.agenda-controles {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.vista-toggle {
+  display: flex;
+  background: #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.btn-toggle {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  color: var(--text-dark);
+}
+
+.btn-toggle.active {
+  background: var(--primary-color);
+  color: var(--white);
+}
+
+.btn-toggle:hover:not(.active) {
+  background: #e0e0e0;
+}
+
+.navegacion-fecha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-nav {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f0f0f0;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-nav:hover {
+  background: var(--primary-color);
+  color: var(--white);
+}
+
+#agenda-fecha-titulo {
+  font-size: 1.1rem;
+  font-weight: 600;
+  min-width: 180px;
+  text-align: center;
+}
+
+.btn-hoy {
+  padding: 8px 16px;
+  border: 2px solid var(--primary-color);
+  background: transparent;
+  color: var(--primary-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-hoy:hover {
+  background: var(--primary-color);
+  color: var(--white);
+}
+
+.agenda-filtros {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.agenda-filtros label {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.calendario-container {
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* CALENDARIO SEMANAL */
+.calendario-grid {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  min-height: 500px;
+}
+
+.calendario-header {
+  display: contents;
+}
+
+.calendario-header-cell {
+  padding: 15px 10px;
+  text-align: center;
+  background: var(--primary-color);
+  color: var(--white);
+  font-weight: 600;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.calendario-header-cell:first-child {
+  background: var(--primary-dark);
+}
+
+.calendario-header-cell.es-hoy {
+  background: var(--secondary-color);
+}
+
+.calendario-hora {
+  padding: 10px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-light);
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  border-right: 1px solid #f0f0f0;
+}
+
+.calendario-celda {
+  min-height: 50px;
+  border-bottom: 1px solid #f0f0f0;
+  border-right: 1px solid #f0f0f0;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.calendario-celda:hover {
+  background: rgba(207, 122, 100, 0.05);
+}
+
+.calendario-celda.no-disponible {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.calendario-celda.pasado {
+  background: #fafafa;
+  cursor: not-allowed;
+}
+
+.calendario-celda.pasado:hover {
+  background: #fafafa;
+}
+
+/* CITAS EN EL CALENDARIO */
+.cita-slot {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 2px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 10;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cita-slot:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 20;
+}
+
+.cita-slot .cita-hora {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.cita-slot .cita-cliente {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cita-slot .cita-servicio {
+  font-size: 0.7rem;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Colores de estados */
+.cita-slot.estado-pendiente {
+  background: linear-gradient(135deg, #fff3cd, #fff8e6);
+  border-left: 4px solid #ffc107;
+  color: #856404;
+}
+
+.cita-slot.estado-confirmada {
+  background: linear-gradient(135deg, #d1ecf1, #e8f6f8);
+  border-left: 4px solid #17a2b8;
+  color: #0c5460;
+}
+
+.cita-slot.estado-completada {
+  background: linear-gradient(135deg, #d4edda, #e8f5ea);
+  border-left: 4px solid #28a745;
+  color: #155724;
+}
+
+.cita-slot.estado-cancelada {
+  background: linear-gradient(135deg, #f8d7da, #fce4e6);
+  border-left: 4px solid #dc3545;
+  color: #721c24;
+  opacity: 0.7;
+}
+
+/* SLOT DISPONIBLE (hover) */
+.slot-disponible {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  background: var(--primary-color);
+  color: var(--white);
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.calendario-celda:not(.no-disponible):not(.pasado):hover .slot-disponible {
+  display: flex;
+  opacity: 1;
+}
+
+/* CALENDARIO MENSUAL */
+.calendario-mensual-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.mes-header {
+  padding: 15px;
+  text-align: center;
+  background: var(--primary-color);
+  color: var(--white);
+  font-weight: 600;
+}
+
+.mes-dia {
+  min-height: 100px;
+  padding: 10px;
+  border: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mes-dia:hover {
+  background: rgba(207, 122, 100, 0.05);
+}
+
+.mes-dia.otro-mes {
+  background: #fafafa;
+  color: #999;
+}
+
+.mes-dia.es-hoy {
+  background: rgba(207, 122, 100, 0.1);
+}
+
+.mes-dia .dia-numero {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+}
+
+.mes-dia .dia-citas {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.mes-dia .citas-badge {
+  display: inline-block;
+  background: var(--primary-color);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  margin-top: 5px;
+}
+
+/* RESPONSIVE AGENDA */
+@media (max-width: 1024px) {
+  .calendario-grid {
+    grid-template-columns: 60px repeat(7, 1fr);
+    font-size: 0.85rem;
+  }
+
+  .calendario-header-cell {
+    padding: 10px 5px;
+  }
+
+  .cita-slot {
+    padding: 4px 6px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .agenda-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .agenda-controles {
+    justify-content: center;
+  }
+
+  .calendario-grid {
+    grid-template-columns: 50px repeat(7, 1fr);
+  }
+
+  .calendario-header-cell {
+    font-size: 0.75rem;
+    padding: 8px 2px;
+  }
+
+  .cita-slot .cita-servicio {
+    display: none;
+  }
+}
+
+/* =============================================
+   HORARIOS - GESTIÓN
+   ============================================= */
+.horarios-header {
+  background: var(--white);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+
+.horarios-header .form-group {
+  max-width: 300px;
+}
+
+.horarios-section {
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--white);
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+}
+
+/* Modal pequeño */
+.modal-sm {
+  max-width: 450px;
+}
+
+/* Toggle activo/inactivo */
+.status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #ccc;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.toggle-switch.active {
+  background: var(--success-color);
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+.toggle-switch.active::after {
+  transform: translateX(20px);
+}
+
+/* Badges de días */
+.dia-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.dia-badge.lunes {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.dia-badge.martes {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.dia-badge.miercoles {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.dia-badge.jueves {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.dia-badge.viernes {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.dia-badge.sabado {
+  background: #e0f2f1;
+  color: #00796b;
+}
+
+.dia-badge.domingo {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* Centrar texto en tabla */
+.text-center {
+  text-align: center;
 }

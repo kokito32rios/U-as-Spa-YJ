@@ -43,7 +43,7 @@ app.get('/catalogo.html', (req, res) => {
 
 // Ruta de prueba de API
 app.get('/api/test', (req, res) => {
-  res.json({ 
+  res.json({
     message: '✅ API funcionando correctamente',
     timestamp: new Date().toISOString()
   });
@@ -54,12 +54,14 @@ const serviciosRoutes = require('./routes/servicios.routes');
 const catalogoRoutes = require('./routes/catalogo.routes');
 const authRoutes = require('./routes/auth.routes');
 const citasRoutes = require('./routes/citas.routes');
+const horariosRoutes = require('./routes/horarios.routes');
 
 // Usar rutas
 app.use('/api/servicios', serviciosRoutes);
 app.use('/api/catalogo', catalogoRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/citas', citasRoutes);
+app.use('/api/horarios', horariosRoutes);
 
 // TODO: Agregar más rutas aquí
 // const authRoutes = require('./routes/auth.routes');

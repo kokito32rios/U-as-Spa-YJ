@@ -27,7 +27,7 @@ exports.obtenerCitas = async (req, res) => {
                 s.precio,
                 s.duracion_minutos
             FROM citas c
-            INNER JOIN usuarios uc ON c.email_cliente = uc.email
+            LEFT JOIN usuarios uc ON c.email_cliente = uc.email
             INNER JOIN usuarios um ON c.email_manicurista = um.email
             INNER JOIN servicios s ON c.id_servicio = s.id_servicio
             WHERE 1=1
@@ -83,13 +83,13 @@ exports.crearCita = async (req, res) => {
         } = req.body;
 
         // Validar campos requeridos
-        if (!email_cliente || !email_manicurista || !id_servicio || !fecha || !hora_inicio) {
+        if (!email_manicurista || !id_servicio || !fecha || !hora_inicio) {
             return res.status(400).json({
                 success: false,
                 message: 'Faltan campos requeridos'
             });
         }
-        
+
         // Validar formato de hora
         if (!/^\d{2}:\d{2}(:\d{2})?$/.test(hora_inicio)) {
             return res.status(400).json({
@@ -159,7 +159,7 @@ exports.crearCita = async (req, res) => {
                 notas_cliente
             ) VALUES (?, ?, ?, ?, ?, ?, 'pendiente', ?)
         `, [
-            email_cliente,
+            email_cliente || null,
             email_manicurista,
             id_servicio,
             fecha,
@@ -221,9 +221,9 @@ exports.actualizarCita = async (req, res) => {
         const params = [];
         const updates = [];
 
-        if (email_cliente) {
+        if (email_cliente !== undefined) {
             updates.push('email_cliente = ?');
-            params.push(email_cliente);
+            params.push(email_cliente || null);
         }
         if (email_manicurista) {
             updates.push('email_manicurista = ?');
@@ -426,7 +426,7 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
         // Obtener citas existentes de esa manicurista en esa fecha
         let queryExcluir = '';
         const params = [manicurista, fecha];
-        
+
         if (id_cita_excluir) {
             queryExcluir = ' AND id_cita != ?';
             params.push(id_cita_excluir);
@@ -451,13 +451,13 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
         const minutosFin = horaFinH * 60 + horaFinM;
 
         console.log('⏰ Rango laboral en minutos:', minutosInicio, '-', minutosFin);
-        
+
         // Obtener hora actual si es hoy
         const hoy = new Date();
         const fechaHoy = hoy.toISOString().split('T')[0];
         const esHoy = fecha === fechaHoy;
         const horaActualMinutos = esHoy ? (hoy.getHours() * 60 + hoy.getMinutes()) : 0;
-        
+
         if (esHoy) {
             console.log('📍 Es hoy, hora actual en minutos:', horaActualMinutos, `(${hoy.getHours()}:${hoy.getMinutes()})`);
         }
@@ -471,19 +471,19 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
             if (esHoy && minutos <= horaActualMinutos) {
                 continue;
             }
-            
+
             const hora = Math.floor(minutos / 60);
             const min = minutos % 60;
             const horaStr = `${hora.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:00`;
-            
+
             // Calcular hora fin de esta cita potencial
             const minutosFinCita = minutos + duracion;
-            
+
             // Verificar que no se pase del horario laboral
             if (minutosFinCita > minutosFin) {
                 continue;
             }
-            
+
             const horaFinCita = `${Math.floor(minutosFinCita / 60).toString().padStart(2, '0')}:${(minutosFinCita % 60).toString().padStart(2, '0')}:00`;
 
             // Verificar si hay solapamiento con citas existentes
@@ -541,6 +541,119 @@ exports.obtenerClientes = async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Error al obtener clientes'
+        });
+    }
+};
+
+// =============================================
+// OBTENER CITAS PARA AGENDA (Calendario)
+// =============================================
+exports.obtenerCitasAgenda = async (req, res) => {
+    try {
+        const { fecha_inicio, fecha_fin, manicurista } = req.query;
+
+        if (!fecha_inicio || !fecha_fin) {
+            return res.status(400).json({
+                success: false,
+                message: 'Se requieren fecha_inicio y fecha_fin'
+            });
+        }
+
+        // Query base para citas
+        let queryCitas = `
+            SELECT 
+                c.id_cita,
+                c.fecha,
+                c.hora_inicio,
+                c.hora_fin,
+                c.estado,
+                c.notas_cliente,
+                c.email_cliente,
+                CONCAT(uc.nombre, ' ', uc.apellido) as nombre_cliente,
+                uc.telefono as telefono_cliente,
+                c.email_manicurista,
+                CONCAT(um.nombre, ' ', um.apellido) as nombre_manicurista,
+                c.id_servicio,
+                s.nombre as nombre_servicio,
+                s.precio,
+                s.duracion_minutos
+            FROM citas c
+            LEFT JOIN usuarios uc ON c.email_cliente = uc.email
+            INNER JOIN usuarios um ON c.email_manicurista = um.email
+            INNER JOIN servicios s ON c.id_servicio = s.id_servicio
+            WHERE c.fecha BETWEEN ? AND ?
+        `;
+
+        const paramsCitas = [fecha_inicio, fecha_fin];
+
+        if (manicurista) {
+            queryCitas += ` AND c.email_manicurista = ?`;
+            paramsCitas.push(manicurista);
+        }
+
+        queryCitas += ` ORDER BY c.fecha, c.hora_inicio`;
+
+        const [citas] = await db.query(queryCitas, paramsCitas);
+
+        // Obtener manicuristas activas
+        let queryManicuristas = `
+            SELECT email, CONCAT(nombre, ' ', apellido) as nombre_completo
+            FROM usuarios
+            WHERE nombre_rol = 'manicurista' AND activo = 1
+        `;
+
+        const paramsManicuristas = [];
+        if (manicurista) {
+            queryManicuristas += ` AND email = ?`;
+            paramsManicuristas.push(manicurista);
+        }
+
+        queryManicuristas += ` ORDER BY nombre ASC`;
+
+        const [manicuristas] = await db.query(queryManicuristas, paramsManicuristas);
+
+        // Obtener horarios de trabajo de las manicuristas
+        const emailsManicuristas = manicuristas.map(m => m.email);
+
+        let horariosResult = [];
+        if (emailsManicuristas.length > 0) {
+            const placeholders = emailsManicuristas.map(() => '?').join(',');
+            const [horarios] = await db.query(`
+                SELECT email_manicurista, dia_semana, hora_inicio, hora_fin
+                FROM horarios_trabajo
+                WHERE email_manicurista IN (${placeholders})
+                AND activo = 1
+                ORDER BY email_manicurista, dia_semana
+            `, emailsManicuristas);
+            horariosResult = horarios;
+        }
+
+        // Obtener excepciones de horario para el rango de fechas
+        let excepcionesResult = [];
+        if (emailsManicuristas.length > 0) {
+            const placeholders = emailsManicuristas.map(() => '?').join(',');
+            const [excepciones] = await db.query(`
+                SELECT email_manicurista, fecha, todo_el_dia, hora_inicio, hora_fin
+                FROM excepciones_horario
+                WHERE email_manicurista IN (${placeholders})
+                AND fecha BETWEEN ? AND ?
+            `, [...emailsManicuristas, fecha_inicio, fecha_fin]);
+            excepcionesResult = excepciones;
+        }
+
+        res.json({
+            success: true,
+            citas,
+            manicuristas,
+            horarios_trabajo: horariosResult,
+            excepciones: excepcionesResult
+        });
+
+    } catch (error) {
+        console.error('Error en obtenerCitasAgenda:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener datos de la agenda'
         });
     }
 };
