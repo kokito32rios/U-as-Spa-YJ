@@ -84,6 +84,12 @@ function cambiarSeccion(seccion) {
     };
     document.getElementById('section-title').textContent = titulos[seccion];
 
+    // Toggle header "Nueva Cita" button visibility
+    const headerActions = document.querySelector('.header-actions');
+    if (headerActions) {
+        headerActions.style.display = ['agendamiento', 'agenda'].includes(seccion) ? 'flex' : 'none';
+    }
+
     // Cargar datos según sección
     if (seccion === 'agendamiento') {
         cargarCitas();
@@ -91,6 +97,8 @@ function cambiarSeccion(seccion) {
         inicializarAgenda();
     } else if (seccion === 'horarios') {
         inicializarHorarios();
+    } else if (seccion === 'servicios') {
+        inicializarServicios();
     }
 }
 
@@ -1669,6 +1677,248 @@ function restaurarVista() {
     const slots = document.querySelectorAll('.cita-slot');
     slots.forEach(slot => {
         slot.classList.remove('dimmed');
-        slot.classList.remove('highlighted');
     });
+}
+
+// =============================================
+// GESTIÓN DE SERVICIOS
+// =============================================
+async function inicializarServicios() {
+    await cargarServiciosTabla();
+}
+
+async function cargarServiciosTabla() {
+    const tbody = document.getElementById('servicios-body');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">Cargando...</td></tr>';
+
+    try {
+        const response = await fetchConToken('/api/servicios?includeAll=true');
+
+        const data = await response.json();
+
+        if (!data.servicios || data.servicios.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay servicios registrados</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.servicios.map(s => `
+            <tr>
+                <td><strong>${s.nombre}</strong></td>
+                <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${s.descripcion || ''}">${s.descripcion || '-'}</td>
+                <td>$${Number(s.precio).toLocaleString('es-CO')}</td>
+                <td>${s.duracion_minutos} min</td>
+                <td>
+                    <span class="badge badge-${s.activo ? 'confirmada' : 'cancelada'}">
+                        ${s.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                </td>
+                <td class="table-actions">
+                    <button class="btn-icon btn-edit" onclick="editarServicio(${s.id_servicio})" title="Editar">✏️</button>
+                    ${s.activo
+                ? `<button class="btn-icon btn-warning" onclick="confirmarToggleServicio(${s.id_servicio}, 0, '${s.nombre}')" title="Desactivar">🚫</button>`
+                : `<button class="btn-icon" style="background:#d4edda;color:#155724;" onclick="confirmarToggleServicio(${s.id_servicio}, 1, '${s.nombre}')" title="Activar">✅</button>`
+            }
+                    <button class="btn-icon btn-delete" onclick="confirmarEliminarServicio(${s.id_servicio}, '${s.nombre}')" title="Eliminar">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+
+    } catch (error) {
+        console.error('Error al cargar servicios:', error);
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-red">Error al cargar datos</td></tr>';
+    }
+}
+
+function abrirModalServicio() {
+    document.getElementById('form-servicio').reset();
+    document.getElementById('servicio-id').value = '';
+    document.getElementById('modal-servicio-titulo').textContent = 'Nuevo Servicio';
+    document.getElementById('modal-servicio').classList.remove('hidden');
+}
+
+function cerrarModalServicio() {
+    document.getElementById('modal-servicio').classList.add('hidden');
+}
+
+async function guardarServicio() {
+    const id = document.getElementById('servicio-id').value;
+    const nombre = document.getElementById('servicio-nombre').value;
+    const precio = document.getElementById('servicio-precio').value;
+    const duracion = document.getElementById('servicio-duracion').value;
+    const descripcion = document.getElementById('servicio-descripcion').value;
+
+    if (!nombre || !precio || !duracion) {
+        mostrarMensaje('error', '⚠️', 'Campos incompletos', 'Nombre, precio y duración son obligatorios');
+        return;
+    }
+
+    const datos = { nombre, precio, duracion, descripcion };
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/api/servicios/${id}` : '/api/servicios';
+
+    try {
+        const response = await fetchConToken(url, {
+            method: method,
+            body: JSON.stringify(datos)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            mostrarMensaje('success', '✅', 'Éxito', result.message);
+            cerrarModalServicio();
+            cargarServiciosTabla();
+        } else {
+            throw new Error(result.message || 'Error al guardar');
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('error', '❌', 'Error', error.message);
+    }
+}
+
+async function editarServicio(id) {
+    try {
+        const response = await fetchConToken(`/api/servicios/${id}`);
+        const data = await response.json();
+
+        if (data.success) {
+            const s = data.servicio;
+            document.getElementById('servicio-id').value = s.id_servicio;
+            document.getElementById('servicio-nombre').value = s.nombre;
+            document.getElementById('servicio-precio').value = s.precio;
+            document.getElementById('servicio-duracion').value = s.duracion_minutos;
+            document.getElementById('servicio-descripcion').value = s.descripcion || '';
+
+            document.getElementById('modal-servicio-titulo').textContent = 'Editar Servicio';
+            document.getElementById('modal-servicio').classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error(error);
+        mostrarMensaje('error', '❌', 'Error', 'No se pudo cargar el servicio');
+    }
+}
+
+async function toggleEstadoServicio(id, nuevoEstado) {
+    try {
+        const response = await fetchConToken(`/api/servicios/${id}/estado`, {
+            method: 'PATCH',
+            body: JSON.stringify({ activo: nuevoEstado })
+        });
+
+        if (response.ok) {
+            cargarServiciosTabla();
+        } else {
+            mostrarMensaje('error', '❌', 'Error', 'No se pudo cambiar el estado');
+        }
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+// Confirmation modal for toggle
+function confirmarToggleServicio(id, nuevoEstado, nombre) {
+    const accion = nuevoEstado ? 'activar' : 'desactivar';
+    const mensaje = nuevoEstado
+        ? `¿Deseas activar "${nombre}"? Volverá a estar disponible para agendar citas.`
+        : `¿Deseas desactivar "${nombre}"? No podrás usarlo para nuevas citas hasta que lo actives de nuevo.`;
+
+    mostrarConfirmacion(
+        nuevoEstado ? '✅' : '🚫',
+        `${accion.charAt(0).toUpperCase() + accion.slice(1)} Servicio`,
+        mensaje,
+        () => toggleEstadoServicio(id, nuevoEstado)
+    );
+}
+
+// Confirmation modal for delete
+function confirmarEliminarServicio(id, nombre) {
+    mostrarConfirmacion(
+        '🗑️',
+        'Eliminar Servicio',
+        `¿Estás seguro de eliminar "${nombre}"? Esta acción NO se puede deshacer y se perderá el historial asociado.`,
+        () => eliminarServicio(id),
+        true // isDangerous
+    );
+}
+
+async function eliminarServicio(id) {
+    try {
+        const response = await fetchConToken(`/api/servicios/${id}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            mostrarMensaje('success', '✅', 'Eliminado', result.message);
+            cargarServiciosTabla();
+        } else {
+            mostrarMensaje('error', '❌', 'Error', result.message || 'No se pudo eliminar el servicio');
+        }
+    } catch (error) {
+        console.error(error);
+        mostrarMensaje('error', '❌', 'Error', 'Error al eliminar el servicio');
+    }
+}
+
+// Generic confirmation modal helper
+function mostrarConfirmacion(icon, titulo, mensaje, onConfirm, isDangerous = false) {
+    // Remove existing modal to avoid DOM conflicts
+    const existingModal = document.getElementById('modal-confirmacion');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Create confirmation modal fresh
+    const modal = document.createElement('div');
+    modal.id = 'modal-confirmacion';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-box">
+            <div class="modal-icon warning confirmacion-icon"></div>
+            <h3 class="confirmacion-titulo"></h3>
+            <p class="confirmacion-mensaje"></p>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button class="btn btn-secondary btn-cancelar">Cancelar</button>
+                <button class="btn btn-primary btn-confirmar-accion">Confirmar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Setup content
+    modal.querySelector('.confirmacion-icon').textContent = icon;
+    modal.querySelector('.confirmacion-titulo').textContent = titulo;
+    modal.querySelector('.confirmacion-mensaje').textContent = mensaje;
+
+    // Setup actions
+    modal.querySelector('.btn-cancelar').onclick = cerrarConfirmacion;
+
+    const btnConfirmar = modal.querySelector('.btn-confirmar-accion');
+    btnConfirmar.style.background = isDangerous ? '#c62828' : '';
+    btnConfirmar.onclick = () => {
+        cerrarConfirmacion();
+        onConfirm();
+    };
+
+    modal.classList.remove('hidden');
+}
+
+function cerrarConfirmacion() {
+    document.getElementById('modal-confirmacion')?.classList.add('hidden');
+}
+
+function cerrarSesion() {
+    mostrarConfirmacion(
+        '🚪',
+        'Cerrar Sesión',
+        '¿Estás seguro que deseas salir del sistema?',
+        () => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        },
+        false // Not dangerous
+    );
 }

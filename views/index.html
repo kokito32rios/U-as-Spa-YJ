@@ -1,134 +1,142 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Uñas Spa Yaneth Jiménez - Belleza y Elegancia</title>
-    <link rel="stylesheet" href="/css/styles.css" />
-  </head>
-  <body>
-    <!-- HERO SECTION -->
-    <section class="hero">
-      <div class="hero-overlay"></div>
-      <div class="hero-content">
-        <h1 class="hero-title">💅 Uñas Spa Yaneth Jiménez</h1>
-        <p class="hero-subtitle">
-          Donde tus manos encuentran su belleza perfecta
-        </p>
-        <div class="hero-buttons">
-          <a href="#servicios" class="btn btn-primary btn-large"
-            >Ver Servicios</a
-          >
-          <a href="/catalogo.html" class="btn btn-secondary btn-large"
-            >Galería de Trabajos</a
-          >
-        </div>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Uñas Spa Yaneth Jiménez - Belleza y Elegancia</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+
+  <!-- SEO -->
+  <meta name="description"
+    content="Spa de uñas profesional en Bello, Antioquia. Especialistas en manicura tradicional, gel, acrílicas y diseños personalizados. ¡Agenda tu cita hoy!" />
+  <meta name="keywords"
+    content="uñas bello, spa de uñas, manicura bello, pedicura, uñas acrilicas, diseño de uñas, yaneth jimenez, bello antioquia" />
+  <meta name="author" content="Uñas Spa Yaneth Jiménez" />
+
+  <!-- Open Graph / Facebook / WhatsApp -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Uñas Spa Yaneth Jiménez - Belleza y Elegancia" />
+  <meta property="og:description"
+    content="Donde tus manos encuentran su belleza perfecta. Servicios profesionales de manicura y pedicura en Bello, Antioquia." />
+  <meta property="og:image" content="/img/og-image.jpg" />
+  <meta property="og:url" content="/" />
+</head>
+
+<body>
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1 class="hero-title">💅 Uñas Spa Yaneth Jiménez</h1>
+      <p class="hero-subtitle">
+        Donde tus manos encuentran su belleza perfecta
+      </p>
+      <div class="hero-buttons">
+        <a href="#servicios" class="btn btn-primary btn-large">Ver Servicios</a>
+        <a href="/catalogo.html" class="btn btn-secondary btn-large">Galería de Trabajos</a>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- BARRA DE NAVEGACIÓN FLOTANTE -->
-    <nav class="navbar" id="navbar">
-      <div class="nav-container">
-        <div class="nav-brand">Uñas Spa YJ</div>
-        <div class="nav-links">
-          <a href="#servicios">Servicios</a>
-          <a href="/catalogo.html">Galería</a>
-          <a href="#contacto">Contacto</a>
-          <a href="/login.html" class="nav-login">Iniciar Sesión</a>
-        </div>
+  <!-- BARRA DE NAVEGACIÓN FLOTANTE -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">Uñas Spa YJ</div>
+      <div class="nav-links">
+        <a href="#servicios">Servicios</a>
+        <a href="/catalogo.html">Galería</a>
+        <a href="#contacto">Contacto</a>
+        <a href="/login.html" class="nav-login">Iniciar Sesión</a>
       </div>
-    </nav>
+    </div>
+  </nav>
 
-    <!-- SECCIÓN DE SERVICIOS -->
-    <section class="servicios-section" id="servicios">
-      <div class="container">
-        <h2 class="section-title">Nuestros Servicios</h2>
-        <p class="section-description">
-          Cada servicio es una experiencia única diseñada para ti
-        </p>
+  <!-- SECCIÓN DE SERVICIOS -->
+  <section class="servicios-section" id="servicios">
+    <div class="container">
+      <h2 class="section-title">Nuestros Servicios</h2>
+      <p class="section-description">
+        Cada servicio es una experiencia única diseñada para ti
+      </p>
 
-        <!-- Loader mientras carga -->
-        <div id="servicios-loader" class="loader">
-          <div class="spinner"></div>
-          <p>Cargando servicios...</p>
-        </div>
-
-        <!-- Contenedor de servicios (se llena dinámicamente) -->
-        <div id="servicios-grid" class="servicios-grid hidden">
-          <!-- Los servicios se cargarán aquí dinámicamente con JS -->
-        </div>
-
-        <!-- Mensaje de error si falla la carga -->
-        <div id="servicios-error" class="alert alert-error hidden">
-          <p>
-            No se pudieron cargar los servicios. Por favor intenta más tarde.
-          </p>
-        </div>
+      <!-- Loader mientras carga -->
+      <div id="servicios-loader" class="loader">
+        <div class="spinner"></div>
+        <p>Cargando servicios...</p>
       </div>
-    </section>
 
-    <!-- SECCIÓN LLAMADO A LA ACCIÓN -->
-    <section class="cta-section">
-      <div class="container">
-        <h2>¿Lista para lucir unas manos hermosas?</h2>
-        <p>Agenda tu cita ahora y disfruta de la mejor experiencia</p>
-        <a href="/login.html" class="btn btn-primary btn-large">Agendar Cita</a>
+      <!-- Contenedor de servicios (se llena dinámicamente) -->
+      <div id="servicios-grid" class="servicios-grid hidden">
+        <!-- Los servicios se cargarán aquí dinámicamente con JS -->
       </div>
-    </section>
 
-    <!-- SECCIÓN DE CONTACTO -->
-    <section class="contacto-section" id="contacto">
-      <div class="container">
-        <h2 class="section-title">Contáctanos</h2>
-        <div class="contacto-grid">
-          <div class="contacto-card">
-            <div class="contacto-icon">📍</div>
-            <h3>Ubicación</h3>
-            <p>Medellín, Antioquia</p>
-          </div>
-          <div class="contacto-card">
-            <div class="contacto-icon">📞</div>
-            <h3>Teléfono</h3>
-            <p>Consulta disponibilidad</p>
-          </div>
-          <div class="contacto-card">
-            <div class="contacto-icon">⏰</div>
-            <h3>Horario</h3>
-            <p>Lunes a Sábado</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="footer">
-      <div class="container">
+      <!-- Mensaje de error si falla la carga -->
+      <div id="servicios-error" class="alert alert-error hidden">
         <p>
-          &copy; 2025 Uñas Spa Yaneth Jiménez. Todos los derechos reservados.
-        </p>
-        <p class="footer-tagline">
-          Belleza, elegancia y profesionalismo en cada detalle
+          No se pudieron cargar los servicios. Por favor intenta más tarde.
         </p>
       </div>
-    </footer>
+    </div>
+  </section>
 
-    <!-- BOTÓN FLOTANTE DE WHATSAPP -->
-    <a
-      href="https://wa.me/573001234567?text=Hola%2C%20me%20interesa%20agendar%20una%20cita%20en%20Uñas%20Spa%20Yaneth%20Jiménez"
-      class="whatsapp-float"
-      target="_blank"
-      aria-label="Contactar por WhatsApp"
-    >
-      <svg viewBox="0 0 32 32" class="whatsapp-icon">
-        <path
-          fill="currentColor"
-          d="M16 0c-8.837 0-16 7.163-16 16 0 2.825 0.737 5.607 2.137 8.048l-2.137 7.952 7.933-2.127c2.42 1.37 5.173 2.127 8.067 2.127 8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 29.467c-2.482 0-4.908-0.646-7.07-1.87l-0.507-0.292-5.281 1.421 1.441-5.366-0.325-0.527c-1.325-2.17-2.025-4.68-2.025-7.287 0-7.51 6.11-13.62 13.62-13.62s13.62 6.11 13.62 13.62-6.11 13.62-13.62 13.62zM21.524 19.576c-0.304-0.151-1.801-0.889-2.081-0.99s-0.482-0.151-0.686 0.151c-0.203 0.304-0.788 0.99-0.966 1.193-0.177 0.203-0.355 0.228-0.659 0.076-0.304-0.151-1.283-0.473-2.444-1.509-0.903-0.806-1.513-1.8-1.69-2.104s-0.019-0.469 0.133-0.62c0.137-0.136 0.304-0.355 0.456-0.533s0.203-0.304 0.304-0.507c0.101-0.203 0.051-0.381-0.025-0.533s-0.686-1.653-0.939-2.264c-0.247-0.594-0.499-0.513-0.686-0.523-0.177-0.009-0.381-0.011-0.584-0.011s-0.533 0.076-0.812 0.381c-0.279 0.304-1.065 1.041-1.065 2.54s1.09 2.947 1.242 3.15c0.151 0.203 2.14 3.267 5.186 4.583 0.724 0.313 1.29 0.5 1.731 0.64 0.728 0.232 1.39 0.199 1.913 0.121 0.584-0.087 1.801-0.736 2.055-1.447s0.254-1.32 0.177-1.447c-0.076-0.127-0.279-0.203-0.584-0.355z"
-        />
-      </svg>
-      <span class="whatsapp-text">WhatsApp</span>
-    </a>
+  <!-- SECCIÓN LLAMADO A LA ACCIÓN -->
+  <section class="cta-section">
+    <div class="container">
+      <h2>¿Lista para lucir unas manos hermosas?</h2>
+      <p>Agenda tu cita ahora y disfruta de la mejor experiencia</p>
+      <a href="/login.html" class="btn btn-primary btn-large">Agendar Cita</a>
+    </div>
+  </section>
 
-    <!-- Script que carga los servicios dinámicamente -->
-    <script src="/js/index.js"></script>
-  </body>
+  <!-- SECCIÓN DE CONTACTO -->
+  <section class="contacto-section" id="contacto">
+    <div class="container">
+      <h2 class="section-title">Contáctanos</h2>
+      <div class="contacto-grid">
+        <div class="contacto-card">
+          <div class="contacto-icon">📍</div>
+          <h3>Ubicación</h3>
+          <p>Bello, Antioquia</p>
+        </div>
+        <div class="contacto-card">
+          <div class="contacto-icon">📞</div>
+          <h3>Teléfono</h3>
+          <p>Consulta disponibilidad</p>
+        </div>
+        <div class="contacto-card">
+          <div class="contacto-icon">⏰</div>
+          <h3>Horario</h3>
+          <p>Lunes a Sábado</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <p>
+        &copy; 2025 Uñas Spa Yaneth Jiménez. Todos los derechos reservados.
+      </p>
+      <p class="footer-tagline">
+        Belleza, elegancia y profesionalismo en cada detalle
+      </p>
+    </div>
+  </footer>
+
+  <!-- BOTÓN FLOTANTE DE WHATSAPP -->
+  <a href="https://wa.me/573001234567?text=Hola%2C%20me%20interesa%20agendar%20una%20cita%20en%20Uñas%20Spa%20Yaneth%20Jiménez"
+    class="whatsapp-float" target="_blank" aria-label="Contactar por WhatsApp">
+    <svg viewBox="0 0 32 32" class="whatsapp-icon">
+      <path fill="currentColor"
+        d="M16 0c-8.837 0-16 7.163-16 16 0 2.825 0.737 5.607 2.137 8.048l-2.137 7.952 7.933-2.127c2.42 1.37 5.173 2.127 8.067 2.127 8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 29.467c-2.482 0-4.908-0.646-7.07-1.87l-0.507-0.292-5.281 1.421 1.441-5.366-0.325-0.527c-1.325-2.17-2.025-4.68-2.025-7.287 0-7.51 6.11-13.62 13.62-13.62s13.62 6.11 13.62 13.62-6.11 13.62-13.62 13.62zM21.524 19.576c-0.304-0.151-1.801-0.889-2.081-0.99s-0.482-0.151-0.686 0.151c-0.203 0.304-0.788 0.99-0.966 1.193-0.177 0.203-0.355 0.228-0.659 0.076-0.304-0.151-1.283-0.473-2.444-1.509-0.903-0.806-1.513-1.8-1.69-2.104s-0.019-0.469 0.133-0.62c0.137-0.136 0.304-0.355 0.456-0.533s0.203-0.304 0.304-0.507c0.101-0.203 0.051-0.381-0.025-0.533s-0.686-1.653-0.939-2.264c-0.247-0.594-0.499-0.513-0.686-0.523-0.177-0.009-0.381-0.011-0.584-0.011s-0.533 0.076-0.812 0.381c-0.279 0.304-1.065 1.041-1.065 2.54s1.09 2.947 1.242 3.15c0.151 0.203 2.14 3.267 5.186 4.583 0.724 0.313 1.29 0.5 1.731 0.64 0.728 0.232 1.39 0.199 1.913 0.121 0.584-0.087 1.801-0.736 2.055-1.447s0.254-1.32 0.177-1.447c-0.076-0.127-0.279-0.203-0.584-0.355z" />
+    </svg>
+    <span class="whatsapp-text">WhatsApp</span>
+  </a>
+
+  <!-- Script que carga los servicios dinámicamente -->
+  <script src="/js/index.js"></script>
+</body>
+
 </html>
