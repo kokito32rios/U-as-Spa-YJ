@@ -260,7 +260,7 @@ async function cargarServiciosSelect() {
         const select = document.getElementById('cita-servicio');
         select.innerHTML = '<option value="">Seleccionar servicio</option>' +
             data.servicios.map(s =>
-                `<option value="${s.id_servicio}">${s.nombre} ($${s.precio.toLocaleString()} - ${s.duracion_minutos} min)</option>`
+                `<option value="${s.id_servicio}" data-duracion="${s.duracion_minutos}">${s.nombre} ($${s.precio.toLocaleString()} - ${s.duracion_minutos} min)</option>`
             ).join('');
 
     } catch (error) {
@@ -300,6 +300,7 @@ async function guardarCita() {
         email_cliente: document.getElementById('cita-cliente').value,
         email_manicurista: document.getElementById('cita-manicurista').value,
         id_servicio: document.getElementById('cita-servicio').value,
+        duracion: document.getElementById('cita-duracion').value,
         fecha: document.getElementById('cita-fecha').value,
         hora_inicio: hora + ':00',
         notas_cliente: document.getElementById('cita-notas-cliente').value
@@ -437,6 +438,9 @@ async function editarCita(idCita) {
         // Llenar formulario
         document.getElementById('modal-cita-titulo').textContent = 'Editar Cita';
         document.getElementById('cita-id').value = cita.id_cita;
+
+        // Permitir fechas pasadas en edición
+        document.getElementById('cita-fecha').removeAttribute('min');
         document.getElementById('cita-cliente').value = cita.email_cliente;
         document.getElementById('cita-manicurista').value = cita.email_manicurista;
         document.getElementById('cita-servicio').value = cita.id_servicio;
@@ -446,6 +450,13 @@ async function editarCita(idCita) {
         document.getElementById('cita-fecha').value = fechaFormateada;
 
         const horaActual = cita.hora_inicio.substring(0, 5);
+
+        // Calcular duración actual
+        const inicioDate = new Date(`2000-01-01T${cita.hora_inicio}`);
+        const finDate = new Date(`2000-01-01T${cita.hora_fin}`);
+        const diffMs = finDate - inicioDate;
+        const diffMins = Math.round(diffMs / 60000);
+        document.getElementById('cita-duracion').value = diffMins;
 
         // Cargar horarios disponibles y luego seleccionar el actual
         await cargarHorariosDisponibles();
@@ -646,7 +657,10 @@ async function cargarHorariosDisponibles() {
         const params = new URLSearchParams({
             manicurista,
             fecha,
-            id_servicio: servicio
+            manicurista,
+            fecha,
+            id_servicio: servicio,
+            duracion: document.getElementById('cita-duracion').value
         });
 
         if (idCita) {
@@ -695,7 +709,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listeners para actualizar horarios disponibles
     document.getElementById('cita-manicurista').addEventListener('change', cargarHorariosDisponibles);
     document.getElementById('cita-fecha').addEventListener('change', cargarHorariosDisponibles);
-    document.getElementById('cita-servicio').addEventListener('change', cargarHorariosDisponibles);
+    document.getElementById('cita-duracion').addEventListener('change', cargarHorariosDisponibles);
+
+    document.getElementById('cita-servicio').addEventListener('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        const duracion = selectedOption.getAttribute('data-duracion');
+        if (duracion) {
+            document.getElementById('cita-duracion').value = duracion;
+        }
+        cargarHorariosDisponibles();
+    });
 
     // Cerrar modales con click fuera o ESC
     document.getElementById('modal-cita').addEventListener('click', (e) => {
@@ -962,9 +985,20 @@ function renderizarVistaSemanal() {
 
             if (citasEnSlot.length > 0) {
                 citasEnSlot.forEach(cita => {
+                    // Calcular duración en minutos
+                    const inicio = new Date(`2000-01-01T${cita.hora_inicio}`);
+                    const fin = new Date(`2000-01-01T${cita.hora_fin}`);
+                    const duracionMin = (fin - inicio) / 60000;
+
+                    // Calcular altura: (minutos / 30) * 60px - 4px (padding/bordes)
+                    const slots = duracionMin / 30;
+                    const height = (slots * 60) - 2;
+
                     html += `
-                        <div class="cita-slot estado-${cita.estado}" onclick="event.stopPropagation(); editarCita(${cita.id_cita})">
-                            <div class="cita-hora">${cita.hora_inicio.substring(0, 5)}</div>
+                        <div class="cita-slot estado-${cita.estado}" 
+                             style="height: ${height}px; z-index: 10;"
+                             onclick="event.stopPropagation(); editarCita(${cita.id_cita})">
+                            <div class="cita-hora">${cita.hora_inicio.substring(0, 5)} - ${cita.hora_fin.substring(0, 5)}</div>
                             <div class="cita-cliente">${cita.nombre_cliente}</div>
                             <div class="cita-servicio">${cita.nombre_servicio}</div>
                         </div>

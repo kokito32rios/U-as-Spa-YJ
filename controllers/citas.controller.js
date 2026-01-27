@@ -98,20 +98,34 @@ exports.crearCita = async (req, res) => {
             });
         }
 
-        // Obtener duración del servicio
-        const [servicios] = await db.query(
-            'SELECT duracion_minutos FROM servicios WHERE id_servicio = ? AND activo = 1',
-            [id_servicio]
-        );
-
-        if (servicios.length === 0) {
-            return res.status(404).json({
+        // Validar que no sea en el pasado (solo para cerrar huecos obvios)
+        const fechaCita = new Date(`${fecha}T${hora_inicio}`);
+        const ahora = new Date();
+        // Damos 5 minutos de gracia por si acaso
+        if (fechaCita < new Date(ahora.getTime() - 5 * 60000)) {
+            return res.status(400).json({
                 success: false,
-                message: 'Servicio no encontrado'
+                message: 'No se pueden crear citas en el pasado'
             });
         }
 
-        const duracion = servicios[0].duracion_minutos;
+        let duracion;
+        if (req.body.duracion) {
+            duracion = parseInt(req.body.duracion);
+        } else {
+            const [servicios] = await db.query(
+                'SELECT duracion_minutos FROM servicios WHERE id_servicio = ? AND activo = 1',
+                [id_servicio]
+            );
+
+            if (servicios.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Servicio no encontrado'
+                });
+            }
+            duracion = servicios[0].duracion_minutos;
+        }
 
         // Calcular hora_fin
         const [horas, minutos] = hora_inicio.split(':').map(Number);
@@ -202,14 +216,22 @@ exports.actualizarCita = async (req, res) => {
 
         // Si se cambian datos de horario, recalcular hora_fin
         let horaFin = null;
-        if (hora_inicio && id_servicio) {
-            const [servicios] = await db.query(
-                'SELECT duracion_minutos FROM servicios WHERE id_servicio = ?',
-                [id_servicio]
-            );
+        if (hora_inicio && (id_servicio || req.body.duracion)) {
+            let duracion;
 
-            if (servicios.length > 0) {
-                const duracion = servicios[0].duracion_minutos;
+            if (req.body.duracion) {
+                duracion = parseInt(req.body.duracion);
+            } else if (id_servicio) {
+                const [servicios] = await db.query(
+                    'SELECT duracion_minutos FROM servicios WHERE id_servicio = ?',
+                    [id_servicio]
+                );
+                if (servicios.length > 0) {
+                    duracion = servicios[0].duracion_minutos;
+                }
+            }
+
+            if (duracion) {
                 const [horas, minutos] = hora_inicio.split(':').map(Number);
                 const totalMinutos = horas * 60 + minutos + duracion;
                 horaFin = `${Math.floor(totalMinutos / 60).toString().padStart(2, '0')}:${(totalMinutos % 60).toString().padStart(2, '0')}:00`;
@@ -359,22 +381,29 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
             });
         }
 
-        // Obtener duración del servicio
-        const [servicios] = await db.query(
-            'SELECT duracion_minutos FROM servicios WHERE id_servicio = ?',
-            [id_servicio]
-        );
+        let duracion;
 
-        if (servicios.length === 0) {
-            console.log('❌ Servicio no encontrado:', id_servicio);
-            return res.status(404).json({
-                success: false,
-                message: 'Servicio no encontrado'
-            });
+        if (req.query.duracion) {
+            duracion = parseInt(req.query.duracion);
+            console.log('⏱️ Duración manual:', duracion, 'minutos');
+        } else {
+            // Obtener duración del servicio
+            const [servicios] = await db.query(
+                'SELECT duracion_minutos FROM servicios WHERE id_servicio = ?',
+                [id_servicio]
+            );
+
+            if (servicios.length === 0) {
+                console.log('❌ Servicio no encontrado:', id_servicio);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Servicio no encontrado'
+                });
+            }
+
+            duracion = servicios[0].duracion_minutos;
+            console.log('⏱️ Duración del servicio:', duracion, 'minutos');
         }
-
-        const duracion = servicios[0].duracion_minutos;
-        console.log('⏱️ Duración del servicio:', duracion, 'minutos');
 
         // Obtener día de la semana (1=lunes, 7=domingo)
         const fechaObj = new Date(fecha + 'T00:00:00');
@@ -468,8 +497,21 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
 
         for (let minutos = minutosInicio; minutos < minutosFin; minutos += intervalo) {
             // Si es hoy, no mostrar horarios pasados
+            // LOGICA: 
+            // - Si estamos EDITANDO (id_cita_excluir existe) Y es Admin -> Permitir pasados
+            // - Si estamos CREANDO (id_cita_excluir null) -> NO permitir pasados (incluso admin)
+
+            const esAdmin = req.usuario && req.usuario.nombre_rol === 'admin';
+            const esEdicion = !!id_cita_excluir;
+
             if (esHoy && minutos <= horaActualMinutos) {
-                continue;
+                if (!esEdicion) {
+                    continue; // Creando: Bloquear pasado
+                }
+                if (!esAdmin) {
+                    continue; // Editando pero no es admin: Bloquear pasado
+                }
+                // Si es edición Y es admin, pasa (continue implícito)
             }
 
             const hora = Math.floor(minutos / 60);

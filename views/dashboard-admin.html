@@ -292,11 +292,17 @@
         </div>
 
         <div class="form-row">
-          <div class="form-group">
-            <label>Servicio *</label>
-            <select id="cita-servicio" class="form-input" required>
-              <option value="">Seleccionar servicio</option>
-            </select>
+          <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+              <label>Servicio *</label>
+              <select id="cita-servicio" class="form-input" required>
+                <option value="">Seleccionar servicio</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Duración (min) *</label>
+              <input type="number" id="cita-duracion" class="form-input" min="15" step="15" required />
+            </div>
           </div>
 
           <div class="form-group">
