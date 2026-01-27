@@ -287,9 +287,31 @@
         </div>
       </section>
 
-      <!-- SECCIÓN: USUARIOS (Placeholder) -->
+      <!-- SECCIÓN: USUARIOS -->
       <section id="seccion-usuarios" class="content-section">
-        <p>Módulo de Usuarios en desarrollo...</p>
+        <div class="section-header">
+          <h3>👥 Gestión de Usuarios</h3>
+          <button class="btn btn-primary" onclick="abrirModalUsuario()">
+            + Nuevo Usuario
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="tabla-usuarios">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usuarios-body">
+              <!-- Dinámico -->
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <!-- SECCIÓN: COMISIONES (Placeholder) -->
@@ -502,6 +524,49 @@
       </div>
     </div>
   </div>
+  </div>
+
+  <!-- MODAL: USUARIO -->
+  <div id="modal-usuario" class="modal-overlay hidden">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3 id="modal-usuario-titulo">Nuevo Usuario</h3>
+        <button class="modal-close" onclick="cerrarModalUsuario()">✕</button>
+      </div>
+      <form id="form-usuario" class="modal-body">
+        <input type="hidden" id="usuario-id" />
+        <div class="form-group">
+          <label>Nombre Completo *</label>
+          <input type="text" id="usuario-nombre" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label>Correo Electrónico *</label>
+          <input type="email" id="usuario-email" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="usuario-password" class="form-input"
+            placeholder="Dejar en blanco para no cambiar" />
+          <p class="text-xs text-muted" id="usuario-password-hint">Min. 6 caracteres</p>
+        </div>
+        <div class="form-group">
+          <label>Confirmar Contraseña</label>
+          <input type="password" id="usuario-password-confirm" class="form-input" placeholder="Repite la contraseña" />
+          <p id="password-match-msg" class="text-xs"></p>
+        </div>
+        <div class="form-group">
+          <label>Rol *</label>
+          <select id="usuario-rol" class="form-input" required>
+            <option value="" disabled selected>Cargando roles...</option>
+          </select>
+        </div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="cerrarModalUsuario()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarUsuario()">Guardar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL: EXCEPCIÓN -->
   <div id="modal-excepcion" class="modal-overlay hidden">
@@ -511,6 +576,7 @@
         <button class="modal-close" onclick="cerrarModalExcepcion()">✕</button>
       </div>
       <form id="form-excepcion" class="modal-body">
+        <input type="hidden" id="excepcion-id" />
         <div class="form-group">
           <label>Fecha *</label>
           <input type="date" id="excepcion-fecha" class="form-input" required />

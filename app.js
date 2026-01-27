@@ -62,6 +62,7 @@ app.use('/api/catalogo', catalogoRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/citas', citasRoutes);
 app.use('/api/horarios', horariosRoutes);
+app.use('/api/usuarios', require('./routes/usuarios.routes'));
 
 // TODO: Agregar más rutas aquí
 // const authRoutes = require('./routes/auth.routes');

@@ -352,10 +352,11 @@ exports.eliminarCita = async (req, res) => {
 exports.obtenerManicuristasDisponibles = async (req, res) => {
     try {
         const [manicuristas] = await db.query(`
-            SELECT email, CONCAT(nombre, ' ', apellido) as nombre_completo
-            FROM usuarios
-            WHERE nombre_rol = 'manicurista' AND activo = 1
-            ORDER BY nombre ASC
+            SELECT u.email, CONCAT(u.nombre, ' ', u.apellido) as nombre_completo
+            FROM usuarios u
+            JOIN roles r ON u.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'manicurista' AND u.activo = 1
+            ORDER BY u.nombre ASC
         `);
 
         res.json({
@@ -419,13 +420,14 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
 
         console.log('📆 Día de la semana:', diaAjustado, '(1=Lun, 7=Dom)');
 
-        // Obtener horario laboral de la manicurista para ese día
+        // Obtener horario laboral de la manicurista para ese día (PUEDE HABER MÚLTIPLES TURNOS)
         const [horarios] = await db.query(`
             SELECT hora_inicio, hora_fin
             FROM horarios_trabajo
             WHERE email_manicurista = ?
             AND dia_semana = ?
-            AND activo = 1
+                AND activo = 1
+            ORDER BY hora_inicio ASC
         `, [manicurista, diaAjustado]);
 
         console.log('🕐 Horarios encontrados en BD:', horarios);
@@ -439,10 +441,7 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
             });
         }
 
-        const horarioLaboral = horarios[0];
-        console.log('✅ Horario laboral:', horarioLaboral);
-
-        // Verificar si hay excepciones para esta fecha
+        // Verificar excepciones (día completo)
         const [excepciones] = await db.query(`
             SELECT todo_el_dia, hora_inicio, hora_fin
             FROM excepciones_horario
@@ -450,7 +449,7 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
             AND fecha = ?
         `, [manicurista, fecha]);
 
-        if (excepciones.length > 0 && excepciones[0].todo_el_dia) {
+        if (excepciones.some(e => e.todo_el_dia)) {
             console.log('🚫 Hay excepción de horario (día completo bloqueado)');
             return res.json({
                 success: true,
@@ -459,7 +458,7 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
             });
         }
 
-        // Obtener citas existentes de esa manicurista en esa fecha
+        // Obtener citas existentes
         let queryExcluir = '';
         const params = [manicurista, fecha];
 
@@ -468,89 +467,68 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
             params.push(id_cita_excluir);
         }
 
-        const [citasOcupadas] = await db.query(`
+        const [citasDB] = await db.query(`
             SELECT hora_inicio, hora_fin
             FROM citas
             WHERE email_manicurista = ?
             AND fecha = ?
-            AND estado NOT IN ('cancelada', 'no_asistio')
+                AND estado NOT IN('cancelada', 'no_asistio')
             ${queryExcluir}
             ORDER BY hora_inicio
         `, params);
 
-        console.log('📋 Citas ocupadas:', citasOcupadas);
-
-        // Convertir horario laboral a minutos
-        const [horaInicioH, horaInicioM] = horarioLaboral.hora_inicio.split(':').map(Number);
-        const [horaFinH, horaFinM] = horarioLaboral.hora_fin.split(':').map(Number);
-        const minutosInicio = horaInicioH * 60 + horaInicioM;
-        const minutosFin = horaFinH * 60 + horaFinM;
-
-        console.log('⏰ Rango laboral en minutos:', minutosInicio, '-', minutosFin);
+        // Combinar citas y excepciones parciales
+        const citasOcupadas = [
+            ...citasDB,
+            ...excepciones.map(e => ({ hora_inicio: e.hora_inicio, hora_fin: e.hora_fin }))
+        ];
 
         // Obtener hora actual si es hoy
         const hoy = new Date();
-        // Usar componentes locales para evitar desfasaje por UTC (toISOString es UTC)
         const fechaHoy = `${hoy.getFullYear()}-${(hoy.getMonth() + 1).toString().padStart(2, '0')}-${hoy.getDate().toString().padStart(2, '0')}`;
-
         const esHoy = fecha === fechaHoy;
         const horaActualMinutos = esHoy ? (hoy.getHours() * 60 + hoy.getMinutes()) : 0;
 
-        if (esHoy) {
-            console.log('📍 Es hoy, hora actual en minutos:', horaActualMinutos, `(${hoy.getHours()}:${hoy.getMinutes()})`);
-        }
-
-        // Generar horarios disponibles cada 30 min
         const horariosDisponibles = [];
         const intervalo = 30;
 
-        for (let minutos = minutosInicio; minutos < minutosFin; minutos += intervalo) {
-            // Si es hoy, no mostrar horarios pasados
-            // LOGICA: 
-            // - Si estamos EDITANDO (id_cita_excluir existe) Y es Admin -> Permitir pasados
-            // - Si estamos CREANDO (id_cita_excluir null) -> NO permitir pasados (incluso admin)
+        // ITERAR SOBRE CADA TURNO ENCONTRADO (Mañana, Tarde, etc.)
+        for (const turno of horarios) {
+            const [horaInicioH, horaInicioM] = turno.hora_inicio.split(':').map(Number);
+            const [horaFinH, horaFinM] = turno.hora_fin.split(':').map(Number);
+            const minutosInicio = horaInicioH * 60 + horaInicioM;
+            const minutosFin = horaFinH * 60 + horaFinM;
 
-            const esAdmin = req.usuario && req.usuario.nombre_rol === 'admin';
-            const esEdicion = !!id_cita_excluir;
+            for (let minutos = minutosInicio; minutos < minutosFin; minutos += intervalo) {
+                const esAdmin = req.usuario && req.usuario.nombre_rol === 'admin';
+                const esEdicion = !!id_cita_excluir;
 
-            if (esHoy && minutos <= horaActualMinutos) {
-                if (!esEdicion) {
-                    continue; // Creando: Bloquear pasado
+                if (esHoy && minutos <= horaActualMinutos) {
+                    if (!esEdicion) continue;
+                    if (!esAdmin) continue;
                 }
-                if (!esAdmin) {
-                    continue; // Editando pero no es admin: Bloquear pasado
-                }
-                // Si es edición Y es admin, pasa (continue implícito)
-            }
 
-            const hora = Math.floor(minutos / 60);
-            const min = minutos % 60;
-            const horaStr = `${hora.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:00`;
+                const hora = Math.floor(minutos / 60);
+                const min = minutos % 60;
+                const horaStr = `${hora.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:00`;
 
-            // Calcular hora fin de esta cita potencial
-            const minutosFinCita = minutos + duracion;
+                const minutosFinCita = minutos + duracion;
 
-            // Verificar que no se pase del horario laboral
-            if (minutosFinCita > minutosFin) {
-                continue;
-            }
+                if (minutosFinCita > minutosFin) continue;
 
-            const horaFinCita = `${Math.floor(minutosFinCita / 60).toString().padStart(2, '0')}:${(minutosFinCita % 60).toString().padStart(2, '0')}:00`;
+                const horaFinCita = `${Math.floor(minutosFinCita / 60).toString().padStart(2, '0')}:${(minutosFinCita % 60).toString().padStart(2, '0')}:00`;
 
-            // Verificar si hay solapamiento con citas existentes
-            const haySolapamiento = citasOcupadas.some(cita => {
-                return (
-                    (horaStr >= cita.hora_inicio && horaStr < cita.hora_fin) ||
-                    (horaFinCita > cita.hora_inicio && horaFinCita <= cita.hora_fin) ||
-                    (horaStr <= cita.hora_inicio && horaFinCita >= cita.hora_fin)
-                );
-            });
-
-            if (!haySolapamiento) {
-                horariosDisponibles.push({
-                    hora: horaStr.substring(0, 5),
-                    disponible: true
+                const haySolapamiento = citasOcupadas.some(cita => {
+                    // Check overlap logic is (StartA < EndB) and (EndA > StartB)
+                    return (horaStr < cita.hora_fin && horaFinCita > cita.hora_inicio);
                 });
+
+                if (!haySolapamiento) {
+                    horariosDisponibles.push({
+                        hora: horaStr.substring(0, 5),
+                        disponible: true
+                    });
+                }
             }
         }
 
@@ -576,10 +554,11 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
 exports.obtenerClientes = async (req, res) => {
     try {
         const [clientes] = await db.query(`
-            SELECT email, CONCAT(nombre, ' ', apellido) as nombre_completo, telefono
-            FROM usuarios
-            WHERE nombre_rol = 'cliente' AND activo = 1
-            ORDER BY nombre ASC
+            SELECT u.email, CONCAT(u.nombre, ' ', u.apellido) as nombre_completo, u.telefono
+            FROM usuarios u
+            JOIN roles r ON u.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'cliente' AND u.activo = 1
+            ORDER BY u.nombre ASC
         `);
 
         res.json({
@@ -612,33 +591,33 @@ exports.obtenerCitasAgenda = async (req, res) => {
 
         // Query base para citas
         let queryCitas = `
-            SELECT 
-                c.id_cita,
-                c.fecha,
-                c.hora_inicio,
-                c.hora_fin,
-                c.estado,
-                c.notas_cliente,
-                c.email_cliente,
-                CONCAT(uc.nombre, ' ', uc.apellido) as nombre_cliente,
-                uc.telefono as telefono_cliente,
-                c.email_manicurista,
-                CONCAT(um.nombre, ' ', um.apellido) as nombre_manicurista,
-                c.id_servicio,
-                s.nombre as nombre_servicio,
-                s.precio,
-                s.duracion_minutos
+        SELECT
+        c.id_cita,
+            c.fecha,
+            c.hora_inicio,
+            c.hora_fin,
+            c.estado,
+            c.notas_cliente,
+            c.email_cliente,
+            CONCAT(uc.nombre, ' ', uc.apellido) as nombre_cliente,
+            uc.telefono as telefono_cliente,
+            c.email_manicurista,
+            CONCAT(um.nombre, ' ', um.apellido) as nombre_manicurista,
+            c.id_servicio,
+            s.nombre as nombre_servicio,
+            s.precio,
+            s.duracion_minutos
             FROM citas c
             LEFT JOIN usuarios uc ON c.email_cliente = uc.email
             INNER JOIN usuarios um ON c.email_manicurista = um.email
             INNER JOIN servicios s ON c.id_servicio = s.id_servicio
             WHERE c.fecha BETWEEN ? AND ?
-        `;
+            `;
 
         const paramsCitas = [fecha_inicio, fecha_fin];
 
         if (manicurista) {
-            queryCitas += ` AND c.email_manicurista = ?`;
+            queryCitas += ` AND c.email_manicurista = ? `;
             paramsCitas.push(manicurista);
         }
 
@@ -666,14 +645,15 @@ exports.obtenerCitasAgenda = async (req, res) => {
 
         // Obtener manicuristas activas
         let queryManicuristas = `
-            SELECT email, CONCAT(nombre, ' ', apellido) as nombre_completo
-            FROM usuarios
-            WHERE nombre_rol = 'manicurista' AND activo = 1
-        `;
+            SELECT u.email, CONCAT(u.nombre, ' ', u.apellido) as nombre_completo
+            FROM usuarios u
+            JOIN roles r ON u.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'manicurista' AND u.activo = 1
+            `;
 
         const paramsManicuristas = [];
         if (manicurista) {
-            queryManicuristas += ` AND email = ?`;
+            queryManicuristas += ` AND email = ? `;
             paramsManicuristas.push(manicurista);
         }
 
@@ -690,7 +670,7 @@ exports.obtenerCitasAgenda = async (req, res) => {
             const [horarios] = await db.query(`
                 SELECT email_manicurista, dia_semana, hora_inicio, hora_fin
                 FROM horarios_trabajo
-                WHERE email_manicurista IN (${placeholders})
+                WHERE email_manicurista IN(${placeholders})
                 AND activo = 1
                 ORDER BY email_manicurista, dia_semana
             `, emailsManicuristas);
@@ -704,7 +684,7 @@ exports.obtenerCitasAgenda = async (req, res) => {
             const [excepciones] = await db.query(`
                 SELECT email_manicurista, fecha, todo_el_dia, hora_inicio, hora_fin
                 FROM excepciones_horario
-                WHERE email_manicurista IN (${placeholders})
+                WHERE email_manicurista IN(${placeholders})
                 AND fecha BETWEEN ? AND ?
             `, [...emailsManicuristas, fecha_inicio, fecha_fin]);
             excepcionesResult = excepciones;

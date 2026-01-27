@@ -42,16 +42,25 @@ exports.crearHorario = async (req, res) => {
             });
         }
 
-        // Verificar que no exista ya un horario para ese día
-        const [existente] = await db.query(`
+        // Verificar solapamiento de horas para el mismo día
+        // Lógica: Un horario existe si: (ExistingStart < NewEnd) AND (ExistingEnd > NewStart)
+        const [solapamientos] = await db.query(`
             SELECT id FROM horarios_trabajo
-            WHERE email_manicurista = ? AND dia_semana = ?
-        `, [email_manicurista, dia_semana]);
+            WHERE email_manicurista = ? 
+            AND dia_semana = ?
+            AND activo = 1
+            AND (hora_inicio < ? AND hora_fin > ?)
+        `, [
+            email_manicurista,
+            dia_semana,
+            hora_fin,
+            hora_inicio
+        ]);
 
-        if (existente.length > 0) {
+        if (solapamientos.length > 0) {
             return res.status(409).json({
                 success: false,
-                message: 'Ya existe un horario para este día'
+                message: 'El horario se cruza con otro existente para este día'
             });
         }
 
@@ -243,6 +252,92 @@ exports.crearExcepcion = async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Error al crear excepción'
+        });
+    }
+};
+
+// =============================================
+// ACTUALIZAR EXCEPCIÓN
+// =============================================
+exports.actualizarExcepcion = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { fecha, todo_el_dia, hora_inicio, hora_fin, motivo } = req.body;
+
+        const updates = [];
+        const params = [];
+
+        if (fecha) {
+            updates.push('fecha = ?');
+            params.push(fecha);
+        }
+
+        // todo_el_dia es booleano, siempre se actualiza si viene
+        if (todo_el_dia !== undefined) {
+            updates.push('todo_el_dia = ?');
+            params.push(todo_el_dia ? 1 : 0);
+
+            // Si es todo el día, limpiamos horas logicamente
+            if (todo_el_dia) {
+                updates.push('hora_inicio = NULL');
+                updates.push('hora_fin = NULL');
+            } else {
+                if (hora_inicio) {
+                    updates.push('hora_inicio = ?');
+                    params.push(hora_inicio);
+                }
+                if (hora_fin) {
+                    updates.push('hora_fin = ?');
+                    params.push(hora_fin);
+                }
+            }
+        } else {
+            // Si no cambia todo_el_dia, pero cambian horas
+            if (hora_inicio) {
+                updates.push('hora_inicio = ?');
+                params.push(hora_inicio);
+            }
+            if (hora_fin) {
+                updates.push('hora_fin = ?');
+                params.push(hora_fin);
+            }
+        }
+
+        if (motivo !== undefined) {
+            updates.push('motivo = ?');
+            params.push(motivo);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No hay campos para actualizar'
+            });
+        }
+
+        params.push(id);
+
+        const [result] = await db.query(`
+            UPDATE excepciones_horario SET ${updates.join(', ')} WHERE id = ?
+        `, params);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Excepción no encontrada'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Excepción actualizada exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error al actualizar excepción:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al actualizar excepción'
         });
     }
 };

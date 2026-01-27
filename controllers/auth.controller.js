@@ -17,8 +17,13 @@ exports.login = async (req, res) => {
             });
         }
 
-        // Buscar usuario por email
-        const query = 'SELECT * FROM usuarios WHERE email = ? AND activo = 1';
+        // Buscar usuario por email con su rol (JOIN)
+        const query = `
+            SELECT u.*, r.nombre_rol 
+            FROM usuarios u
+            JOIN roles r ON u.id_rol = r.id_rol
+            WHERE u.email = ? AND u.activo = 1
+        `;
         const [usuarios] = await db.query(query, [email.toLowerCase().trim()]);
 
         // Usuario no encontrado
@@ -49,7 +54,7 @@ exports.login = async (req, res) => {
                 email: usuario.email,
                 nombre: usuario.nombre,
                 apellido: usuario.apellido,
-                nombre_rol: usuario.nombre_rol
+                nombre_rol: usuario.nombre_rol // Ahora viene del JOIN
             },
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }

@@ -29,6 +29,9 @@ router.get('/excepciones/:email', verificarToken, horariosController.obtenerExce
 // POST /api/horarios/excepciones - Crear nueva excepción
 router.post('/excepciones', verificarToken, soloAdmin, horariosController.crearExcepcion);
 
+// PUT /api/horarios/excepciones/:id - Actualizar excepción
+router.put('/excepciones/:id', verificarToken, soloAdmin, horariosController.actualizarExcepcion);
+
 // DELETE /api/horarios/excepciones/:id - Eliminar excepción
 router.delete('/excepciones/:id', verificarToken, soloAdmin, horariosController.eliminarExcepcion);
 

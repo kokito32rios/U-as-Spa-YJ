@@ -1318,3 +1318,49 @@ textarea.form-input {
   margin-bottom: 20px;
   box-shadow: var(--shadow);
 }
+
+/* FIX: USER MANAGEMENT HEADER MARGIN */
+#seccion-usuarios .section-header,
+#seccion-horarios .section-header {
+  margin-bottom: 30px;
+  /* Separar más del contenido */
+}
+
+/* =============================================
+   FIX: MODALES DE ALERTA (SUPERPOSICIÓN)
+   ============================================= */
+#modal-mensaje,
+#modal-confirmacion {
+  z-index: 20000 !important;
+}
+
+/* VALIDACIONES */
+.text-success {
+  color: #28a745 !important;
+  font-size: 0.8rem;
+  margin-top: 4px;
+  display: block;
+}
+
+.text-danger {
+  color: #dc3545 !important;
+  font-size: 0.8rem;
+  margin-top: 4px;
+  display: block;
+}
+
+/* ROLES BADGES */
+.badge-rol-admin {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.badge-rol-manicurista {
+  background: #ede7f6;
+  color: #673ab7;
+}
+
+.badge-rol-cliente {
+  background: #e0f2f1;
+  color: #00695c;
+}

@@ -99,6 +99,8 @@ function cambiarSeccion(seccion) {
         inicializarHorarios();
     } else if (seccion === 'servicios') {
         inicializarServicios();
+    } else if (seccion === 'usuarios') {
+        inicializarUsuarios();
     }
 }
 
@@ -1325,6 +1327,7 @@ function irADiaSemanal(fechaStr) {
 // HORARIOS - VARIABLES GLOBALES
 // =============================================
 let horariosManicuristaSeleccionada = '';
+let listaHorariosActuales = []; // Store fetched schedules
 let horariosInicializados = false;
 
 const DIAS_SEMANA = {
@@ -1398,6 +1401,8 @@ async function cargarHorariosSemanales(email) {
         const response = await fetchConToken(`/api/horarios/${encodeURIComponent(email)}`);
         const data = await response.json();
 
+        listaHorariosActuales = data.horarios || []; // Update global list
+
         const tbody = document.getElementById('horarios-body');
 
         if (!data.success || data.horarios.length === 0) {
@@ -1446,7 +1451,13 @@ async function cargarExcepciones(email) {
         }
 
         tbody.innerHTML = data.excepciones.map(e => {
-            const fecha = new Date(e.fecha + 'T00:00:00');
+            // Manejar tanto string YYYY-MM-DD como objeto Date/ISO
+            let fechaStr = e.fecha;
+            if (typeof fechaStr === 'string' && fechaStr.includes('T')) {
+                fechaStr = fechaStr.split('T')[0];
+            }
+            // Asegurar formato YYYY-MM-DD para evitar problemas de zona horaria con T00:00:00
+            const fecha = new Date(fechaStr + 'T00:00:00');
             const fechaFormateada = fecha.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
             const horario = e.todo_el_dia ? '-' : `${e.hora_inicio?.substring(0, 5) || ''} - ${e.hora_fin?.substring(0, 5) || ''}`;
 
@@ -1457,6 +1468,9 @@ async function cargarExcepciones(email) {
                     <td>${horario}</td>
                     <td>${e.motivo || '-'}</td>
                     <td>
+                        <button class="btn-icon" onclick="editarExcepcion(${e.id}, '${fechaStr}', ${e.todo_el_dia}, '${e.hora_inicio || ''}', '${e.hora_fin || ''}', '${e.motivo || ''}')" title="Editar">
+                            ✏️
+                        </button>
                         <button class="btn-icon btn-danger" onclick="confirmarEliminarExcepcion(${e.id})" title="Eliminar">
                             🗑️
                         </button>
@@ -1481,6 +1495,25 @@ function abrirModalHorario() {
     document.getElementById('modal-horario-titulo').textContent = 'Agregar Horario';
     document.getElementById('form-horario').reset();
     document.getElementById('horario-id').value = '';
+
+    // Filter available days
+    const selectDia = document.getElementById('horario-dia');
+    const diasOcupados = listaHorariosActuales.map(h => h.dia_semana); // Getting all days
+
+    Array.from(selectDia.options).forEach(opt => {
+        if (opt.value) {
+            const dia = parseInt(opt.value);
+            const count = diasOcupados.filter(d => d === dia).length;
+
+            opt.disabled = false; // Always allow adding more shifts
+            if (count > 0) {
+                opt.textContent = `${DIAS_SEMANA[dia]} (${count} turno${count > 1 ? 's' : ''})`;
+            } else {
+                opt.textContent = DIAS_SEMANA[dia];
+            }
+        }
+    });
+
     document.getElementById('modal-horario').classList.remove('hidden');
 }
 
@@ -1583,6 +1616,7 @@ function abrirModalExcepcion() {
         return;
     }
     document.getElementById('form-excepcion').reset();
+    document.getElementById('excepcion-id').value = ''; // Clear ID for new
     document.getElementById('excepcion-todo-dia').checked = true;
     document.getElementById('excepcion-horas').classList.add('hidden');
     document.getElementById('modal-excepcion').classList.remove('hidden');
@@ -1597,7 +1631,20 @@ function toggleHorasExcepcion() {
     document.getElementById('excepcion-horas').classList.toggle('hidden', todoDia);
 }
 
+function editarExcepcion(id, fecha, todoDia, inicio, fin, motivo) {
+    document.getElementById('excepcion-id').value = id;
+    document.getElementById('excepcion-fecha').value = fecha;
+    document.getElementById('excepcion-todo-dia').checked = todoDia;
+    document.getElementById('excepcion-inicio').value = inicio ? inicio.substring(0, 5) : '';
+    document.getElementById('excepcion-fin').value = fin ? fin.substring(0, 5) : '';
+    document.getElementById('excepcion-motivo').value = motivo || '';
+
+    toggleHorasExcepcion();
+    document.getElementById('modal-excepcion').classList.remove('hidden');
+}
+
 async function guardarExcepcion() {
+    const id = document.getElementById('excepcion-id').value;
     const fecha = document.getElementById('excepcion-fecha').value;
     const todoDia = document.getElementById('excepcion-todo-dia').checked;
     const horaInicio = document.getElementById('excepcion-inicio').value;
@@ -1610,8 +1657,11 @@ async function guardarExcepcion() {
     }
 
     try {
-        const response = await fetchConToken('/api/horarios/excepciones', {
-            method: 'POST',
+        const url = id ? `/api/horarios/excepciones/${id}` : '/api/horarios/excepciones';
+        const method = id ? 'PUT' : 'POST';
+
+        const response = await fetchConToken(url, {
+            method: method,
             body: JSON.stringify({
                 email_manicurista: horariosManicuristaSeleccionada,
                 fecha,
@@ -1920,5 +1970,233 @@ function cerrarSesion() {
             window.location.href = 'login.html';
         },
         false // Not dangerous
+    );
+}
+
+// =============================================
+// GESTIÓN DE USUARIOS
+// =============================================
+let usuariosList = [];
+
+// Cargar roles dinámicamente
+async function cargarRolesSelect() {
+    try {
+        const response = await fetchConToken('/api/usuarios/helpers/roles');
+        const result = await response.json();
+        const select = document.getElementById('usuario-rol');
+
+        if (result.success && result.roles) {
+            select.innerHTML = result.roles.map(r =>
+                `<option value="${r.id_rol}">${r.nombre_rol.charAt(0).toUpperCase() + r.nombre_rol.slice(1)}</option>`
+            ).join('');
+        }
+    } catch (error) {
+        console.error('Error cargando roles:', error);
+    }
+}
+
+function inicializarUsuarios() {
+    cargarUsuariosTabla();
+    cargarRolesSelect(); // Cargar roles al iniciar la sección
+}
+
+async function cargarUsuariosTabla() {
+    const tbody = document.getElementById('usuarios-body');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">Cargando...</td></tr>';
+
+    try {
+        const response = await fetchConToken('/api/usuarios');
+        const result = await response.json();
+
+        if (!result.success || !result.usuarios || result.usuarios.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay usuarios registrados</td></tr>';
+            return;
+        }
+
+        usuariosList = result.usuarios;
+
+        tbody.innerHTML = result.usuarios.map(u => {
+            let badgeClass = 'badge-info';
+            const rolLower = (u.rol || '').toLowerCase();
+
+            if (rolLower.includes('admin')) badgeClass = 'badge-rol-admin';
+            else if (rolLower.includes('manicurista')) badgeClass = 'badge-rol-manicurista';
+            else badgeClass = 'badge-rol-cliente';
+
+            return `
+            <tr>
+                <td><strong>${u.nombre}</strong></td>
+                <td>${u.email}</td>
+                <td><span class="badge ${badgeClass}">${u.rol || 'Cliente'}</span></td>
+                <td>
+                    <span class="badge badge-${u.activo ? 'confirmada' : 'cancelada'}">
+                        ${u.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                </td>
+                <td class="table-actions">
+                    <button class="btn-icon btn-edit" onclick="editarUsuario('${u.email}')" title="Editar">✏️</button>
+                    ${u.activo
+                    ? `<button class="btn-icon btn-warning" onclick="confirmarToggleUsuario('${u.email}', 0, '${u.nombre}')" title="Desactivar">🚫</button>`
+                    : `<button class="btn-icon" style="background:#d4edda;color:#155724;" onclick="confirmarToggleUsuario('${u.email}', 1, '${u.nombre}')" title="Activar">✅</button>`
+                }
+                    <button class="btn-icon btn-delete" onclick="confirmarEliminarUsuario('${u.email}', '${u.nombre}')" title="Eliminar">🗑️</button>
+                </td>
+            </tr>`;
+        }).join('');
+
+    } catch (error) {
+        console.error(error);
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-red">Error al cargar usuarios</td></tr>';
+    }
+}
+
+// Listeners de validación de contraseña en tiempo real
+document.getElementById('usuario-password').addEventListener('input', validarCoincidenciaPasswords);
+document.getElementById('usuario-password-confirm').addEventListener('input', validarCoincidenciaPasswords);
+
+function validarCoincidenciaPasswords() {
+    const p1 = document.getElementById('usuario-password').value;
+    const p2 = document.getElementById('usuario-password-confirm').value;
+    const msg = document.getElementById('password-match-msg');
+
+    if (!p1 && !p2) {
+        msg.textContent = '';
+        msg.className = 'text-xs';
+        return;
+    }
+
+    if (p2 && p1 === p2) {
+        msg.textContent = 'Contraseñas coinciden';
+        msg.className = 'text-xs text-success';
+    } else if (p2) {
+        msg.textContent = 'Contraseñas no coinciden';
+        msg.className = 'text-xs text-danger';
+    } else {
+        msg.textContent = '';
+    }
+}
+
+function abrirModalUsuario() {
+    document.getElementById('form-usuario').reset();
+    document.getElementById('usuario-id').value = '';
+    document.getElementById('modal-usuario-titulo').textContent = 'Nuevo Usuario';
+    document.getElementById('usuario-password-hint').classList.remove('hidden');
+    document.getElementById('password-match-msg').textContent = ''; // Reset msg
+    document.getElementById('modal-usuario').classList.remove('hidden');
+}
+
+function cerrarModalUsuario() {
+    document.getElementById('modal-usuario').classList.add('hidden');
+}
+
+async function guardarUsuario() {
+    const id = document.getElementById('usuario-id').value;
+    const nombre = document.getElementById('usuario-nombre').value;
+    const email = document.getElementById('usuario-email').value;
+    const password = document.getElementById('usuario-password').value;
+    const rol = document.getElementById('usuario-rol').value;
+
+    if (!nombre || !email || !rol) {
+        mostrarMensaje('error', '⚠️', 'Campos incompletos', 'Nombre, Email y Rol son obligatorios');
+        return;
+    }
+
+    if (!id && !password) {
+        mostrarMensaje('error', '⚠️', 'Contraseña requerida', 'Debes asignar una contraseña al crear un usuario');
+        return;
+    }
+
+    // Validación estricta de contraseña (si se está enviando una)
+    if (password) {
+        if (password.length < 6) {
+            mostrarMensaje('error', '⚠️', 'Contraseña insegura', 'La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+
+        const confirmPassword = document.getElementById('usuario-password-confirm').value;
+        if (password !== confirmPassword) {
+            mostrarMensaje('error', '⚠️', 'No coinciden', 'Las contraseñas no coinciden');
+            return;
+        }
+    }
+
+    const datos = { nombre, email, rol, password }; // Password can be empty on update
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/ api / usuarios / ${id} ` : '/api/usuarios';
+
+    try {
+        const response = await fetchConToken(url, {
+            method: method,
+            body: JSON.stringify(datos)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            mostrarMensaje('success', '✅', 'Éxito', result.message);
+            cerrarModalUsuario();
+            cargarUsuariosTabla();
+        } else {
+            throw new Error(result.message || 'Error al guardar');
+        }
+    } catch (error) {
+        console.error(error);
+        mostrarMensaje('error', '❌', 'Error', error.message);
+    }
+}
+
+function editarUsuario(id) {
+    // id is email now
+    const user = usuariosList.find(u => u.email === id);
+    if (!user) return;
+
+    document.getElementById('usuario-id').value = user.email; // Identify by email
+    document.getElementById('usuario-nombre').value = user.nombre;
+    document.getElementById('usuario-email').value = user.email;
+    document.getElementById('usuario-rol').value = user.id_rol; // Use ID for select
+    document.getElementById('usuario-password').value = '';
+    document.getElementById('usuario-password-confirm').value = ''; // Clear confirm
+    document.getElementById('password-match-msg').textContent = ''; // Clear msg
+    document.getElementById('modal-usuario-titulo').textContent = 'Editar Usuario';
+
+    document.getElementById('modal-usuario').classList.remove('hidden');
+}
+
+function confirmarToggleUsuario(id, nuevoEstado, nombre) {
+    const accion = nuevoEstado ? 'activar' : 'desactivar';
+    mostrarConfirmacion(
+        nuevoEstado ? '✅' : '🚫',
+        `${accion.charAt(0).toUpperCase() + accion.slice(1)} Usuario`,
+        `¿Deseas ${accion} el acceso para "${nombre}" ? `,
+        async () => {
+            try {
+                const response = await fetchConToken(`/api/usuarios/${id}/estado`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ activo: nuevoEstado })
+                });
+                if (response.ok) cargarUsuariosTabla();
+            } catch (error) { console.error(error); }
+        }
+    );
+}
+
+function confirmarEliminarUsuario(id, nombre) {
+    mostrarConfirmacion(
+        '🗑️',
+        'Eliminar Usuario',
+        `¿Estás seguro de eliminar a "${nombre}"? Esta acción suele ser irreversible.`,
+        async () => {
+            try {
+                const response = await fetchConToken(`/api/usuarios/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    mostrarMensaje('success', '✅', 'Eliminado', result.message);
+                    cargarUsuariosTabla();
+                } else {
+                    mostrarMensaje('error', '❌', 'Error', result.message);
+                }
+            } catch (error) { console.error(error); }
+        },
+        true
     );
 }
