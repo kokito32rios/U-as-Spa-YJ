@@ -73,6 +73,7 @@ function cambiarSeccion(seccion) {
 
     // Actualizar título
     const titulos = {
+        'dashboard': 'Panel de Control',
         'agendamiento': 'Gestión de Agendamiento',
         'agenda': 'Agenda - Calendario',
         'servicios': 'Gestión de Servicios',

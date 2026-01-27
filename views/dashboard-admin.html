@@ -19,6 +19,10 @@
       </div>
 
       <nav class="sidebar-nav">
+        <a href="#dashboard" class="nav-item" onclick="cambiarSeccion('dashboard')">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
         <a href="#agendamiento" class="nav-item active" onclick="cambiarSeccion('agendamiento')">
           <span class="nav-icon">📅</span>
           <span>Agendamiento</span>
@@ -67,6 +71,17 @@
           </button>
         </div>
       </header>
+
+      <!-- SECCIÓN: DASHBOARD (NUEVA) -->
+      <section id="seccion-dashboard" class="content-section">
+        <div class="metrics-grid">
+          <!-- Placeholder for future widgets -->
+          <div class="metric-card">
+            <h3>Próximamente</h3>
+            <p>Aquí verás tus estadísticas clave.</p>
+          </div>
+        </div>
+      </section>
 
       <!-- SECCIÓN: AGENDAMIENTO -->
       <section id="seccion-agendamiento" class="content-section active">
