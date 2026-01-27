@@ -210,21 +210,26 @@ async function abrirModalNuevaCita() {
 // =============================================
 // CARGAR CLIENTES
 // =============================================
+let listaClientes = []; // Global variable
+
 async function cargarClientes() {
     try {
         const response = await fetchConToken('/api/citas/helpers/clientes');
         const data = await response.json();
 
-        const select = document.getElementById('cita-cliente');
-        select.innerHTML = '<option value="">Seleccionar cliente</option>' +
-            data.clientes.map(c =>
-                `<option value="${c.email}">${c.nombre_completo}</option>`
-            ).join('');
+        listaClientes = data.clientes || []; // Guardar globalmente
+
+        const dataList = document.getElementById('lista-clientes');
+        dataList.innerHTML = listaClientes.map(c =>
+            `<option value="${c.nombre_completo}"></option>`
+        ).join('');
 
     } catch (error) {
         console.error('Error:', error);
     }
 }
+
+let listaManicuristas = [];
 
 // =============================================
 // CARGAR MANICURISTAS
@@ -234,15 +239,17 @@ async function cargarManicuristas() {
         const response = await fetchConToken('/api/citas/helpers/manicuristas');
         const data = await response.json();
 
+        listaManicuristas = data.manicuristas || []; // Guardar globalmente
+
         const select = document.getElementById('cita-manicurista');
         const selectFiltro = document.getElementById('filtro-manicurista');
 
-        const options = data.manicuristas.map(m =>
+        const options = listaManicuristas.map(m =>
             `<option value="${m.email}">${m.nombre_completo}</option>`
         ).join('');
 
-        select.innerHTML = '<option value="">Seleccionar manicurista</option>' + options;
-        selectFiltro.innerHTML = '<option value="">Todas</option>' + options;
+        if (select) select.innerHTML = '<option value="">Seleccionar manicurista</option>' + options;
+        if (selectFiltro) selectFiltro.innerHTML = '<option value="">Todas</option>' + options;
 
     } catch (error) {
         console.error('Error:', error);
@@ -260,8 +267,20 @@ async function cargarServiciosSelect() {
         const select = document.getElementById('cita-servicio');
         select.innerHTML = '<option value="">Seleccionar servicio</option>' +
             data.servicios.map(s =>
-                `<option value="${s.id_servicio}" data-duracion="${s.duracion_minutos}">${s.nombre} ($${s.precio.toLocaleString()} - ${s.duracion_minutos} min)</option>`
+                `<option value="${s.id_servicio}" data-duracion="${s.duracion_minutos}" data-precio="${s.precio}">${s.nombre}</option>`
             ).join('');
+
+        // Event listener para actualizar duración y precio al cambiar servicio
+        select.onchange = function () {
+            const selected = this.options[this.selectedIndex];
+            if (selected.value) {
+                document.getElementById('cita-duracion').value = selected.dataset.duracion;
+                document.getElementById('cita-precio').value = selected.dataset.precio;
+            } else {
+                document.getElementById('cita-duracion').value = '';
+                document.getElementById('cita-precio').value = '';
+            }
+        };
 
     } catch (error) {
         console.error('Error:', error);
@@ -296,14 +315,54 @@ async function guardarCita() {
         return;
     }
 
+    // Validación de campos obligatorios
+    const manicuVal = document.getElementById('cita-manicurista').value;
+    const servVal = document.getElementById('cita-servicio').value;
+    if (!manicuVal || !servVal) {
+        mostrarMensaje('warning', '⚠️', 'Faltan datos', 'Por favor selecciona manicurista y servicio');
+        return;
+    }
+
+    // Validar estado para cancelación
+    const estadoInput = document.getElementById('cita-estado');
+    const esCancelacion = estadoInput && estadoInput.value === 'cancelada';
+
+    // Resolver cliente desde el input de búsqueda
+    // NOTA: El cliente ahora es opcional. Si no se encuentra, se envía null/vacío.
+    const nombreCliente = document.getElementById('cita-cliente-search').value;
+    const clienteEncontrado = listaClientes.find(c => c.nombre_completo === nombreCliente);
+
+    // Si se escribió algo pero no coincide con la lista, advertir pero permitir (opcional)
+    // O mejor: Si el usuario quiere guardar sin cliente, permitimos.
+    // Solo mostramos alerta si escribió un nombre que NO existe, para evitar typos.
+    // Pero el usuario dijo "es opcional".
+    // Así que si está vacío, pasa. Si tiene texto pero no match, ¿qué hacemos? 
+    // Asumiremos que si escribe algo y no está en la lista, es un "cliente no registrado" o error.
+    // Pero como no podemos guardar "nombre" sin email en la BD actual (probablemente), 
+    // solo permitiremos vacío o cliente válido.
+
+    // Si se escribió algo pero no coincide con la lista, no bloqueamos.
+    // Lo tratamos como "Cliente Invitado" y lo guardamos en las notas.
+
+    let emailFinal = clienteEncontrado ? clienteEncontrado.email : null;
+    let notasRaw = document.getElementById('cita-notas-cliente').value || '';
+    let notasFinal = notasRaw;
+
+    if (nombreCliente && !clienteEncontrado) {
+        // Inyectar el nombre en las notas para que el backend lo recupere
+        // Formato: [Cliente: Nombre] Nota original ...
+        notasFinal = `[Cliente: ${nombreCliente}] ${notasRaw}`;
+    }
+
     const datos = {
-        email_cliente: document.getElementById('cita-cliente').value,
+        email_cliente: emailFinal, // null si es invitado
         email_manicurista: document.getElementById('cita-manicurista').value,
         id_servicio: document.getElementById('cita-servicio').value,
         duracion: document.getElementById('cita-duracion').value,
+        precio: document.getElementById('cita-precio').value,
         fecha: document.getElementById('cita-fecha').value,
         hora_inicio: hora + ':00',
-        notas_cliente: document.getElementById('cita-notas-cliente').value
+        notas_cliente: notasFinal
     };
 
     // Si es edición
@@ -328,8 +387,27 @@ async function guardarCita() {
         const data = await response.json();
 
         if (data.success) {
+            // Capturar datos para el resumen ANTES de cerrar/resetear
+            const resumenCliente = nombreCliente || 'Anónimo';
+            const resumenManicurista = document.getElementById('cita-manicurista').options[document.getElementById('cita-manicurista').selectedIndex].text;
+            const resumenServicio = document.getElementById('cita-servicio').options[document.getElementById('cita-servicio').selectedIndex].text;
+            const resumenFecha = document.getElementById('cita-fecha').value;
+            const resumenHora = selectHora.value;
+            const resumenDuracion = document.getElementById('cita-duracion').value;
+
             cerrarModalCita();
-            mostrarMensaje('success', '✓', 'Éxito', data.message);
+
+            const mensajeDetalle = `
+                <div style="text-align: left; margin-top: 10px;">
+                    <p><strong>Cliente:</strong> ${resumenCliente}</p>
+                    <p><strong>Manicurista:</strong> ${resumenManicurista}</p>
+                    <p><strong>Servicio:</strong> ${resumenServicio}</p>
+                    <p><strong>Fecha:</strong> ${resumenFecha} - <strong>Hora:</strong> ${resumenHora}</p>
+                    <p><strong>Duración:</strong> ${resumenDuracion} min</p>
+                </div>
+            `;
+
+            mostrarMensaje('success', '✓', 'Cita Guardada', mensajeDetalle);
             // Recargar vista activa
             const seccionActiva = document.querySelector('.content-section.active').id;
             if (seccionActiva === 'seccion-agenda') {
@@ -402,7 +480,7 @@ function mostrarMensaje(tipo, icono, titulo, mensaje) {
     iconElement.textContent = icono;
     iconElement.className = `modal-icon ${tipo}`;
     tituloElement.textContent = titulo;
-    textoElement.textContent = mensaje;
+    textoElement.innerHTML = mensaje; // Usar innerHTML para permitir formato (negritas, saltos de línea)
 
     modal.classList.remove('hidden');
 }
@@ -441,6 +519,7 @@ async function editarCita(idCita) {
 
         // Permitir fechas pasadas en edición
         document.getElementById('cita-fecha').removeAttribute('min');
+        document.getElementById('cita-cliente-search').value = cita.nombre_cliente;
         document.getElementById('cita-cliente').value = cita.email_cliente;
         document.getElementById('cita-manicurista').value = cita.email_manicurista;
         document.getElementById('cita-servicio').value = cita.id_servicio;
@@ -457,6 +536,7 @@ async function editarCita(idCita) {
         const diffMs = finDate - inicioDate;
         const diffMins = Math.round(diffMs / 60000);
         document.getElementById('cita-duracion').value = diffMins;
+        document.getElementById('cita-precio').value = cita.precio || ''; // Poblar precio si existe
 
         // Cargar horarios disponibles y luego seleccionar el actual
         await cargarHorariosDisponibles();
@@ -646,10 +726,18 @@ async function cargarHorariosDisponibles() {
     const selectHora = document.getElementById('cita-hora');
     const btnGuardar = document.getElementById('btn-guardar-cita');
 
+    // Guardar valor actual para intentar preservarlo
+    const horaPreseleccionada = selectHora.value;
+
     if (!manicurista || !fecha || !servicio) {
-        selectHora.disabled = true;
-        selectHora.innerHTML = '<option value="">Selecciona manicurista, servicio y fecha</option>';
-        btnGuardar.disabled = true;
+        // Si hay una hora preseleccionada (venida del calendario), mantenerla visible aunque deshabilitada
+        if (horaPreseleccionada && selectHora.options.length > 0) {
+            // No hacer nada, dejar la hora ahí para que el usuario sepa qué clickeó
+        } else {
+            selectHora.disabled = true;
+            selectHora.innerHTML = '<option value="">Selecciona manicurista, servicio y fecha</option>';
+            btnGuardar.disabled = true;
+        }
         return;
     }
 
@@ -677,13 +765,24 @@ async function cargarHorariosDisponibles() {
                     `<option value="${h.hora}">${h.hora}</option>`
                 ).join('');
 
+            // Intentar re-seleccionar la hora si existe en los nuevos horarios
+            if (horaPreseleccionada) {
+                const existe = data.horarios.some(h => h.hora === horaPreseleccionada);
+                if (existe) {
+                    selectHora.value = horaPreseleccionada;
+                    btnGuardar.disabled = false;
+                }
+            }
+
             // Habilitar botón guardar solo cuando se seleccione un horario
             selectHora.addEventListener('change', function () {
                 btnGuardar.disabled = !this.value;
             });
 
-            // Si no hay horario seleccionado, deshabilitar botón
-            btnGuardar.disabled = true;
+            // Si no hay horario seleccionado, deshabilitar botón (si NO fue habilitado arriba)
+            if (!selectHora.value) {
+                btnGuardar.disabled = true;
+            }
         } else {
             selectHora.disabled = true;
             const mensaje = data.mensaje || 'No hay horarios disponibles';
@@ -863,7 +962,10 @@ function obtenerRangoFechas() {
 }
 
 function formatearFechaISO(fecha) {
-    return fecha.toISOString().split('T')[0];
+    // Ajustar a zona horaria local para evitar problemas con toISOString (que es UTC)
+    const offset = fecha.getTimezoneOffset() * 60000;
+    const localDate = new Date(fecha.getTime() - offset);
+    return localDate.toISOString().split('T')[0];
 }
 
 // =============================================
@@ -943,6 +1045,56 @@ function renderizarVistaSemanal() {
     // Obtener manicuristas a mostrar
     const manicuristas = agendaDatos.manicuristas || [];
 
+    // Generar Leyenda de Manicuristas
+    let htmlLeyenda = '<div class="leyenda-manicuristas">';
+    htmlLeyenda += '<span class="leyenda-titulo">Filtrar por Manicurista:</span>';
+
+    // Usar la lista global si agendaDatos.manicuristas está vacío o incompleto, 
+    // pero filtrar para mostrar solo las relevantes si se desea, o todas.
+    // Usaremos la lista global para que siempre estén todas disponibles para filtrar.
+    const listaParaLeyenda = listaManicuristas.length > 0 ? listaManicuristas : manicuristas;
+
+    listaParaLeyenda.forEach(m => {
+        htmlLeyenda += `
+            <div class="manicurista-chip" 
+                 onmouseenter="resaltarManicurista('${m.email}')" 
+                 onmouseleave="restaurarVista()">
+                 💅 ${m.nombre_completo || m.nombre}
+            </div>
+        `;
+    });
+    htmlLeyenda += '</div>';
+
+    // Generar Leyenda de Estados
+    const estados = [
+        { id: 'pendiente', nombre: 'Pendiente', color: '#ffc107' },
+        { id: 'confirmada', nombre: 'Confirmada', color: '#17a2b8' },
+        { id: 'completada', nombre: 'Completada', color: '#28a745' },
+        // { id: 'no_asistio', nombre: 'No Asistió', color: '#6c757d' }, // Opcional si se usa
+        { id: 'cancelada', nombre: 'Cancelada', color: '#dc3545' }
+    ];
+
+    htmlLeyenda += '<div class="leyenda-estados">';
+    htmlLeyenda += '<span class="leyenda-titulo">Estados:</span>';
+    estados.forEach(e => {
+        htmlLeyenda += `
+            <div class="estado-chip">
+                <span class="estado-color" style="background-color: ${e.color};"></span>
+                ${e.nombre}
+            </div>
+        `;
+    });
+    htmlLeyenda += '</div>';
+
+    // Contenedor principal de leyendas (flex column)
+    htmlLeyenda = `<div class="leyendas-wrapper">${htmlLeyenda}</div>`;
+
+    // Renderizar leyenda en su propio contenedor
+    const contenedorLeyenda = document.getElementById('leyenda-manicuristas-container');
+    if (contenedorLeyenda) {
+        contenedorLeyenda.innerHTML = htmlLeyenda;
+    }
+
     let html = '<div class="calendario-header">';
     html += '<div class="calendario-header-cell">Hora</div>';
 
@@ -972,10 +1124,16 @@ function renderizarVistaSemanal() {
             const clasePasado = esPasado ? 'pasado' : '';
 
             // Buscar citas en este slot
-            const citasEnSlot = agendaDatos.citas.filter(c => {
+            let citasEnSlot = agendaDatos.citas.filter(c => {
                 const citaFecha = c.fecha.split('T')[0];
                 const citaHora = c.hora_inicio.substring(0, 5);
                 return citaFecha === fechaStr && citaHora === hora;
+            });
+
+            // FILTRO DE VISIBILIDAD: Ocultar canceladas FUTURAS para liberar espacio visual
+            citasEnSlot = citasEnSlot.filter(c => {
+                if (c.estado === 'cancelada' && !esPasado) return false;
+                return true;
             });
 
             html += `<div class="calendario-celda ${clasePasado}" 
@@ -994,12 +1152,17 @@ function renderizarVistaSemanal() {
                     const slots = duracionMin / 30;
                     const height = (slots * 60) - 2;
 
+                    // Detectar si es cita corta para ajustar estilos
+                    const esCorta = duracionMin <= 45 ? 'cita-corta' : '';
+
                     html += `
-                        <div class="cita-slot estado-${cita.estado}" 
-                             style="height: ${height}px; z-index: 10;"
+                        <div class="cita-slot estado-${cita.estado} ${esCorta}" 
+                             style="--slot-height: ${height}px; height: ${height}px; z-index: 10;"
+                             data-email-manicurista="${cita.email_manicurista}"
                              onclick="event.stopPropagation(); editarCita(${cita.id_cita})">
                             <div class="cita-hora">${cita.hora_inicio.substring(0, 5)} - ${cita.hora_fin.substring(0, 5)}</div>
                             <div class="cita-cliente">${cita.nombre_cliente}</div>
+                            <div class="cita-manicurista">💅 ${cita.nombre_manicurista}</div>
                             <div class="cita-servicio">${cita.nombre_servicio}</div>
                         </div>
                     `;
@@ -1112,10 +1275,32 @@ async function crearCitaDesdeCalendario(fecha, hora) {
     await cargarHorariosDisponibles();
 
     const selectHora = document.getElementById('cita-hora');
-    const opcionHora = Array.from(selectHora.options).find(opt => opt.value === hora);
-    if (opcionHora) {
+
+    // Si no hay manicurista seleccionada, cargarHorariosDisponibles habrá limpiado el select.
+    // Debemos agregar la opción manualmente para que el usuario vea la hora que clickeó.
+    if (selectHora.disabled || selectHora.options.length <= 1) {
+        selectHora.disabled = false;
+        // Limpiar y agregar opción
+        selectHora.innerHTML = `<option value="${hora}">${hora}</option>`;
         selectHora.value = hora;
+
+        // Importante: Habilitar botón si ya tenemos fecha y hora.
+        // guardarCita validará el resto.
         document.getElementById('btn-guardar-cita').disabled = false;
+    } else {
+        // Si ya había horarios cargados (p.ej. filtro manicurista activo)
+        const opcionHora = Array.from(selectHora.options).find(opt => opt.value === hora);
+        if (opcionHora) {
+            selectHora.value = hora;
+            document.getElementById('btn-guardar-cita').disabled = false;
+        } else {
+            // Si el horario no está disponible para esa manicurista, al menos mostrarlo como opción (usuario decidirá si cambiar manicurista)
+            const option = document.createElement('option');
+            option.value = hora;
+            option.textContent = hora;
+            selectHora.appendChild(option);
+            selectHora.value = hora;
+        }
     }
 }
 
@@ -1462,4 +1647,27 @@ function confirmarEliminarExcepcion(id) {
     document.getElementById('confirm-titulo').textContent = '¿Eliminar excepción?';
     document.getElementById('confirm-mensaje').textContent = 'Esta acción no se puede deshacer.';
     document.getElementById('modal-confirmacion').classList.remove('hidden');
+}
+
+// =============================================
+// HELPER: RESALTAR MANICURISTA
+// =============================================
+function resaltarManicurista(email) {
+    const slots = document.querySelectorAll('.cita-slot');
+    slots.forEach(slot => {
+        if (slot.getAttribute('data-email-manicurista') !== email) {
+            slot.classList.add('dimmed');
+        } else {
+            slot.classList.remove('dimmed');
+            slot.classList.add('highlighted');
+        }
+    });
+}
+
+function restaurarVista() {
+    const slots = document.querySelectorAll('.cita-slot');
+    slots.forEach(slot => {
+        slot.classList.remove('dimmed');
+        slot.classList.remove('highlighted');
+    });
 }

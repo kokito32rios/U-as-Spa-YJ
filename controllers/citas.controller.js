@@ -14,6 +14,7 @@ exports.obtenerCitas = async (req, res) => {
                 c.hora_inicio,
                 c.hora_fin,
                 c.estado,
+                c.precio,
                 c.notas_cliente,
                 c.notas_manicurista,
                 c.creado_en,
@@ -170,8 +171,9 @@ exports.crearCita = async (req, res) => {
                 hora_inicio,
                 hora_fin,
                 estado,
+                precio,
                 notas_cliente
-            ) VALUES (?, ?, ?, ?, ?, ?, 'pendiente', ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, 'pendiente', ?, ?)
         `, [
             email_cliente || null,
             email_manicurista,
@@ -179,6 +181,7 @@ exports.crearCita = async (req, res) => {
             fecha,
             hora_inicio,
             horaFin,
+            req.body.precio || 0, // Insertar precio (default 0 si null)
             notas_cliente || null
         ]);
 
@@ -270,6 +273,10 @@ exports.actualizarCita = async (req, res) => {
         if (estado) {
             updates.push('estado = ?');
             params.push(estado);
+        }
+        if (req.body.precio !== undefined) {
+            updates.push('precio = ?');
+            params.push(req.body.precio);
         }
         if (notas_cliente !== undefined) {
             updates.push('notas_cliente = ?');
@@ -483,7 +490,9 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
 
         // Obtener hora actual si es hoy
         const hoy = new Date();
-        const fechaHoy = hoy.toISOString().split('T')[0];
+        // Usar componentes locales para evitar desfasaje por UTC (toISOString es UTC)
+        const fechaHoy = `${hoy.getFullYear()}-${(hoy.getMonth() + 1).toString().padStart(2, '0')}-${hoy.getDate().toString().padStart(2, '0')}`;
+
         const esHoy = fecha === fechaHoy;
         const horaActualMinutos = esHoy ? (hoy.getHours() * 60 + hoy.getMinutes()) : 0;
 
@@ -636,6 +645,24 @@ exports.obtenerCitasAgenda = async (req, res) => {
         queryCitas += ` ORDER BY c.fecha, c.hora_inicio`;
 
         const [citas] = await db.query(queryCitas, paramsCitas);
+
+        // Procesar citas para extraer nombres de invitados de las notas
+        const citasProcesadas = citas.map(cita => {
+            if (!cita.nombre_cliente && cita.notas_cliente) {
+                // Buscar patrón [Cliente: Nombre]
+                const match = cita.notas_cliente.match(/\[Cliente: (.*?)\]/);
+                if (match) {
+                    cita.nombre_cliente = match[1];
+                    // Opcional: Limpiar la nota para que no se vea el tag en el frontend
+                    // cita.notas_cliente = cita.notas_cliente.replace(match[0], '').trim();
+                } else {
+                    cita.nombre_cliente = 'Cliente Anónimo';
+                }
+            } else if (!cita.nombre_cliente) {
+                cita.nombre_cliente = 'Cliente Anónimo';
+            }
+            return cita;
+        });
 
         // Obtener manicuristas activas
         let queryManicuristas = `

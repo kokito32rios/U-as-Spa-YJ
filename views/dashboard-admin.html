@@ -164,6 +164,7 @@
             <div class="spinner"></div>
             <p>Cargando agenda...</p>
           </div>
+          <div id="leyenda-manicuristas-container"></div>
           <div id="calendario-semanal-grid" class="calendario-grid hidden"></div>
         </div>
 
@@ -278,9 +279,10 @@
         <div class="form-row">
           <div class="form-group">
             <label>Cliente</label>
-            <select id="cita-cliente" class="form-input">
-              <option value="">Seleccionar cliente (opcional)</option>
-            </select>
+            <input type="text" id="cita-cliente-search" list="lista-clientes" class="form-input"
+              placeholder="Buscar cliente..." autocomplete="off">
+            <datalist id="lista-clientes"></datalist>
+            <input type="hidden" id="cita-cliente">
           </div>
 
           <div class="form-group">
@@ -292,20 +294,21 @@
         </div>
 
         <div class="form-row">
-          <div class="form-row">
-            <div class="form-group" style="flex: 2;">
-              <label>Servicio *</label>
-              <select id="cita-servicio" class="form-input" required>
-                <option value="">Seleccionar servicio</option>
-              </select>
-            </div>
-            <div class="form-group" style="flex: 1;">
-              <label>Duración (min) *</label>
-              <input type="number" id="cita-duracion" class="form-input" min="15" step="15" required />
-            </div>
+          <div class="form-group" style="flex: 2;">
+            <label>Servicio *</label>
+            <select id="cita-servicio" class="form-input" required>
+              <option value="">Seleccionar servicio</option>
+            </select>
           </div>
-
-          <div class="form-group">
+          <div class="form-group" style="flex: 1;">
+            <label>Precio *</label>
+            <input type="number" id="cita-precio" class="form-input" min="0" step="100" required placeholder="0" />
+          </div>
+          <div class="form-group" style="flex: 0.5;">
+            <label>Min *</label>
+            <input type="number" id="cita-duracion" class="form-input" min="15" step="15" required />
+          </div>
+          <div class="form-group" style="flex: 1;">
             <label>Fecha *</label>
             <input type="date" id="cita-fecha" class="form-input" required />
           </div>

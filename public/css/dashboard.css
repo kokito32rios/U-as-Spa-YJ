@@ -874,7 +874,28 @@ textarea.form-input {
 .cita-slot:hover {
   transform: scale(1.02);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 20;
+  z-index: 100 !important;
+  height: auto !important;
+  min-height: var(--slot-height, fit-content);
+}
+
+/* Estilos para citas cortas (<= 45 min) */
+.cita-corta {
+  padding: 2px 4px;
+  justify-content: flex-start;
+}
+
+.cita-corta .cita-hora {
+  font-size: 0.65rem;
+  margin-bottom: 0;
+}
+
+.cita-corta .cita-cliente,
+.cita-corta .cita-manicurista,
+.cita-corta .cita-servicio {
+  font-size: 0.65rem;
+  line-height: 1.1;
+  margin-bottom: 0;
 }
 
 .cita-slot .cita-hora {
@@ -895,6 +916,99 @@ textarea.form-input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* LEYENDA MANICURISTAS */
+.leyenda-manicuristas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+  background: var(--white);
+  border-radius: 8px;
+  margin-bottom: 15px;
+  align-items: center;
+}
+
+.leyenda-titulo {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 0.9rem;
+  margin-right: 5px;
+}
+
+.manicurista-chip {
+  padding: 5px 12px;
+  background: #f0f0f0;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* LEYENDA ESTADOS */
+.leyenda-estados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  align-items: center;
+  margin-top: -5px;
+  /* Acercarlo un poco a los manicuristas */
+}
+
+.estado-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-dark);
+}
+
+.estado-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.manicurista-chip:hover {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+/* Efectos de Highlight */
+.cita-slot {
+  transition: opacity 0.2s, filter 0.2s;
+  /* Asegurar transición suave */
+}
+
+.cita-slot.dimmed {
+  opacity: 0.2;
+  filter: grayscale(100%);
+}
+
+.cita-slot.highlighted {
+  box-shadow: 0 0 0 2px var(--primary-color);
+  z-index: 50 !important;
+}
+
+.cita-slot .cita-manicurista {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #555;
 }
 
 /* Colores de estados */
