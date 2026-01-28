@@ -319,6 +319,188 @@
         </div>
       </section>
 
+      <!-- SECCIÓN: COMISIONES -->
+      <section id="seccion-comisiones" class="content-section">
+        <div class="section-header">
+          <h3>💰 Comisiones y Pagos</h3>
+        </div>
+
+        <!-- Filtros Comisiones Mejorados -->
+        <div class="filters-container"
+          style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+          <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: flex-end;">
+
+            <!-- Selector de Tipo de Filtro -->
+            <div class="form-group" style="min-width: 150px;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Filtrar
+                por:</label>
+              <select id="filtro-comision-tipo" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                onchange="cambiarTipoFiltroComision()">
+                <option value="mes">Mes</option>
+                <option value="semana">Semana</option>
+                <option value="rango">Rango de Fechas</option>
+              </select>
+            </div>
+
+            <!-- Filtro por Mes (visible por defecto) -->
+            <div id="filtro-mes-container" class="form-group" style="min-width: 150px;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Mes:</label>
+              <select id="filtro-comision-mes" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Todo el año</option>
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+              </select>
+            </div>
+
+            <!-- Filtro por Semana (oculto por defecto) -->
+            <div id="filtro-semana-container" class="form-group" style="min-width: 200px; display: none;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Semana:</label>
+              <select id="filtro-comision-semana" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <!-- Se llenará dinámicamente -->
+              </select>
+            </div>
+
+            <!-- Filtro por Rango (oculto por defecto) -->
+            <div id="filtro-rango-container" style="display: none; flex: 1; min-width: 300px;">
+              <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                <div class="form-group" style="flex: 1;">
+                  <label
+                    style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Desde:</label>
+                  <input type="date" id="filtro-comision-desde" class="form-control"
+                    style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label
+                    style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Hasta:</label>
+                  <input type="date" id="filtro-comision-hasta" class="form-control"
+                    style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Año (siempre visible) -->
+            <div class="form-group" style="min-width: 120px;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Año:</label>
+              <select id="filtro-comision-anio" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <!-- Se llenará dinámicamente -->
+              </select>
+            </div>
+
+            <!-- Botón Aplicar -->
+            <div class="form-group">
+              <button class="btn btn-primary"
+                style="padding: 0.6rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;"
+                onclick="cargarComisiones()">
+                <span>🔍</span> Aplicar
+              </button>
+            </div>
+          </div>
+
+          <!-- Info Text -->
+          <div style="font-size: 0.85rem; color: #666; padding-top: 0.5rem; border-top: 1px solid #eee;">
+            <span style="margin-right: 1rem;">ℹ️ Solo se muestran citas <strong>Completadas</strong></span>
+            <span>💡 Se liquida semanalmente</span>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="tabla-comisiones">
+            <thead>
+              <tr>
+                <th>Manicurista</th>
+                <th>Total Ventas</th>
+                <th>% Comisión</th>
+                <th>Total Comisión</th>
+                <th>Pagado</th>
+                <th>Pendiente</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="comisiones-body">
+              <!-- Dinámico -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- MODAL: DETALLE COMISIÓN / PAGAR -->
+      <div id="modal-detalle-comision" class="modal-overlay hidden">
+        <div class="modal-content modal-lg">
+          <div class="modal-header">
+            <h3>Detalle de Comisiones: <span id="detalle-manicurista-nombre"></span></h3>
+            <button class="modal-close" onclick="cerrarModalDetalleComision()">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-4">
+              <p><strong>Porcentaje Actual:</strong> <span id="detalle-porcentaje"></span>%</p>
+              <p class="text-xs text-muted">Nota: El porcentaje se aplica al precio de la cita.</p>
+            </div>
+            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th><input type="checkbox" id="check-todos-pagar" onchange="toggleTodosPagar()"></th>
+                    <th>Fecha</th>
+                    <th>Servicio</th>
+                    <th>Precio</th>
+                    <th>Comisión</th>
+                    <th>Estado Pago</th>
+                  </tr>
+                </thead>
+                <tbody id="detalle-comision-body">
+                  <!-- JS -->
+                </tbody>
+              </table>
+            </div>
+            <div class="resumen-pago mt-4 text-right">
+              <h4>Total a Pagar: $<span id="total-a-pagar">0</span></h4>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="cerrarModalDetalleComision()">Cerrar</button>
+            <button class="btn btn-primary" onclick="pagarComisionesSeleccionadas()" id="btn-pagar-comisiones" disabled>
+              Registrar Pago
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: CONFIGURAR COMISIÓN -->
+      <div id="modal-config-comision" class="modal-overlay hidden">
+        <div class="modal-content modal-sm">
+          <div class="modal-header">
+            <h3>Configurar Comisión</h3>
+            <button class="modal-close" onclick="cerrarModalConfigComision()">✕</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="config-email-manicurista">
+            <p class="mb-4">Configurar porcentaje para: <strong id="config-nombre-manicurista"></strong></p>
+            <div class="form-group">
+              <label>Porcentaje (%) *</label>
+              <input type="number" id="config-porcentaje" class="form-input" min="0" max="100" step="1" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="cerrarModalConfigComision()">Cancelar</button>
+            <button class="btn btn-primary" onclick="guardarConfiguracionComision()">Guardar</button>
+          </div>
+        </div>
+      </div>
+
       <!-- SECCIÓN: COMISIONES (Placeholder) -->
       <section id="seccion-comisiones" class="content-section">
         <p>Módulo de Comisiones en desarrollo...</p>
@@ -638,6 +820,52 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="cerrarModalCopiarHorario()">Cancelar</button>
         <button class="btn btn-primary" onclick="copiarHorario()">Copiar y Reemplazar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMACIÓN PAGO COMISIÓN -->
+  <div id="modal-confirmacion-pago" class="modal-overlay hidden" style="z-index: 10000;">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Confirmar Pago</h3>
+        <button class="modal-close" onclick="cerrarModalConfirmacionPago()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas registrar el pago de comisiones?</p>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center;">
+          <p style="margin: 0; color: #666; font-size: 0.9rem;">Total a Pagar:</p>
+          <p id="monto-confirmacion-pago"
+            style="margin: 5px 0 0; font-size: 1.5rem; font-weight: bold; color: var(--success-color);">$0</p>
+        </div>
+        <p style="font-size: 0.85rem; color: #666;">Las citas seleccionadas quedarán marcadas como
+          <strong>Pagadas</strong>.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="cerrarModalConfirmacionPago()">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmarPagoComision()">✅ Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMACIÓN REVERTIR PAGO -->
+  <div id="modal-confirmacion-revertir" class="modal-overlay hidden" style="z-index: 10000;">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Revertir Pago</h3>
+        <button class="modal-close" onclick="cerrarModalConfirmacionRevertir()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 15px;">
+          <span style="font-size: 3rem;">↺</span>
+        </div>
+        <p>¿Estás seguro de que deseas revertir este pago?</p>
+        <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">La cita volverá a estado <strong>Pendiente de
+            Pago</strong> y se restará del total pagado.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="cerrarModalConfirmacionRevertir()">Cancelar</button>
+        <button class="btn btn-primary text-danger" onclick="confirmarRevertirComision()">↺ Revertir</button>
       </div>
     </div>
   </div>

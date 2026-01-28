@@ -1364,3 +1364,20 @@ textarea.form-input {
   background: #e0f2f1;
   color: #00695c;
 }
+
+/* =============================================
+   FIX: TABLA COMISIONES ALINEACIÓN
+   ============================================= */
+.data-table td.text-success,
+.data-table td.text-danger {
+  display: table-cell !important;
+  margin: 0 !important;
+  padding: 15px !important;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Forzar que las celdas de monto no se rompan */
+.data-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}

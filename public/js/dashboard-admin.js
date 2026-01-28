@@ -101,6 +101,8 @@ function cambiarSeccion(seccion) {
         inicializarServicios();
     } else if (seccion === 'usuarios') {
         inicializarUsuarios();
+    } else if (seccion === 'comisiones') {
+        inicializarComisiones();
     }
 }
 
@@ -2280,4 +2282,454 @@ function confirmarEliminarUsuario(id, nombre) {
         },
         true
     );
+}
+
+// =============================================
+// SECCIÓN COMISIONES
+// =============================================
+
+function cambiarTipoFiltroComision() {
+    const tipo = document.getElementById('filtro-comision-tipo').value;
+
+    // Ocultar todos los contenedores
+    document.getElementById('filtro-mes-container').style.display = 'none';
+    document.getElementById('filtro-semana-container').style.display = 'none';
+    document.getElementById('filtro-rango-container').style.display = 'none';
+
+    // Mostrar el contenedor correspondiente
+    if (tipo === 'mes') {
+        document.getElementById('filtro-mes-container').style.display = 'block';
+    } else if (tipo === 'semana') {
+        document.getElementById('filtro-semana-container').style.display = 'block';
+        poblarSemanasComision();
+    } else if (tipo === 'rango') {
+        document.getElementById('filtro-rango-container').style.display = 'block';
+        // Establecer fechas por defecto (semana actual)
+        const hoy = new Date();
+        const hace7Dias = new Date(hoy);
+        hace7Dias.setDate(hace7Dias.getDate() - 7);
+        document.getElementById('filtro-comision-desde').valueAsDate = hace7Dias;
+        document.getElementById('filtro-comision-hasta').valueAsDate = hoy;
+    }
+}
+
+function poblarSemanasComision() {
+    const selectSemana = document.getElementById('filtro-comision-semana');
+    const anio = document.getElementById('filtro-comision-anio').value || new Date().getFullYear();
+
+    selectSemana.innerHTML = '';
+
+    // Generar semanas del año
+    const primerDia = new Date(anio, 0, 1);
+    const ultimoDia = new Date(anio, 11, 31);
+
+    let semanaActual = new Date(primerDia);
+    // Ajustar al lunes de esa semana
+    const diaSemana = semanaActual.getDay();
+    const diff = diaSemana === 0 ? -6 : 1 - diaSemana;
+    semanaActual.setDate(semanaActual.getDate() + diff);
+
+    let numSemana = 1;
+
+    while (semanaActual <= ultimoDia) {
+        const finSemana = new Date(semanaActual);
+        finSemana.setDate(finSemana.getDate() + 6);
+
+        const desde = semanaActual.toISOString().split('T')[0];
+        const hasta = finSemana.toISOString().split('T')[0];
+
+        const option = document.createElement('option');
+        option.value = `${desde}|${hasta}`;
+        option.textContent = `Semana ${numSemana}: ${formatearFechaCorta(semanaActual)} - ${formatearFechaCorta(finSemana)}`;
+        selectSemana.appendChild(option);
+
+        semanaActual.setDate(semanaActual.getDate() + 7);
+        numSemana++;
+    }
+
+    // Seleccionar la semana actual
+    const hoy = new Date();
+    const opciones = selectSemana.options;
+    for (let i = 0; i < opciones.length; i++) {
+        const [desde, hasta] = opciones[i].value.split('|');
+        if (hoy >= new Date(desde) && hoy <= new Date(hasta)) {
+            selectSemana.selectedIndex = i;
+            break;
+        }
+    }
+}
+
+function formatearFechaCorta(fecha) {
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return `${fecha.getDate()} ${meses[fecha.getMonth()]}`;
+}
+
+function inicializarComisiones() {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+
+    const selectAnio = document.getElementById('filtro-comision-anio');
+    const selectMes = document.getElementById('filtro-comision-mes');
+
+    if (selectAnio && selectAnio.options.length === 0) {
+        selectAnio.innerHTML = '';
+
+        const opt1 = document.createElement('option');
+        opt1.value = currentYear;
+        opt1.textContent = currentYear;
+        selectAnio.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = currentYear + 1;
+        opt2.textContent = currentYear + 1;
+        selectAnio.appendChild(opt2);
+    }
+
+    if (selectAnio) {
+        selectAnio.value = currentYear.toString();
+    }
+
+    if (selectMes) {
+        selectMes.value = currentMonth.toString();
+    }
+
+    // Inicializar el tipo de filtro
+    cambiarTipoFiltroComision();
+
+    cargarComisiones();
+}
+
+async function cargarComisiones() {
+    try {
+        const tipo = document.getElementById('filtro-comision-tipo').value;
+        const anio = document.getElementById('filtro-comision-anio').value;
+
+        let query = `?tipo=${tipo}&anio=${anio}`;
+
+        if (tipo === 'mes') {
+            const mes = document.getElementById('filtro-comision-mes').value;
+            if (mes) query += `&mes=${mes}`;
+        } else if (tipo === 'semana') {
+            const semanaValue = document.getElementById('filtro-comision-semana').value;
+            if (semanaValue) {
+                const [desde, hasta] = semanaValue.split('|');
+                query += `&desde=${desde}&hasta=${hasta}`;
+            }
+        } else if (tipo === 'rango') {
+            const desde = document.getElementById('filtro-comision-desde').value;
+            const hasta = document.getElementById('filtro-comision-hasta').value;
+            if (desde && hasta) {
+                query += `&desde=${desde}&hasta=${hasta}`;
+            }
+        }
+
+        const response = await fetchConToken(`/api/comisiones/resumen${query}`);
+        const data = await response.json();
+
+        const tbody = document.getElementById('comisiones-body');
+
+        if (!data.success || data.resumen.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay datos de comisiones para el periodo seleccionado</td></tr>';
+            return;
+        }
+
+        // Generar HTML de la tabla con estructura clara para evitar errores de alineación
+        tbody.innerHTML = data.resumen.map(c => {
+            return `
+            <tr>
+                <td>${c.nombre_completo}</td>
+                <td>$${Number(c.total_ventas).toLocaleString()}</td>
+                <td>
+                    ${c.porcentaje}% 
+                    <button class="btn-icon btn-sm" onclick="abrirModalConfigComision('${c.email}', '${c.nombre_completo}', ${c.porcentaje})">⚙️</button>
+                </td>
+                <td>$${Number(c.total_comision).toLocaleString()}</td>
+                <td class="text-success">$${Number(c.total_pagado).toLocaleString()}</td>
+                <td class="text-danger font-bold">$${Number(c.pendiente).toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" onclick="verDetalleComisiones('${c.email}', '${c.nombre_completo}')">
+                        Ver Detalle
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+
+    } catch (error) {
+        console.error('Error al cargar comisiones:', error);
+    }
+}
+
+// DETALLE Y PAGOS
+let detalleComisionesCitas = [];
+
+async function verDetalleComisiones(email, nombre) {
+    try {
+        document.getElementById('detalle-manicurista-nombre').textContent = nombre;
+        emailManicuristaDetalle = email;
+
+        // Usar los mismos filtros que el resumen
+        const tipo = document.getElementById('filtro-comision-tipo').value;
+        const anio = document.getElementById('filtro-comision-anio').value;
+
+        let query = `?tipo=${tipo}&anio=${anio}`;
+
+        if (tipo === 'mes') {
+            const mes = document.getElementById('filtro-comision-mes').value;
+            if (mes) query += `&mes=${mes}`;
+        } else if (tipo === 'semana') {
+            const semanaValue = document.getElementById('filtro-comision-semana').value;
+            if (semanaValue) {
+                const [desde, hasta] = semanaValue.split('|');
+                query += `&desde=${desde}&hasta=${hasta}`;
+            }
+        } else if (tipo === 'rango') {
+            const desde = document.getElementById('filtro-comision-desde').value;
+            const hasta = document.getElementById('filtro-comision-hasta').value;
+            if (desde && hasta) {
+                query += `&desde=${desde}&hasta=${hasta}`;
+            }
+        }
+
+        const response = await fetchConToken(`/api/comisiones/detalle/${email}${query}`);
+        const data = await response.json();
+
+        if (data.success) {
+            detalleComisionesCitas = data.detalle;
+            document.getElementById('detalle-porcentaje').textContent = data.porcentaje_actual;
+            renderizarDetalleComisiones();
+            document.getElementById('modal-detalle-comision').classList.remove('hidden');
+        }
+
+    } catch (error) {
+        console.error('Error al ver detalle:', error);
+    }
+}
+
+function renderizarDetalleComisiones() {
+    const tbody = document.getElementById('detalle-comision-body');
+    const porcentaje = parseFloat(document.getElementById('detalle-porcentaje').textContent);
+
+    if (detalleComisionesCitas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay citas registradas</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = detalleComisionesCitas.map(cita => {
+        // Recalcular estimación visual basada en configuración actual si se desea, 
+        // o usar la que viene del backend (que usa el % actual)
+        const comision = (cita.precio * porcentaje) / 100;
+
+        return `
+        <tr>
+            <td>
+                ${cita.estado_pago === 'pendiente'
+                ? `<input type="checkbox" class="check-pago" value="${cita.id_cita}" onchange="calcularTotalPagar()">`
+                : '✅'}
+            </td>
+            <td>${new Date(cita.fecha).toLocaleDateString()}</td>
+            <td>${cita.servicio}</td>
+            <td>$${Number(cita.precio).toLocaleString()}</td>
+            <td>$${Number(comision).toLocaleString()}</td>
+            <td>
+                ${cita.estado_pago === 'pagado'
+                ? `<div style="display: flex; align-items: center; gap: 5px;">
+                         <span class="badge badge-success">Pagado</span>
+                         <button class="btn-icon btn-sm text-danger" title="Revertir Pago" onclick="revertirPagoComision(${cita.id_cita})">↺</button>
+                       </div>`
+                : `<span class="badge badge-warning">${cita.estado_pago}</span>`
+            }
+            </td>
+        </tr>
+    `}).join('');
+
+    calcularTotalPagar();
+}
+
+function calcularTotalPagar() {
+    const checkboxes = document.querySelectorAll('.check-pago:checked');
+    let total = 0;
+    const porcentaje = parseFloat(document.getElementById('detalle-porcentaje').textContent);
+
+    checkboxes.forEach(chk => {
+        const id = parseInt(chk.value);
+        const cita = detalleComisionesCitas.find(c => c.id_cita === id);
+        if (cita) {
+            total += (cita.precio * porcentaje) / 100;
+        }
+    });
+
+    document.getElementById('total-a-pagar').textContent = total.toLocaleString();
+    document.getElementById('btn-pagar-comisiones').disabled = checkboxes.length === 0;
+}
+
+function toggleTodosPagar() {
+    const masterCheck = document.getElementById('check-todos-pagar');
+    const checkboxes = document.querySelectorAll('.check-pago');
+    checkboxes.forEach(chk => {
+        chk.checked = masterCheck.checked;
+    });
+    calcularTotalPagar();
+}
+
+function cerrarModalDetalleComision() {
+    document.getElementById('modal-detalle-comision').classList.add('hidden');
+}
+
+async function pagarComisionesSeleccionadas() {
+    const checkboxes = document.querySelectorAll('.check-pago:checked');
+    const ids = Array.from(checkboxes).map(chk => parseInt(chk.value));
+
+    // Necesitamos el email de la manicurista (podemos sacarlo del detalle, todos son la misma)
+    if (detalleComisionesCitas.length === 0) return;
+    // Buscamos el email en la lista cargada inicialmente en la tabla principal
+    // O lo pasamos como global variable al abrir el modal.
+    // Hack rápido: obtener email desde una variable global temporal
+    // Mejor: guardar email al abrir modal.
+}
+
+// Variable temporal para el email actual en detalle
+let emailManicuristaDetalle = null;
+
+// Override anterior function para guardar email
+const originalVerDetalle = verDetalleComisiones;
+verDetalleComisiones = async function (email, nombre) {
+    emailManicuristaDetalle = email;
+    await originalVerDetalle(email, nombre);
+}
+
+async function pagarComisionesSeleccionadas() {
+    const checkboxes = document.querySelectorAll('.check-pago:checked');
+    const ids = Array.from(checkboxes).map(chk => parseInt(chk.value));
+
+    if (ids.length === 0) return;
+
+    // Mostrar modal en lugar de confirm
+    document.getElementById('monto-confirmacion-pago').textContent = document.getElementById('total-a-pagar').textContent;
+    document.getElementById('modal-confirmacion-pago').classList.remove('hidden');
+}
+
+function cerrarModalConfirmacionPago() {
+    document.getElementById('modal-confirmacion-pago').classList.add('hidden');
+}
+
+async function confirmarPagoComision() {
+    const checkboxes = document.querySelectorAll('.check-pago:checked');
+    const ids = Array.from(checkboxes).map(chk => parseInt(chk.value));
+
+    if (ids.length === 0) return;
+
+    try {
+        const response = await fetchConToken('/api/comisiones/pagar', {
+            method: 'POST',
+            body: JSON.stringify({
+                ids_citas: ids,
+                email_manicurista: emailManicuristaDetalle
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarMensaje('success', '✓', 'Pago Registrado', data.message);
+            cerrarModalConfirmacionPago();
+            cerrarModalDetalleComision();
+            cargarComisiones();
+        } else {
+            mostrarMensaje('error', '❌', 'Error', data.message);
+            cerrarModalConfirmacionPago();
+        }
+
+    } catch (error) {
+        console.error(error);
+        mostrarMensaje('error', '❌', 'Error', 'Error al procesar pago');
+        cerrarModalConfirmacionPago();
+    }
+}
+
+// Variables globales para reversión
+let idCitaRevertir = null;
+
+function revertirPagoComision(idCita) {
+    idCitaRevertir = idCita;
+    document.getElementById('modal-confirmacion-revertir').classList.remove('hidden');
+}
+
+function cerrarModalConfirmacionRevertir() {
+    document.getElementById('modal-confirmacion-revertir').classList.add('hidden');
+    idCitaRevertir = null;
+}
+
+async function confirmarRevertirComision() {
+    if (!idCitaRevertir) return;
+
+    try {
+        const response = await fetchConToken('/api/comisiones/revertir', {
+            method: 'POST',
+            body: JSON.stringify({ id_cita: idCitaRevertir })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarMensaje('success', '✓', 'Pago Revertido', data.message);
+            cerrarModalConfirmacionRevertir();
+            cerrarModalDetalleComision(); // Cerrar el detalle para forzar recarga
+            cargarComisiones(); // Recargar tabla general
+
+            // Opcional: Si queremos mantener el detalle abierto, recargarlo:
+            // if (emailManicuristaDetalle) {
+            //    verDetalleComisiones(emailManicuristaDetalle, document.getElementById('detalle-manicurista-nombre').textContent);
+            // }
+        } else {
+            mostrarMensaje('error', '❌', 'Error', data.message);
+            cerrarModalConfirmacionRevertir();
+        }
+
+    } catch (error) {
+        console.error(error);
+        mostrarMensaje('error', '❌', 'Error', 'Error al revertir pago');
+        cerrarModalConfirmacionRevertir();
+    }
+}
+
+// CONFIGURACIÓN
+function abrirModalConfigComision(email, nombre, porcentaje) {
+    document.getElementById('config-email-manicurista').value = email;
+    document.getElementById('config-nombre-manicurista').textContent = nombre;
+    document.getElementById('config-porcentaje').value = porcentaje;
+    document.getElementById('modal-config-comision').classList.remove('hidden');
+}
+
+function cerrarModalConfigComision() {
+    document.getElementById('modal-config-comision').classList.add('hidden');
+}
+
+async function guardarConfiguracionComision() {
+    const email = document.getElementById('config-email-manicurista').value;
+    const porcentaje = document.getElementById('config-porcentaje').value;
+
+    try {
+        const response = await fetchConToken('/api/comisiones/configurar', {
+            method: 'POST',
+            body: JSON.stringify({
+                email_manicurista: email,
+                porcentaje: parseInt(porcentaje)
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarMensaje('success', '✓', 'Actualizado', data.message);
+            cerrarModalConfigComision();
+            cargarComisiones();
+        } else {
+            mostrarMensaje('error', '❌', 'Error', data.message);
+        }
+
+    } catch (error) {
+        console.error(error);
+        mostrarMensaje('error', '❌', 'Error', 'Error al guardar configuración');
+    }
 }
