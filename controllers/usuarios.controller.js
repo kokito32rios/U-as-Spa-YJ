@@ -97,7 +97,8 @@ exports.crearUsuario = async (req, res) => {
         // Por compatibilidad simple, usaremos nombre para ambos si no hay apellido, o ajustamos el frontend.
         // Ajuste: Separar nombre si viene junto, o pedir apellido. 
         // Para simplificar ahora: apellido = ''
-        const apellido = '';
+        // Ajuste: Separar nombre y apellido explícitamente
+        const apellido = req.body.apellido || '';
 
         await db.query(query, [nombre, apellido, email, passwordHash, rol]);
 
@@ -118,7 +119,8 @@ exports.crearUsuario = async (req, res) => {
 exports.actualizarUsuario = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, email, rol, password } = req.body;
+        const { nombre, apellido, email, rol, password } = req.body;
+        const apellidoFinal = apellido || '';
 
         // Verificar si existe otro usuario con ese email (excluyendo al actual)
         // Como email es PK, esto es redundante si id == email, pero válido si permitimos cambiar email (complejo con PK).
@@ -134,12 +136,12 @@ exports.actualizarUsuario = async (req, res) => {
             // Actualizar con password
             const salt = await bcrypt.genSalt(10);
             const passwordHash = await bcrypt.hash(password, salt);
-            query = 'UPDATE usuarios SET nombre = ?, id_rol = ?, password_hash = ? WHERE email = ?';
-            params = [nombre, rol, passwordHash, id];
+            query = 'UPDATE usuarios SET nombre = ?, apellido = ?, id_rol = ?, password_hash = ? WHERE email = ?';
+            params = [nombre, apellidoFinal, rol, passwordHash, id];
         } else {
             // Actualizar sin password
-            query = 'UPDATE usuarios SET nombre = ?, id_rol = ? WHERE email = ?';
-            params = [nombre, rol, id];
+            query = 'UPDATE usuarios SET nombre = ?, apellido = ?, id_rol = ? WHERE email = ?';
+            params = [nombre, apellidoFinal, rol, id];
         }
 
         const [result] = await db.query(query, params);

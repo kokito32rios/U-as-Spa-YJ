@@ -1039,6 +1039,33 @@ function irAHoy() {
 }
 
 // =============================================
+// COLORES PARA MANICURISTAS
+// =============================================
+const MANICURISTA_COLORS = [
+    '#e91e63', // Pink
+    '#9c27b0', // Purple
+    '#673ab7', // Deep Purple
+    '#3f51b5', // Indigo
+    '#2196f3', // Blue
+    '#00bcd4', // Cyan
+    '#009688', // Teal
+    '#F44336', // Red
+    '#FF9800', // Orange
+    '#795548', // Brown
+    '#607D8B'  // Blue Grey
+];
+
+function obtenerColorManicurista(email) {
+    if (!email) return '#999';
+    let hash = 0;
+    for (let i = 0; i < email.length; i++) {
+        hash = email.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % MANICURISTA_COLORS.length;
+    return MANICURISTA_COLORS[index];
+}
+
+// =============================================
 // RENDERIZAR VISTA SEMANAL
 // =============================================
 function renderizarVistaSemanal() {
@@ -1062,14 +1089,14 @@ function renderizarVistaSemanal() {
     let htmlLeyenda = '<div class="leyenda-manicuristas">';
     htmlLeyenda += '<span class="leyenda-titulo">Filtrar por Manicurista:</span>';
 
-    // Usar la lista global si agendaDatos.manicuristas está vacío o incompleto, 
-    // pero filtrar para mostrar solo las relevantes si se desea, o todas.
-    // Usaremos la lista global para que siempre estén todas disponibles para filtrar.
+    // Usar la lista global si agendaDatos.manicuristas está vacío o incompleto
     const listaParaLeyenda = listaManicuristas.length > 0 ? listaManicuristas : manicuristas;
 
     listaParaLeyenda.forEach(m => {
+        const color = obtenerColorManicurista(m.email);
         htmlLeyenda += `
             <div class="manicurista-chip" 
+                 style="border-left: 5px solid ${color};"
                  onmouseenter="resaltarManicurista('${m.email}')" 
                  onmouseleave="restaurarVista()">
                  💅 ${m.nombre_completo || m.nombre}
@@ -1083,7 +1110,6 @@ function renderizarVistaSemanal() {
         { id: 'pendiente', nombre: 'Pendiente', color: '#ffc107' },
         { id: 'confirmada', nombre: 'Confirmada', color: '#17a2b8' },
         { id: 'completada', nombre: 'Completada', color: '#28a745' },
-        // { id: 'no_asistio', nombre: 'No Asistió', color: '#6c757d' }, // Opcional si se usa
         { id: 'cancelada', nombre: 'Cancelada', color: '#dc3545' }
     ];
 
@@ -1155,7 +1181,10 @@ function renderizarVistaSemanal() {
                         onclick="clickCeldaCalendario('${fechaStr}', '${hora}')">`;
 
             if (citasEnSlot.length > 0) {
-                citasEnSlot.forEach(cita => {
+                // Calcular ancho para citas solapadas (split view)
+                const width = 100 / citasEnSlot.length;
+
+                citasEnSlot.forEach((cita, index) => {
                     // Calcular duración en minutos
                     const inicio = new Date(`2000-01-01T${cita.hora_inicio}`);
                     const fin = new Date(`2000-01-01T${cita.hora_fin}`);
@@ -1168,15 +1197,22 @@ function renderizarVistaSemanal() {
                     // Detectar si es cita corta para ajustar estilos
                     const esCorta = duracionMin <= 45 ? 'cita-corta' : '';
 
+                    // Calcular posición horizontal
+                    const left = index * width;
+
+                    // Obtener Color
+                    const colorM = obtenerColorManicurista(cita.email_manicurista);
+
                     html += `
                         <div class="cita-slot estado-${cita.estado} ${esCorta}" 
-                             style="--slot-height: ${height}px; height: ${height}px; z-index: 10;"
+                             style="--slot-height: ${height}px; height: ${height}px; z-index: ${10 + index}; width: ${width}%; left: ${left}%; border-right: 5px solid ${colorM};"
                              data-email-manicurista="${cita.email_manicurista}"
+                             title="${cita.nombre_manicurista} - ${cita.nombre_cliente} (${cita.nombre_servicio})"
                              onclick="event.stopPropagation(); editarCita(${cita.id_cita})">
                             <div class="cita-hora">${cita.hora_inicio.substring(0, 5)} - ${cita.hora_fin.substring(0, 5)}</div>
-                            <div class="cita-cliente">${cita.nombre_cliente}</div>
-                            <div class="cita-manicurista">💅 ${cita.nombre_manicurista}</div>
-                            <div class="cita-servicio">${cita.nombre_servicio}</div>
+                            <div class="cita-manicurista" style="font-size: 0.8em; font-weight: bold;">💅 ${cita.nombre_manicurista.split(' ')[0]}</div>
+                            <div class="cita-cliente">${cita.nombre_cliente.split(' ')[0]}</div>
+                            ${esCorta ? '' : `<div class="cita-servicio">${cita.nombre_servicio}</div>`}
                         </div>
                     `;
                 });
@@ -2162,6 +2198,7 @@ function validarCoincidenciaPasswords() {
 function abrirModalUsuario() {
     document.getElementById('form-usuario').reset();
     document.getElementById('usuario-id').value = '';
+    document.getElementById('usuario-apellido').value = ''; // Reset apellido
     document.getElementById('modal-usuario-titulo').textContent = 'Nuevo Usuario';
     document.getElementById('usuario-password-hint').classList.remove('hidden');
     document.getElementById('password-match-msg').textContent = ''; // Reset msg
@@ -2175,6 +2212,7 @@ function cerrarModalUsuario() {
 async function guardarUsuario() {
     const id = document.getElementById('usuario-id').value;
     const nombre = document.getElementById('usuario-nombre').value;
+    const apellido = document.getElementById('usuario-apellido').value;
     const email = document.getElementById('usuario-email').value;
     const password = document.getElementById('usuario-password').value;
     const rol = document.getElementById('usuario-rol').value;
@@ -2203,7 +2241,7 @@ async function guardarUsuario() {
         }
     }
 
-    const datos = { nombre, email, rol, password }; // Password can be empty on update
+    const datos = { nombre, apellido, email, rol, password }; // Password can be empty on update
     const method = id ? 'PUT' : 'POST';
     const url = id ? `/api/usuarios/${id}` : '/api/usuarios';
 
@@ -2235,6 +2273,7 @@ function editarUsuario(id) {
 
     document.getElementById('usuario-id').value = user.email; // Identify by email
     document.getElementById('usuario-nombre').value = user.nombre;
+    document.getElementById('usuario-apellido').value = user.apellido || '';
     document.getElementById('usuario-email').value = user.email;
     document.getElementById('usuario-rol').value = user.id_rol; // Use ID for select
     document.getElementById('usuario-password').value = '';
