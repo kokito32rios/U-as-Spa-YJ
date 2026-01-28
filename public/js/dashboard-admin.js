@@ -2144,7 +2144,7 @@ async function cargarUsuariosTabla() {
 
             return `
             <tr>
-                <td><strong>${u.nombre}</strong></td>
+                <td><strong>${u.nombre} ${u.apellido || ''}</strong></td>
                 <td>${u.email}</td>
                 <td><span class="badge ${badgeClass}">${u.rol || 'Cliente'}</span></td>
                 <td>
@@ -2771,4 +2771,17 @@ async function guardarConfiguracionComision() {
         console.error(error);
         mostrarMensaje('error', '❌', 'Error', 'Error al guardar configuración');
     }
+}
+
+// =============================================
+// SIDEBAR TOGGLE
+// =============================================
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    mainContent.classList.toggle('expanded');
+
+    // Guardar preferencia (opcional)
+    // localStorage.setItem('sidebarCollapsed', isCollapsed);
 }

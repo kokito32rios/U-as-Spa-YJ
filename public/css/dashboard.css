@@ -1381,3 +1381,53 @@ textarea.form-input {
   white-space: nowrap;
   vertical-align: middle;
 }
+
+/* =============================================
+   SIDEBAR COLLAPSED STATE
+   ============================================= */
+.sidebar {
+  transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.sidebar.collapsed .sidebar-header h2,
+.sidebar.collapsed .sidebar-header #user-welcome,
+.sidebar.collapsed .nav-item span:last-child,
+.sidebar.collapsed .btn-logout span:last-child {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-header {
+  padding: 20px 10px;
+  text-align: center;
+}
+
+.sidebar.collapsed .sidebar-header h2 {
+  display: none;
+}
+
+/* We keep the toggle button visible but centered */
+.sidebar.collapsed .sidebar-header div {
+  justify-content: center !important;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 14px 10px;
+}
+
+.sidebar.collapsed .nav-icon {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.main-content {
+  transition: margin-left 0.3s ease;
+}
+
+.main-content.expanded {
+  margin-left: 80px;
+}
