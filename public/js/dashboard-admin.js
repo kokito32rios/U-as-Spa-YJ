@@ -216,6 +216,10 @@ async function abrirModalNuevaCita() {
     document.getElementById('cita-id').value = '';
     document.getElementById('cita-estado').value = 'pendiente';
 
+    // Ocultar método de pago (solo visible cuando estado = completada)
+    document.getElementById('grupo-metodo-pago').style.display = 'none';
+    document.getElementById('cita-metodo-pago').value = '';
+
     // Deshabilitar botón guardar hasta que se seleccione horario
     document.getElementById('btn-guardar-cita').disabled = true;
 
@@ -236,6 +240,21 @@ async function abrirModalNuevaCita() {
     setTimeout(() => {
         modal.scrollTop = 0;
     }, 100);
+}
+
+// =============================================
+// TOGGLE MÉTODO DE PAGO (visible solo si estado = completada)
+// =============================================
+function toggleMetodoPago() {
+    const estado = document.getElementById('cita-estado').value;
+    const grupo = document.getElementById('grupo-metodo-pago');
+
+    if (estado === 'completada') {
+        grupo.style.display = 'block';
+    } else {
+        grupo.style.display = 'none';
+        document.getElementById('cita-metodo-pago').value = '';
+    }
 }
 
 // =============================================
@@ -400,6 +419,16 @@ async function guardarCita() {
     if (id) {
         datos.estado = document.getElementById('cita-estado').value;
         datos.notas_manicurista = document.getElementById('cita-notas-manicurista').value;
+
+        // Si estado = completada, requerir método de pago
+        if (datos.estado === 'completada') {
+            const metodoPago = document.getElementById('cita-metodo-pago');
+            if (!metodoPago || !metodoPago.value) {
+                mostrarMensaje('warning', '⚠️', 'Método de pago requerido', 'Debe seleccionar un método de pago para completar la cita');
+                return;
+            }
+            datos.metodo_pago = metodoPago.value;
+        }
     }
 
     const btn = document.getElementById('btn-guardar-cita');
@@ -587,6 +616,12 @@ async function editarCita(idCita) {
         document.getElementById('cita-estado').value = cita.estado;
         document.getElementById('cita-notas-cliente').value = cita.notas_cliente || '';
         document.getElementById('cita-notas-manicurista').value = cita.notas_manicurista || '';
+
+        // Cargar método de pago si existe
+        document.getElementById('cita-metodo-pago').value = cita.metodo_pago_cliente || '';
+
+        // Mostrar/ocultar método de pago según estado
+        toggleMetodoPago();
 
         // Mostrar modal
         document.getElementById('modal-cita').classList.remove('hidden');

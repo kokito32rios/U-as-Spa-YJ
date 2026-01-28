@@ -25,12 +25,14 @@ exports.obtenerCitas = async (req, res) => {
                 CONCAT(um.nombre, ' ', um.apellido) as nombre_manicurista,
                 c.id_servicio,
                 s.nombre as nombre_servicio,
-                s.precio,
-                s.duracion_minutos
+                s.precio as precio_servicio,
+                s.duracion_minutos,
+                p.metodo_pago_cliente
             FROM citas c
             LEFT JOIN usuarios uc ON c.email_cliente = uc.email
             INNER JOIN usuarios um ON c.email_manicurista = um.email
             INNER JOIN servicios s ON c.id_servicio = s.id_servicio
+            LEFT JOIN pagos p ON c.id_cita = p.id_cita
             WHERE 1=1
         `;
 
@@ -297,6 +299,70 @@ exports.actualizarCita = async (req, res) => {
                 success: false,
                 message: 'Cita no encontrada'
             });
+        }
+
+        // =============================================
+        // SI ESTADO = COMPLETADA: Crear registro de pago
+        // =============================================
+        if (estado === 'completada') {
+            const metodo_pago = req.body.metodo_pago;
+
+            if (!metodo_pago) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Debe seleccionar un método de pago para completar la cita'
+                });
+            }
+
+            // Obtener datos de la cita para calcular comisión
+            const [citaData] = await db.query(`
+                SELECT c.precio, c.email_manicurista, YEAR(c.fecha) as anio
+                FROM citas c
+                WHERE c.id_cita = ?
+            `, [id]);
+
+            if (citaData.length > 0) {
+                const { precio, email_manicurista, anio } = citaData[0];
+                const monto = precio || 0;
+
+                // Buscar porcentaje de comisión
+                let porcentaje = 0;
+                const [comisionConfig] = await db.query(`
+                    SELECT porcentaje FROM comisiones_manicuristas
+                    WHERE email_manicurista = ? AND anio = ?
+                `, [email_manicurista, anio]);
+
+                if (comisionConfig.length > 0) {
+                    porcentaje = comisionConfig[0].porcentaje;
+                }
+
+                const comision = (monto * porcentaje) / 100;
+
+                // Verificar si ya existe un pago para esta cita
+                const [pagoExistente] = await db.query(
+                    'SELECT id_pago FROM pagos WHERE id_cita = ?', [id]
+                );
+
+                if (pagoExistente.length === 0) {
+                    // Crear nuevo registro de pago
+                    await db.query(`
+                        INSERT INTO pagos (id_cita, monto_total, comision_manicurista, 
+                            estado_pago_cliente, metodo_pago_cliente, fecha_pago_cliente)
+                        VALUES (?, ?, ?, 'pagado', ?, NOW())
+                    `, [id, monto, comision, metodo_pago]);
+                } else {
+                    // Actualizar pago existente
+                    await db.query(`
+                        UPDATE pagos SET 
+                            monto_total = ?, 
+                            comision_manicurista = ?,
+                            estado_pago_cliente = 'pagado',
+                            metodo_pago_cliente = ?,
+                            fecha_pago_cliente = NOW()
+                        WHERE id_cita = ?
+                    `, [monto, comision, metodo_pago, id]);
+                }
+            }
         }
 
         res.json({
