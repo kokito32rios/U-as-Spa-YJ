@@ -110,3 +110,28 @@ exports.verificarToken = async (req, res) => {
         });
     }
 };
+
+// =============================================
+// MIDDLEWARE DE AUTENTICACIÓN (para proteger rutas)
+// =============================================
+exports.authMiddleware = (req, res, next) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: 'Token no proporcionado'
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.usuario = decoded; // Attach user info to request
+        next(); // Continue to next handler
+    } catch (error) {
+        res.status(401).json({
+            success: false,
+            message: 'Token inválido o expirado'
+        });
+    }
+};

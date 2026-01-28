@@ -84,10 +84,28 @@ function cambiarSeccion(seccion) {
     };
     document.getElementById('section-title').textContent = titulos[seccion];
 
-    // Toggle header "Nueva Cita" button visibility
+    // Mostrar/Ocultar botones de acción según la sección
+    // Resetear visibilidad de todos
+    const btns = ['btn-nueva-cita', 'btn-nuevo-usuario', 'btn-nuevo-servicio', 'btn-subir-imagen'];
+    btns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.add('hidden');
+    });
+
+    // Mostrar el contenedor header-actions siempre (o ocultar si no hay botones, pero lo dejaremos visible)
     const headerActions = document.querySelector('.header-actions');
-    if (headerActions) {
-        headerActions.style.display = ['agendamiento', 'agenda'].includes(seccion) ? 'flex' : 'none';
+    if (headerActions) headerActions.style.display = 'flex';
+
+    // Activar botón específico
+    if (seccion === 'agendamiento' || seccion === 'agenda') {
+        document.getElementById('btn-nueva-cita').classList.remove('hidden');
+    } else if (seccion === 'usuarios') {
+        document.getElementById('btn-nuevo-usuario')?.classList.remove('hidden');
+    } else if (seccion === 'servicios') {
+        document.getElementById('btn-nuevo-servicio')?.classList.remove('hidden');
+    } else if (seccion === 'galeria') {
+        document.getElementById('btn-subir-imagen')?.classList.remove('hidden');
+        cargarGaleria();
     }
 
     // Cargar datos según sección
@@ -2784,4 +2802,260 @@ function toggleSidebar() {
 
     // Guardar preferencia (opcional)
     // localStorage.setItem('sidebarCollapsed', isCollapsed);
+}
+
+// =============================================
+// SECCIÓN GALERÍA
+// =============================================
+
+function cargarGaleria() {
+    const grid = document.getElementById('galeria-grid');
+    grid.innerHTML = '<p style="text-align: center;">Cargando imágenes...</p>';
+
+    fetchConToken('/api/galeria')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const imagenes = data.imagenes || [];
+                document.getElementById('galeria-total-count').textContent = imagenes.length;
+
+                if (imagenes.length === 0) {
+                    grid.innerHTML = '<div class="empty-state">No hay imágenes en la galería. ¡Sube la primera!</div>';
+                    return;
+                }
+
+                // Agrupar por servicio
+                const grupos = {};
+                imagenes.forEach(img => {
+                    const servicio = img.nombre_servicio || 'Sin servicio';
+                    if (!grupos[servicio]) {
+                        grupos[servicio] = { id: img.id_servicio, imgs: [] };
+                    }
+                    grupos[servicio].imgs.push(img);
+                });
+
+                // Guardar grupos globalmente para el lightbox
+                window.galeriaGrupos = grupos;
+
+                // Mostrar solo la imagen principal de cada servicio (o la primera si no hay principal)
+                let html = '';
+                Object.keys(grupos).sort().forEach(servicio => {
+                    const grupo = grupos[servicio];
+                    const principal = grupo.imgs.find(i => i.imagen_principal) || grupo.imgs[0];
+                    const count = grupo.imgs.length;
+
+                    html += `
+                        <div class="galeria-thumb" onclick="abrirLightbox('${servicio}')">
+                            <img src="${principal.url_imagen}" alt="${servicio}" loading="lazy">
+                            <div class="galeria-thumb-overlay">
+                                <span class="galeria-thumb-title">${servicio}</span>
+                                <span class="galeria-thumb-count">${count} foto${count > 1 ? 's' : ''}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                grid.innerHTML = html;
+            } else {
+                mostrarMensaje('error', '❌', 'Error', 'No se pudo cargar la galería');
+            }
+        })
+        .catch(err => console.error(err));
+}
+
+// =============================================
+// LIGHTBOX GALERÍA
+// =============================================
+let lightboxIndex = 0;
+let lightboxImages = [];
+
+function abrirLightbox(servicio) {
+    const grupo = window.galeriaGrupos[servicio];
+    if (!grupo) return;
+
+    lightboxImages = grupo.imgs;
+    lightboxIndex = 0;
+
+    const modal = document.getElementById('modal-lightbox');
+    if (!modal) {
+        // Crear modal dinámicamente si no existe
+        const modalHTML = `
+            <div id="modal-lightbox" class="lightbox-overlay">
+                <div class="lightbox-header">
+                    <h3 id="lightbox-titulo"></h3>
+                    <button class="modal-close" onclick="cerrarLightbox()">✕</button>
+                </div>
+                <div class="lightbox-body">
+                    <button class="lightbox-nav lightbox-prev" onclick="navLightbox(-1)">❮</button>
+                    <div class="lightbox-main">
+                        <img id="lightbox-img" src="" alt="">
+                        <p id="lightbox-desc" class="text-center text-muted mt-2"></p>
+                    </div>
+                    <button class="lightbox-nav lightbox-next" onclick="navLightbox(1)">❯</button>
+                </div>
+                <div class="lightbox-thumbs" id="lightbox-thumbs"></div>
+                <div class="lightbox-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="togglePrincipalLightbox()">⭐ Marcar Principal</button>
+                    <button class="btn btn-sm btn-danger" onclick="eliminarImagenLightbox()">🗑️ Eliminar</button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    document.getElementById('lightbox-titulo').textContent = servicio;
+    renderLightbox();
+    document.getElementById('modal-lightbox').classList.add('active');
+}
+
+function cerrarLightbox() {
+    document.getElementById('modal-lightbox').classList.remove('active');
+}
+
+function renderLightbox() {
+    const img = lightboxImages[lightboxIndex];
+    document.getElementById('lightbox-img').src = img.url_imagen;
+    document.getElementById('lightbox-desc').textContent = img.descripcion || 'Sin descripción';
+
+    // Thumbnails
+    const thumbsHTML = lightboxImages.map((i, idx) => `
+        <img src="${i.url_imagen}" class="${idx === lightboxIndex ? 'active' : ''} ${i.imagen_principal ? 'principal' : ''}" 
+             onclick="lightboxIndex = ${idx}; renderLightbox();">
+    `).join('');
+    document.getElementById('lightbox-thumbs').innerHTML = thumbsHTML;
+}
+
+function navLightbox(dir) {
+    lightboxIndex = (lightboxIndex + dir + lightboxImages.length) % lightboxImages.length;
+    renderLightbox();
+}
+
+function togglePrincipalLightbox() {
+    const img = lightboxImages[lightboxIndex];
+    toggleImagenPrincipal(img.id_imagen, img.id_servicio, img.imagen_principal);
+    cerrarLightbox();
+}
+
+function eliminarImagenLightbox() {
+    const img = lightboxImages[lightboxIndex];
+    confirmarEliminarImagen(img.id_imagen);
+    cerrarLightbox();
+}
+
+function abrirModalSubirImagen() {
+    // Cargar servicios primero
+    fetchConToken('/api/servicios?includeAll=true')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('galeria-servicio');
+                select.innerHTML = '<option value="">Seleccionar servicio...</option>' +
+                    data.servicios.map(s => `<option value="${s.id_servicio}">${s.nombre}</option>`).join('');
+
+                // Reset form
+                document.getElementById('form-subir-imagen').reset();
+                if (document.getElementById('galeria-preview')) {
+                    document.getElementById('galeria-preview').classList.add('hidden');
+                }
+                document.getElementById('modal-subir-imagen').classList.remove('hidden');
+            }
+        });
+}
+
+function cerrarModalSubirImagen() {
+    document.getElementById('modal-subir-imagen').classList.add('hidden');
+}
+
+// Preview image on select (Ensure event listener is added only once or handle gracefully)
+// We'll trust browser/user to reload script, but better to check if element exists
+const galeriaInput = document.getElementById('galeria-archivo');
+if (galeriaInput) {
+    galeriaInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const preview = document.getElementById('galeria-preview');
+                if (preview) {
+                    preview.classList.remove('hidden');
+                    preview.querySelector('img').src = e.target.result;
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+function subirImagen() {
+    console.log('DEBUG: Frontend subirImagen clicked');
+    const servicio = document.getElementById('galeria-servicio').value;
+    const archivo = document.getElementById('galeria-archivo').files[0];
+    const descripcion = document.getElementById('galeria-descripcion').value;
+
+    if (!servicio || !archivo) {
+        mostrarMensaje('error', '⚠️', 'Faltan datos', 'Selecciona un servicio y una imagen');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('id_servicio', servicio);
+    formData.append('imagen', archivo);
+    formData.append('descripcion', descripcion);
+
+    const token = localStorage.getItem('token');
+
+    // Upload fetch
+    fetch('/api/galeria/subir', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        body: formData
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                mostrarMensaje('success', '✓', 'Subida', 'La imagen se guardó correctamente');
+                cerrarModalSubirImagen();
+                cargarGaleria();
+            } else {
+                mostrarMensaje('error', '❌', 'Error', data.message || 'Error al subir');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            mostrarMensaje('error', '❌', 'Error', 'Fallo de red al subir imagen');
+        });
+}
+
+function confirmarEliminarImagen(id) {
+    mostrarConfirmacion('🗑️', 'Eliminar Imagen', '¿Estás seguro? Esta acción es irreversible.', () => {
+        fetchConToken(`/api/galeria/${id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarMensaje('success', '✓', 'Eliminada', 'Imagen borrada correctamente');
+                    cargarGaleria();
+                } else {
+                    mostrarMensaje('error', '❌', 'Error', data.message);
+                }
+            });
+    });
+}
+
+function toggleImagenPrincipal(id, idServicio, esPrincipal) {
+    if (esPrincipal) return;
+
+    fetchConToken(`/api/galeria/${id}/principal`, {
+        method: 'PATCH',
+        body: JSON.stringify({ id_servicio: idServicio })
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                cargarGaleria();
+            } else {
+                mostrarMensaje('error', '❌', 'Error', data.message);
+            }
+        });
 }

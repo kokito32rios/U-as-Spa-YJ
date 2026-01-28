@@ -70,8 +70,17 @@
       <header class="content-header">
         <h1 id="section-title">Gestión de Agendamiento</h1>
         <div class="header-actions">
-          <button class="btn btn-primary" onclick="abrirModalNuevaCita()">
+          <button class="btn btn-primary" onclick="abrirModalNuevaCita()" id="btn-nueva-cita">
             + Nueva Cita
+          </button>
+          <button class="btn btn-primary hidden" onclick="abrirModalUsuario()" id="btn-nuevo-usuario">
+            + Nuevo Usuario
+          </button>
+          <button class="btn btn-primary hidden" onclick="abrirModalServicio()" id="btn-nuevo-servicio">
+            + Nuevo Servicio
+          </button>
+          <button class="btn btn-primary hidden" onclick="abrirModalSubirImagen()" id="btn-subir-imagen">
+            + Subir Foto
           </button>
         </div>
       </header>
@@ -511,8 +520,20 @@
       </section>
 
       <!-- SECCIÓN: GALERÍA (Placeholder) -->
+      <!-- SECCIÓN: GALERÍA -->
       <section id="seccion-galeria" class="content-section">
-        <p>Módulo de Galería en desarrollo...</p>
+        <div class="filters-bar">
+          <!-- Podríamos agregar filtro por servicio aquí si es necesario -->
+          <div class="filter-group">
+            <label>Total Imágenes:</label>
+            <span id="galeria-total-count" class="badge">0</span>
+          </div>
+        </div>
+
+        <div id="galeria-grid" class="galeria-grid">
+          <!-- Las imágenes se cargarán aquí -->
+          <p style="grid-column: 1/-1; text-align: center; color: #666;">Cargando galería...</p>
+        </div>
       </section>
     </main>
   </div>
@@ -875,6 +896,45 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="cerrarModalConfirmacionRevertir()">Cancelar</button>
         <button class="btn btn-primary text-danger" onclick="confirmarRevertirComision()">↺ Revertir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SUBIR IMAGEN -->
+  <div id="modal-subir-imagen" class="modal-overlay hidden">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Subir Nueva Imagen</h3>
+        <button class="modal-close" onclick="cerrarModalSubirImagen()">✕</button>
+      </div>
+      <form id="form-subir-imagen" class="modal-body">
+        <div class="form-group">
+          <label>Servicio Asociado *</label>
+          <select id="galeria-servicio" class="form-input" required>
+            <option value="">Cargando servicios...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Seleccionar Imagen *</label>
+          <input type="file" id="galeria-archivo" class="form-input" accept="image/*" required />
+          <p class="text-xs text-muted">Formatos: JPG, PNG, WEBP. Máx 5MB.</p>
+        </div>
+
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea id="galeria-descripcion" class="form-input" rows="2"
+            placeholder="Descripción corta del trabajo..."></textarea>
+        </div>
+
+        <!-- Preview container -->
+        <div id="galeria-preview" class="text-center mt-2 hidden">
+          <img src="" alt="Preview" style="max-height: 150px; border-radius: 8px; box-shadow: var(--shadow);">
+        </div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="cerrarModalSubirImagen()">Cancelar</button>
+        <button class="btn btn-primary" onclick="subirImagen()">Subir Imagen</button>
       </div>
     </div>
   </div>

@@ -63,7 +63,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/citas', citasRoutes);
 app.use('/api/horarios', horariosRoutes);
 app.use('/api/usuarios', require('./routes/usuarios.routes'));
-app.use('/api/comisiones', require('./routes/comisiones.routes')); // Nueva ruta
+app.use('/api/comisiones', require('./routes/comisiones.routes'));
+app.use('/api/galeria', require('./routes/galeria.routes')); // Nueva ruta galería
 
 // TODO: Agregar más rutas aquí
 // const authRoutes = require('./routes/auth.routes');
