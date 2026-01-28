@@ -143,8 +143,82 @@ exports.actualizarHorario = async (req, res) => {
 };
 
 // =============================================
-// ELIMINAR HORARIO
+// COPIAR HORARIO
 // =============================================
+exports.copiarHorario = async (req, res) => {
+    try {
+        const { email_origen, email_destino } = req.body;
+
+        if (!email_origen || !email_destino) {
+            return res.status(400).json({
+                success: false,
+                message: 'Faltan campos requeridos (origen y destino)'
+            });
+        }
+
+        if (email_origen === email_destino) {
+            return res.status(400).json({
+                success: false,
+                message: 'El origen y el destino no pueden ser el mismo'
+            });
+        }
+
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // 1. Obtener horarios del origen
+            const [horariosOrigen] = await connection.query(`
+                SELECT dia_semana, hora_inicio, hora_fin, activo
+                FROM horarios_trabajo
+                WHERE email_manicurista = ?
+            `, [email_origen]);
+
+            if (horariosOrigen.length === 0) {
+                await connection.rollback();
+                connection.release();
+                return res.status(404).json({
+                    success: false,
+                    message: 'La manicurista de origen no tiene horarios configurados'
+                });
+            }
+
+            // 2. Eliminar horarios del destino
+            await connection.query(`
+                DELETE FROM horarios_trabajo WHERE email_manicurista = ?
+            `, [email_destino]);
+
+            // 3. Insertar nuevos horarios
+            for (const h of horariosOrigen) {
+                await connection.query(`
+                    INSERT INTO horarios_trabajo (email_manicurista, dia_semana, hora_inicio, hora_fin, activo)
+                    VALUES (?, ?, ?, ?, ?)
+                `, [email_destino, h.dia_semana, h.hora_inicio, h.hora_fin, h.activo]);
+            }
+
+            await connection.commit();
+            connection.release();
+
+            res.json({
+                success: true,
+                message: 'Horarios copiados exitosamente'
+            });
+
+        } catch (error) {
+            await connection.rollback();
+            connection.release();
+            throw error;
+        }
+
+    } catch (error) {
+        console.error('Error al copiar horario:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al copiar horario'
+        });
+    }
+};
+
 exports.eliminarHorario = async (req, res) => {
     try {
         const { id } = req.params;

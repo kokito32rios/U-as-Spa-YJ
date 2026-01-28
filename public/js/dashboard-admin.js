@@ -1368,6 +1368,12 @@ async function cargarManicuristasHorarios() {
         const response = await fetchConToken('/api/citas/helpers/manicuristas');
         const data = await response.json();
 
+        // Save to global list for copy feature
+        manicuristasList = data.manicuristas.map(m => ({
+            email: m.email,
+            nombre: m.nombre_completo // Ensure property name matches helper output
+        }));
+
         const select = document.getElementById('horarios-manicurista');
         select.innerHTML = '<option value="">Seleccionar manicurista</option>' +
             data.manicuristas.map(m =>
@@ -1684,6 +1690,81 @@ async function guardarExcepcion() {
         console.error('Error:', error);
         mostrarMensaje('error', '❌', 'Error', 'No se pudo guardar la excepción');
     }
+}
+
+// =============================================
+// COPIAR HORARIO
+// =============================================
+function abrirModalCopiarHorario() {
+    if (!horariosManicuristaSeleccionada) {
+        mostrarMensaje('warning', '⚠️', 'Atención', 'Primero selecciona una manicurista');
+        return;
+    }
+
+    const manicuristaOrigen = manicuristasList.find(m => m.email === horariosManicuristaSeleccionada);
+    document.getElementById('copiar-origen-nombre').textContent = manicuristaOrigen ? manicuristaOrigen.nombre : 'Seleccionada';
+
+    // Llenar select destino (excluyendo la origen)
+    const selectDestino = document.getElementById('copiar-destino-email');
+    selectDestino.innerHTML = '<option value="">Seleccionar destino...</option>';
+
+    manicuristasList.forEach(m => {
+        if (m.email !== horariosManicuristaSeleccionada) {
+            const option = document.createElement('option');
+            option.value = m.email;
+            option.textContent = m.nombre;
+            selectDestino.appendChild(option);
+        }
+    });
+
+    document.getElementById('modal-copiar-horario').classList.remove('hidden');
+}
+
+function cerrarModalCopiarHorario() {
+    document.getElementById('modal-copiar-horario').classList.add('hidden');
+}
+
+async function copiarHorario() {
+    const destino = document.getElementById('copiar-destino-email').value;
+
+    if (!destino) {
+        mostrarMensaje('warning', '⚠️', 'Atención', 'Selecciona una manicurista destino');
+        return;
+    }
+
+    // Definir la acción a ejecutar cuando el usuario confirme en el modal
+    accionPendiente = async () => {
+        try {
+            const response = await fetchConToken('/api/horarios/copiar', {
+                method: 'POST',
+                body: JSON.stringify({
+                    email_origen: horariosManicuristaSeleccionada,
+                    email_destino: destino
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                mostrarMensaje('success', '✓', 'Éxito', data.message);
+                if (horariosManicuristaSeleccionada === destino) {
+                    cargarHorarios();
+                }
+            } else {
+                mostrarMensaje('error', '❌', 'Error', data.message);
+            }
+
+        } catch (error) {
+            console.error('Error al copiar:', error);
+            mostrarMensaje('error', '❌', 'Error', 'Ocurrió un error al intentar copiar el horario');
+        }
+    };
+
+    // Configurar y mostrar el modal de confirmación
+    cerrarModalCopiarHorario();
+    document.getElementById('confirm-titulo').textContent = '¿Reemplazar Horario?';
+    document.getElementById('confirm-mensaje').innerHTML = `Esto <strong>eliminará permanentemente</strong> todos los horarios de la manicurista destino y copiará los de la origen.<br>¿Estás seguro?`;
+    document.getElementById('modal-confirmacion').classList.remove('hidden');
 }
 
 function confirmarEliminarExcepcion(id) {
@@ -2122,7 +2203,7 @@ async function guardarUsuario() {
 
     const datos = { nombre, email, rol, password }; // Password can be empty on update
     const method = id ? 'PUT' : 'POST';
-    const url = id ? `/ api / usuarios / ${id} ` : '/api/usuarios';
+    const url = id ? `/api/usuarios/${id}` : '/api/usuarios';
 
     try {
         const response = await fetchConToken(url, {

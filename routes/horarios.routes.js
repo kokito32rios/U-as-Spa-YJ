@@ -13,6 +13,9 @@ router.get('/:email', verificarToken, horariosController.obtenerHorarios);
 // POST /api/horarios - Crear nuevo horario
 router.post('/', verificarToken, soloAdmin, horariosController.crearHorario);
 
+// POST /api/horarios/copiar - Copiar horario de una manicurista a otra
+router.post('/copiar', verificarToken, soloAdmin, horariosController.copiarHorario);
+
 // PUT /api/horarios/:id - Actualizar horario
 router.put('/:id', verificarToken, soloAdmin, horariosController.actualizarHorario);
 

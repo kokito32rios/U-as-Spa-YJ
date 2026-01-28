@@ -234,9 +234,14 @@
         <div class="horarios-section">
           <div class="section-header">
             <h3>📅 Horario Semanal</h3>
-            <button class="btn btn-primary btn-sm" onclick="abrirModalHorario()">
-              + Agregar Día
-            </button>
+            <div style="display: flex; gap: 10px;">
+              <button class="btn btn-secondary btn-sm" onclick="abrirModalCopiarHorario()">
+                📋 Copiar
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="abrirModalHorario()">
+                + Agregar Día
+              </button>
+            </div>
           </div>
           <div class="table-container">
             <table class="data-table" id="tabla-horarios">
@@ -605,6 +610,34 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="cerrarModalExcepcion()">Cancelar</button>
         <button class="btn btn-primary" onclick="guardarExcepcion()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: COPIAR HORARIO -->
+  <div id="modal-copiar-horario" class="modal-overlay hidden">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Copiar Horario</h3>
+        <button class="modal-close" onclick="cerrarModalCopiarHorario()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-4">
+          Copiar el horario de <strong id="copiar-origen-nombre"></strong> a:
+        </p>
+        <div class="form-group">
+          <label>Manicurista Destino *</label>
+          <select id="copiar-destino-email" class="form-input">
+            <!-- Filled by JS -->
+          </select>
+        </div>
+        <div class="alert alert-warning">
+          ⚠️ Esto <strong>eliminará</strong> todos los horarios actuales de la manicurista destino y los reemplazará.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="cerrarModalCopiarHorario()">Cancelar</button>
+        <button class="btn btn-primary" onclick="copiarHorario()">Copiar y Reemplazar</button>
       </div>
     </div>
   </div>

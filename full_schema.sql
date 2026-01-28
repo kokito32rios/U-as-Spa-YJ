@@ -85,7 +85,6 @@ CREATE TABLE horarios_trabajo (
     FOREIGN KEY (email_manicurista) REFERENCES usuarios(email) 
         ON DELETE CASCADE ON UPDATE CASCADE,
     
-    UNIQUE KEY uk_manicurista_dia (email_manicurista, dia_semana),
     INDEX idx_manicurista (email_manicurista)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
