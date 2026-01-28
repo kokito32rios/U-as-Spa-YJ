@@ -80,13 +80,14 @@ function cambiarSeccion(seccion) {
         'usuarios': 'Gestión de Usuarios',
         'comisiones': 'Gestión de Comisiones',
         'horarios': 'Gestión de Horarios',
-        'galeria': 'Gestión de Galería'
+        'galeria': 'Gestión de Galería',
+        'gastos': 'Gestión de Gastos'
     };
     document.getElementById('section-title').textContent = titulos[seccion];
 
     // Mostrar/Ocultar botones de acción según la sección
     // Resetear visibilidad de todos
-    const btns = ['btn-nueva-cita', 'btn-nuevo-usuario', 'btn-nuevo-servicio', 'btn-subir-imagen'];
+    const btns = ['btn-nueva-cita', 'btn-nuevo-usuario', 'btn-nuevo-servicio', 'btn-subir-imagen', 'btn-nuevo-gasto'];
     btns.forEach(id => {
         const btn = document.getElementById(id);
         if (btn) btn.classList.add('hidden');
@@ -106,6 +107,9 @@ function cambiarSeccion(seccion) {
     } else if (seccion === 'galeria') {
         document.getElementById('btn-subir-imagen')?.classList.remove('hidden');
         cargarGaleria();
+    } else if (seccion === 'gastos') {
+        document.getElementById('btn-nuevo-gasto')?.classList.remove('hidden');
+        cargarGastos();
     }
 
     // Cargar datos según sección
@@ -3093,4 +3097,195 @@ function toggleImagenPrincipal(id, idServicio, esPrincipal) {
                 mostrarMensaje('error', '❌', 'Error', data.message);
             }
         });
+}
+
+// =============================================
+// GASTOS - CRUD
+// =============================================
+async function cargarGastos() {
+    const mes = document.getElementById('gastos-filtro-mes').value;
+    const anio = document.getElementById('gastos-filtro-anio').value;
+    const tipo = document.getElementById('gastos-filtro-tipo').value;
+
+    let url = '/api/gastos?';
+    if (mes) url += `mes=${mes}&`;
+    if (anio) url += `anio=${anio}&`;
+    if (tipo) url += `tipo=${tipo}&`;
+
+    try {
+        const res = await fetchConToken(url);
+        const data = await res.json();
+
+        if (data.success) {
+            const tbody = document.getElementById('gastos-tbody');
+            const gastos = data.gastos || [];
+
+            // Calcular total
+            const total = gastos.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0);
+            document.getElementById('gastos-total-display').textContent =
+                `Total: $${total.toLocaleString('es-CO')}`;
+
+            if (gastos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay gastos registrados</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = gastos.map(g => `
+                <tr>
+                    <td>${g.fecha_gasto ? g.fecha_gasto.split('T')[0] : '-'}</td>
+                    <td>${g.descripcion}</td>
+                    <td>
+                        <span class="badge ${g.tipo === 'gasto_local' ? 'badge-primary' : 'badge-warning'}">
+                            ${g.tipo === 'gasto_local' ? '💼 Local' : '👩 Deducción'}
+                        </span>
+                    </td>
+                    <td>${g.nombre_manicurista || '-'}</td>
+                    <td class="text-danger">$${parseFloat(g.monto).toLocaleString('es-CO')}</td>
+                    <td>
+                        <button class="btn-icon" onclick="editarGasto(${g.id_gasto})" title="Editar">✏️</button>
+                        <button class="btn-icon btn-delete" onclick="confirmarEliminarGasto(${g.id_gasto})" title="Eliminar">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Error al cargar gastos:', error);
+    }
+}
+
+async function abrirModalGasto() {
+    document.getElementById('modal-gasto-titulo').textContent = 'Nuevo Gasto';
+    document.getElementById('form-gasto').reset();
+    document.getElementById('gasto-id').value = '';
+    document.getElementById('gasto-fecha').value = new Date().toISOString().split('T')[0];
+    document.getElementById('grupo-gasto-manicurista').style.display = 'none';
+
+    // Cargar manicuristas
+    await cargarManicuristasGasto();
+
+    document.getElementById('modal-gasto').classList.remove('hidden');
+}
+
+function cerrarModalGasto() {
+    document.getElementById('modal-gasto').classList.add('hidden');
+}
+
+function toggleManicuristaGasto() {
+    const tipo = document.getElementById('gasto-tipo').value;
+    const grupo = document.getElementById('grupo-gasto-manicurista');
+    grupo.style.display = tipo === 'deduccion_manicurista' ? 'block' : 'none';
+}
+
+async function cargarManicuristasGasto() {
+    try {
+        const res = await fetchConToken('/api/usuarios');
+        const data = await res.json();
+        if (data.success) {
+            const select = document.getElementById('gasto-manicurista');
+            // Filtrar manicuristas por rol (id_rol 3 = manicurista según la BD)
+            const manicuristas = data.usuarios.filter(u =>
+                u.id_rol === 3 ||
+                (u.rol && u.rol.toLowerCase().includes('manicurista'))
+            );
+            console.log('Manicuristas encontradas:', manicuristas);
+            select.innerHTML = '<option value="">Seleccione...</option>' +
+                manicuristas.map(m => `<option value="${m.email}">${m.nombre} ${m.apellido}</option>`).join('');
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function guardarGasto() {
+    const form = document.getElementById('form-gasto');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const id = document.getElementById('gasto-id').value;
+    const tipo = document.getElementById('gasto-tipo').value;
+
+    const datos = {
+        descripcion: document.getElementById('gasto-descripcion').value,
+        monto: document.getElementById('gasto-monto').value,
+        tipo: tipo,
+        fecha_gasto: document.getElementById('gasto-fecha').value,
+        email_manicurista: tipo === 'deduccion_manicurista'
+            ? document.getElementById('gasto-manicurista').value
+            : null
+    };
+
+    if (tipo === 'deduccion_manicurista' && !datos.email_manicurista) {
+        mostrarMensaje('warning', '⚠️', 'Requerido', 'Debe seleccionar una manicurista');
+        return;
+    }
+
+    try {
+        const url = id ? `/api/gastos/${id}` : '/api/gastos';
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await fetchConToken(url, {
+            method,
+            body: JSON.stringify(datos)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            cerrarModalGasto();
+            mostrarMensaje('success', '✓', 'Guardado', 'Gasto registrado correctamente');
+            cargarGastos();
+        } else {
+            mostrarMensaje('error', '❌', 'Error', data.message);
+        }
+    } catch (error) {
+        console.error(error);
+        mostrarMensaje('error', '❌', 'Error', 'No se pudo guardar el gasto');
+    }
+}
+
+async function editarGasto(id) {
+    try {
+        const res = await fetchConToken('/api/gastos');
+        const data = await res.json();
+
+        const gasto = data.gastos.find(g => g.id_gasto === id);
+        if (!gasto) {
+            mostrarMensaje('error', '❌', 'Error', 'Gasto no encontrado');
+            return;
+        }
+
+        await cargarManicuristasGasto();
+
+        document.getElementById('modal-gasto-titulo').textContent = 'Editar Gasto';
+        document.getElementById('gasto-id').value = gasto.id_gasto;
+        document.getElementById('gasto-descripcion').value = gasto.descripcion;
+        document.getElementById('gasto-monto').value = gasto.monto;
+        document.getElementById('gasto-fecha').value = gasto.fecha_gasto ? gasto.fecha_gasto.split('T')[0] : '';
+        document.getElementById('gasto-tipo').value = gasto.tipo;
+        document.getElementById('gasto-manicurista').value = gasto.email_manicurista || '';
+
+        toggleManicuristaGasto();
+        document.getElementById('modal-gasto').classList.remove('hidden');
+
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+function confirmarEliminarGasto(id) {
+    mostrarConfirmacion('🗑️', 'Eliminar Gasto', '¿Está seguro de eliminar este gasto?', async () => {
+        try {
+            const res = await fetchConToken(`/api/gastos/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                mostrarMensaje('success', '✓', 'Eliminado', 'Gasto eliminado correctamente');
+                cargarGastos();
+            } else {
+                mostrarMensaje('error', '❌', 'Error', data.message);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    });
 }

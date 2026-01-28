@@ -55,6 +55,10 @@
           <span class="nav-icon">🖼️</span>
           <span>Galería</span>
         </a>
+        <a href="#gastos" class="nav-item" onclick="cambiarSeccion('gastos')">
+          <span class="nav-icon">💸</span>
+          <span>Gastos</span>
+        </a>
       </nav>
 
       <div class="sidebar-footer">
@@ -81,6 +85,9 @@
           </button>
           <button class="btn btn-primary hidden" onclick="abrirModalSubirImagen()" id="btn-subir-imagen">
             + Subir Foto
+          </button>
+          <button class="btn btn-primary hidden" onclick="abrirModalGasto()" id="btn-nuevo-gasto">
+            + Nuevo Gasto
           </button>
         </div>
       </header>
@@ -535,7 +542,118 @@
           <p style="grid-column: 1/-1; text-align: center; color: #666;">Cargando galería...</p>
         </div>
       </section>
+
+      <!-- SECCIÓN: GASTOS -->
+      <section id="seccion-gastos" class="content-section">
+        <div class="filters-bar">
+          <div class="filter-group">
+            <label>Mes:</label>
+            <select id="gastos-filtro-mes" class="form-input-sm" onchange="cargarGastos()">
+              <option value="">Todos</option>
+              <option value="1">Enero</option>
+              <option value="2">Febrero</option>
+              <option value="3">Marzo</option>
+              <option value="4">Abril</option>
+              <option value="5">Mayo</option>
+              <option value="6">Junio</option>
+              <option value="7">Julio</option>
+              <option value="8">Agosto</option>
+              <option value="9">Septiembre</option>
+              <option value="10">Octubre</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Año:</label>
+            <select id="gastos-filtro-anio" class="form-input-sm" onchange="cargarGastos()">
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Tipo:</label>
+            <select id="gastos-filtro-tipo" class="form-input-sm" onchange="cargarGastos()">
+              <option value="">Todos</option>
+              <option value="gasto_local">Gasto Local</option>
+              <option value="deduccion_manicurista">Deducción Manicurista</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <span class="badge badge-danger" id="gastos-total-display">Total: $0</span>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Descripción</th>
+                <th>Tipo</th>
+                <th>Manicurista</th>
+                <th>Monto</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="gastos-tbody">
+              <tr>
+                <td colspan="6" style="text-align: center;">Cargando gastos...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </main>
+  </div>
+
+  <!-- MODAL: NUEVO/EDITAR GASTO -->
+  <div id="modal-gasto" class="modal-overlay hidden">
+    <div class="modal-content modal-md">
+      <div class="modal-header">
+        <h3 id="modal-gasto-titulo">Nuevo Gasto</h3>
+        <button class="modal-close" onclick="cerrarModalGasto()">✕</button>
+      </div>
+      <form id="form-gasto" class="modal-body">
+        <input type="hidden" id="gasto-id">
+
+        <div class="form-group">
+          <label>Descripción *</label>
+          <input type="text" id="gasto-descripcion" class="form-input" required
+            placeholder="Ej: Pago de luz, Material, etc.">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Monto *</label>
+            <input type="number" id="gasto-monto" class="form-input" required min="0" step="100">
+          </div>
+          <div class="form-group">
+            <label>Fecha *</label>
+            <input type="date" id="gasto-fecha" class="form-input" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tipo *</label>
+          <select id="gasto-tipo" class="form-input" required onchange="toggleManicuristaGasto()">
+            <option value="gasto_local">💼 Gasto del Local</option>
+            <option value="deduccion_manicurista">👩 Deducción a Manicurista</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="grupo-gasto-manicurista" style="display: none;">
+          <label>Manicurista *</label>
+          <select id="gasto-manicurista" class="form-input">
+            <option value="">Seleccione...</option>
+          </select>
+        </div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="cerrarModalGasto()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarGasto()">Guardar</button>
+      </div>
+    </div>
   </div>
 
   <!-- MODAL: NUEVA/EDITAR CITA -->
