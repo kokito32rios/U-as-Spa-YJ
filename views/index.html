@@ -43,6 +43,7 @@
   <nav class="navbar" id="navbar">
     <div class="nav-container">
       <div class="nav-brand">Uñas Spa YJ</div>
+      <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menú">☰</button>
       <div class="nav-links">
         <a href="#servicios">Servicios</a>
         <a href="/catalogo.html">Galería</a>
@@ -137,6 +138,27 @@
 
   <!-- Script que carga los servicios dinámicamente -->
   <script src="/js/index.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const menuToggle = document.getElementById('mobile-menu-toggle');
+      const navLinks = document.querySelector('.nav-links');
+
+      if (menuToggle && navLinks) {
+        menuToggle.addEventListener('click', () => {
+          navLinks.classList.toggle('active');
+          menuToggle.textContent = navLinks.classList.contains('active') ? '✕' : '☰';
+        });
+
+        document.querySelectorAll('.nav-links a').forEach(link => {
+          link.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+            menuToggle.textContent = '☰';
+          });
+        });
+      }
+    });
+  </script>
 </body>
 
 </html>

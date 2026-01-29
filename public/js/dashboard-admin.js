@@ -1139,6 +1139,12 @@ function obtenerColorManicurista(email) {
 // RENDERIZAR VISTA SEMANAL
 // =============================================
 function renderizarVistaSemanal() {
+    // SOPORTE MÓVIL: Si es pantalla pequeña, renderizar vista de tarjetas
+    if (window.innerWidth <= 767) {
+        renderizarAgendaMovil(agendaDatos.citas);
+        return;
+    }
+
     const grid = document.getElementById('calendario-semanal-grid');
     const { fechaInicio } = obtenerRangoFechas();
     const inicioSemana = new Date(fechaInicio + 'T00:00:00');
@@ -3856,3 +3862,164 @@ function obtenerFechasGastos() {
     }
     return { fechaInicio, fechaFin };
 }
+
+/* =============================================
+   RESPONSIVE MENU LOGIC
+   ============================================= */
+document.addEventListener('DOMContentLoaded', function () {
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    function toggleSidebar() {
+        if (!sidebar || !mobileMenuToggle) return;
+
+        const isOpened = sidebar.classList.contains('sidebar-open');
+
+        if (isOpened) {
+            sidebar.classList.remove('sidebar-open');
+            sidebarBackdrop.classList.remove('active');
+            mobileMenuToggle.classList.remove('active');
+            document.body.style.overflow = '';
+        } else {
+            sidebar.classList.add('sidebar-open');
+            sidebarBackdrop.classList.add('active');
+            mobileMenuToggle.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    // Toggle button click
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            toggleSidebar();
+        });
+    }
+
+    // Backdrop click
+    if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener('click', function () {
+            if (sidebar.classList.contains('sidebar-open')) {
+                toggleSidebar();
+            }
+        });
+    }
+
+    // Close menu when clicking nav items on mobile
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.innerWidth <= 1024 && sidebar.classList.contains('sidebar-open')) {
+                toggleSidebar();
+            }
+        });
+    });
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 1024) {
+            sidebar.classList.remove('sidebar-open');
+            sidebarBackdrop.classList.remove('active');
+            mobileMenuToggle.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+});
+
+/* =============================================
+   RENDERIZADO AGENDA MÓVIL
+   ============================================= */
+function renderizarAgendaMovil(citas) {
+    const contenedor = document.getElementById('calendario-semanal'); // Usar el contenedor padre o el grid
+    const containerAgenda = document.getElementById('seccion-agenda');
+
+    // Si no es móvil, no hacer nada (se maneja en renderizarVistaSemanal)
+    if (window.innerWidth > 767) return;
+
+    // Ocultar grids
+    document.getElementById('calendario-semanal-grid').classList.add('hidden');
+    document.getElementById('calendario-mensual-grid').classList.add('hidden');
+
+    // Buscar o crear contenedor móvil
+    let mobileView = document.getElementById('agenda-mobile-view');
+    if (mobileView) mobileView.remove(); // Limpiar anterior
+
+    mobileView = document.createElement('div');
+    mobileView.id = 'agenda-mobile-view';
+    mobileView.className = 'agenda-mobile-view';
+
+    // Insertar después del header
+    const header = document.querySelector('.agenda-header');
+    header.parentNode.insertBefore(mobileView, header.nextSibling);
+
+    if (!citas || citas.length === 0) {
+        mobileView.innerHTML = '<div class="empty-state"><p>No hay citas para este día/semana</p></div>';
+        return;
+    }
+
+    // Ordenar citas por fecha y hora
+    citas.sort((a, b) => {
+        const fechaA = new Date(a.fecha.split('T')[0] + 'T' + a.hora_inicio);
+        const fechaB = new Date(b.fecha.split('T')[0] + 'T' + b.hora_inicio);
+        return fechaA - fechaB;
+    });
+
+    citas.forEach(cita => {
+        const card = document.createElement('div');
+        card.className = 'agenda-card';
+        // Determinar color de borde según estado
+        let colorBorde = '#ffc107'; // pendiente
+        if (cita.estado === 'confirmada') colorBorde = '#17a2b8';
+        if (cita.estado === 'completada') colorBorde = '#28a745';
+        if (cita.estado === 'cancelada') colorBorde = '#dc3545';
+
+        card.style.borderLeft = `5px solid ${colorBorde}`;
+
+        // Formatear fecha bonita
+        const fechaObj = new Date(cita.fecha.split('T')[0] + 'T12:00:00'); // Evitar problemas de timezone
+        const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const diaNombre = dias[fechaObj.getDay()];
+        const diaNum = fechaObj.getDate();
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="agenda-time" style="font-weight: bold; font-size: 1.1em; color: var(--primary-color);">
+                    ${cita.hora_inicio.substring(0, 5)} - ${cita.hora_fin.substring(0, 5)}
+                </span>
+                <span style="font-size: 0.85em; color: #666;">${diaNombre} ${diaNum}</span>
+            </div>
+            
+            <div class="agenda-details" style="display: flex; flex-direction: column; gap: 4px;">
+                <span class="agenda-client" style="font-weight: 600;">👤 ${cita.nombre_cliente}</span>
+                <span class="agenda-service" style="color: #555;">💅 ${cita.nombre_servicio}</span>
+                <span class="agenda-manicurista" style="font-size: 0.9em; color: #777;">👩‍🦰 ${cita.nombre_manicurista.split(' ')[0]}</span>
+                
+                <span class="agenda-status badge badge-${cita.estado}" style="width: fit-content; margin-top: 5px;">
+                    ${cita.estado.charAt(0).toUpperCase() + cita.estado.slice(1)}
+                </span>
+            </div>
+            
+            <div style="margin-top: 12px; display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 8px;">
+                <button class="btn btn-sm btn-outline-primary" style="flex: 1;" onclick="editarCita(${cita.id_cita})">✏️ Editar</button>
+            </div>
+        `;
+        mobileView.appendChild(card);
+    });
+}
+
+function obtenerColorEstado(estado) {
+    if (estado === 'confirmada') return '#17a2b8';
+    if (estado === 'completada') return '#28a745';
+    if (estado === 'cancelada') return '#dc3545';
+    return '#ffc107'; // pendiente
+}
+
+// Escuchar resize para actualizar vista si es necesario
+window.addEventListener('resize', () => {
+    // Si estamos en la sección agenda
+    if (document.getElementById('seccion-agenda').classList.contains('active')) {
+        // Recargar agenda para disparar la lógica de vista
+        cargarAgenda();
+    }
+});

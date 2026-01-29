@@ -79,8 +79,8 @@
 .btn-logout {
   width: 100%;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--white);
   border-radius: 8px;
   cursor: pointer;
@@ -93,7 +93,30 @@
 }
 
 .btn-logout:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Fix para sidebar colapsado */
+/* Fix para sidebar colapsado */
+.btn-logout {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.btn-logout .nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  flex-shrink: 0;
+  /* IMPEDIR QUE EL ICONO SE ENCOJA */
+  font-size: 1.2rem;
+}
+
+.btn-logout .logout-text {
+  margin-left: 5px;
+  /* El texto se ocultará si no hay espacio gracias al overflow del padre,
+     pero el icono siempre se respetará por el flex-shrink: 0 */
 }
 
 /* =============================================
