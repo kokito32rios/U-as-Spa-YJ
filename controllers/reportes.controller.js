@@ -177,3 +177,105 @@ exports.actualizarReporte = async (req, res) => {
         res.status(500).json({ success: false, message: 'Error en el servidor' });
     }
 };
+
+// Obtener conciliación (Admin)
+exports.obtenerConciliacion = async (req, res) => {
+    try {
+        const { anio, mes } = req.query;
+
+        // Validar parámetros
+        if (!anio || !mes) {
+            return res.status(400).json({ success: false, message: 'Año y mes son requeridos' });
+        }
+
+        // 1. Obtener Reportes de Manicuristas (Agrupado por día y manicurista)
+        const queryReportes = `
+            SELECT 
+                fecha, 
+                email_manicurista, 
+                SUM(valor_reportado) as total_reportado
+            FROM reportes_manicurista
+            WHERE YEAR(fecha) = ? AND MONTH(fecha) = ?
+            GROUP BY fecha, email_manicurista
+        `;
+        const [reportes] = await db.query(queryReportes, [anio, mes]);
+
+        // 2. Obtener Ventas del Sistema (Citas completadas)
+        const querySistema = `
+            SELECT 
+                DATE(fecha) as fecha, 
+                email_manicurista, 
+                SUM(precio) as total_sistema,
+                (SELECT nombre_completo FROM usuarios u WHERE u.email = c.email_manicurista) as nombre_manicurista
+            FROM citas c
+            WHERE YEAR(fecha) = ? AND MONTH(fecha) = ? AND estado = 'completada'
+            GROUP BY DATE(fecha), email_manicurista
+        `;
+        const [sistema] = await db.query(querySistema, [anio, mes]);
+
+        // 3. Unificar datos (Full Outer Join simulado)
+        // Crear un mapa único por clave "fecha_email"
+        const mapa = new Map();
+
+        // Procesar datos del sistema (Base de verdad)
+        sistema.forEach(item => {
+            const fechaStr = new Date(item.fecha).toISOString().split('T')[0]; // Asegurar formato YYYY-MM-DD
+            const key = `${fechaStr}_${item.email_manicurista}`;
+
+            mapa.set(key, {
+                fecha: fechaStr,
+                email_manicurista: item.email_manicurista,
+                nombre_manicurista: item.nombre_manicurista,
+                valor_sistema: parseFloat(item.total_sistema) || 0,
+                valor_reportado: 0
+            });
+        });
+
+        // Procesar reportes (Agregar o actualizar)
+        for (const item of reportes) {
+            const fechaStr = new Date(item.fecha).toISOString().split('T')[0];
+            const key = `${fechaStr}_${item.email_manicurista}`;
+
+            if (mapa.has(key)) {
+                // Actualizar existente
+                const entry = mapa.get(key);
+                entry.valor_reportado = parseFloat(item.total_reportado) || 0;
+            } else {
+                // Buscar nombre si no existe en el mapa (query adicional o opcional)
+                // Para simplificar, si no hay citas completadas pero hubo reporte, mostramos email
+                const [user] = await db.query('SELECT nombre_completo FROM usuarios WHERE email = ?', [item.email_manicurista]);
+                const nombre = user.length > 0 ? user[0].nombre_completo : item.email_manicurista;
+
+                mapa.set(key, {
+                    fecha: fechaStr,
+                    email_manicurista: item.email_manicurista,
+                    nombre_manicurista: nombre,
+                    valor_sistema: 0,
+                    valor_reportado: parseFloat(item.total_reportado) || 0
+                });
+            }
+        }
+
+        // 4. Calcular diferencias y generar array final
+        const resultado = Array.from(mapa.values()).map(item => {
+            const diff = item.valor_sistema - item.valor_reportado;
+            // Estado: ok (verde) si diff es 0, warning (amarillo) si diff > 0 (faltó reportar), danger (rojo) si reportó de más/menos raro
+            // Simplificado: Verde si diff == 0, Rojo si diff != 0
+
+            return {
+                ...item,
+                diferencia: diff,
+                estado: Math.abs(diff) < 1 ? 'ok' : 'error' // Tolerancia de 1 peso por redondeo
+            };
+        });
+
+        // Ordenar por fecha descendente
+        resultado.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        res.json({ success: true, data: resultado });
+
+    } catch (error) {
+        console.error('Error en conciliación:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener conciliación' });
+    }
+};

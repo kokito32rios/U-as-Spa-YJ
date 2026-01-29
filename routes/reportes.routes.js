@@ -9,6 +9,9 @@ router.use(verificarToken);
 // Crear reporte
 router.post('/', reportesController.crearReporte);
 
+// Obtener conciliación (Admin)
+router.get('/admin/conciliacion', reportesController.obtenerConciliacion);
+
 // Obtener reportes (query param ?fecha=YYYY-MM-DD opcional)
 router.get('/', reportesController.obtenerReportes);
 

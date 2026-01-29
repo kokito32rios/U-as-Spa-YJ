@@ -58,6 +58,10 @@
           <span class="nav-icon">💰</span>
           <span>Comisiones</span>
         </a>
+        <a href="#conciliacion" class="nav-item" onclick="cambiarSeccion('conciliacion')">
+          <span class="nav-icon">📊</span>
+          <span>Auditoría</span>
+        </a>
         <a href="#horarios" class="nav-item" onclick="cambiarSeccion('horarios')">
           <span class="nav-icon">⏰</span>
           <span>Horarios</span>
@@ -613,6 +617,14 @@
           <h3>💰 Comisiones y Pagos</h3>
         </div>
 
+        <!-- View Toggle -->
+        <div class="view-toggle-container" style="margin-bottom: 20px; display: flex; gap: 10px;">
+          <button class="btn btn-primary active" id="btn-view-comisiones"
+            onclick="cambiarVistaComisiones('comisiones')">Reporte Comisiones</button>
+          <button class="btn btn-secondary" id="btn-view-conciliacion"
+            onclick="cambiarVistaComisiones('conciliacion')">Auditoría Cuadres</button>
+        </div>
+
         <!-- Filtros Comisiones Mejorados -->
         <div class="filters-container"
           style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
@@ -692,7 +704,7 @@
             <div class="form-group">
               <button class="btn btn-primary"
                 style="padding: 0.6rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;"
-                onclick="cargarComisiones()">
+                onclick="aplicarFiltrosComisiones()">
                 <span>🔍</span> Aplicar
               </button>
             </div>
@@ -705,7 +717,8 @@
           </div>
         </div>
 
-        <div class="table-container">
+        <!-- Tabla Comisiones (Default) -->
+        <div class="table-container" id="container-tabla-comisiones">
           <table class="data-table" id="tabla-comisiones">
             <thead>
               <tr>
@@ -720,6 +733,31 @@
             </thead>
             <tbody id="comisiones-body">
               <!-- Dinámico -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tabla Conciliación (Hidden by default) -->
+        <div class="table-container hidden" id="container-tabla-conciliacion">
+          <div class="alert alert-info" style="margin-bottom: 15px;">
+            Comparativa entre lo registrado por el sistema (Citas Completadas) y lo reportado manualmente por la
+            manicurista.
+          </div>
+          <table class="data-table" id="tabla-conciliacion">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Manicurista</th>
+                <th>Venta Sistema</th>
+                <th>Reportado Manicurista</th>
+                <th>Diferencia</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="conciliacion-body">
+              <tr>
+                <td colspan="6" class="text-center">Seleccione filtros y haga clic en Aplicar</td>
+              </tr>
             </tbody>
           </table>
         </div>

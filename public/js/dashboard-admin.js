@@ -104,19 +104,43 @@ function formatearFechaSinTZ(fechaString) {
 // CAMBIAR SECCIÓN
 // =============================================
 function cambiarSeccion(seccion) {
-    // Actualizar nav
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    event.currentTarget.classList.add('active');
+    // Ocultar todas las secciones
+    document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
 
-    // Actualizar secciones
-    document.querySelectorAll('.content-section').forEach(s => {
-        s.classList.remove('active');
-    });
-    document.getElementById(`seccion-${seccion}`).classList.add('active');
+    // Desactivar items del menú
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 
-    // Actualizar título
+    // Lógica especial para 'conciliacion' (es un sub-view de comisiones)
+    if (seccion === 'conciliacion') {
+        document.getElementById('seccion-comisiones').classList.add('active');
+        // Activar item de menú correcto
+        const navItem = document.querySelector(`.nav-item[href="#conciliacion"]`);
+        if (navItem) navItem.classList.add('active');
+
+        // Cambiar título y vista interna
+        document.getElementById('section-title').textContent = 'Auditoría de Cuadres';
+        cambiarVistaComisiones('conciliacion');
+
+        // Mostrar botones header adecuados (ninguno extra)
+    }
+    else {
+        // Mostrar sección seleccionada
+        const seccionActiva = document.getElementById(`seccion-${seccion}`);
+        if (seccionActiva) {
+            seccionActiva.classList.add('active');
+        }
+
+        // Activar item del menú
+        const navItem = document.querySelector(`.nav-item[href="#${seccion}"]`);
+        if (navItem) navItem.classList.add('active');
+
+        // Si vamos a comisiones normal, asegurarnos de resetear la vista a default
+        if (seccion === 'comisiones') {
+            cambiarVistaComisiones('comisiones');
+        }
+    }
+
+    // Actualizar título y botones de acción
     const titulos = {
         'dashboard': 'Panel de Control',
         'agendamiento': 'Gestión de Agendamiento',
@@ -4006,3 +4030,108 @@ window.addEventListener('resize', () => {
         cargarAgenda();
     }
 });
+// =============================================
+// LOGICA DE CONCILIACIÓN / AUDITORÍA (CUADRES)
+// =============================================
+let vistaComisionesActual = 'comisiones';
+
+function cambiarVistaComisiones(vista) {
+    vistaComisionesActual = vista;
+
+    // Toggle buttons
+    const btnComisiones = document.getElementById('btn-view-comisiones');
+    const btnConciliacion = document.getElementById('btn-view-conciliacion');
+
+    // Check if elements exist (safety)
+    if (btnComisiones && btnConciliacion) {
+        btnComisiones.className = vista === 'comisiones' ? 'btn btn-primary active' : 'btn btn-secondary';
+        btnConciliacion.className = vista === 'conciliacion' ? 'btn btn-primary active' : 'btn btn-secondary';
+    }
+
+    // Toggle containers
+    document.getElementById('container-tabla-comisiones').classList.toggle('hidden', vista !== 'comisiones');
+    document.getElementById('container-tabla-conciliacion').classList.toggle('hidden', vista !== 'conciliacion');
+
+    // Load data specific to view
+    aplicarFiltrosComisiones();
+}
+
+function aplicarFiltrosComisiones() {
+    if (vistaComisionesActual === 'comisiones') {
+        if (typeof cargarComisiones === 'function') {
+            cargarComisiones();
+        } else {
+            console.error('La función cargarComisiones no está definida');
+            mostrarMensaje('error', '❌', 'Error Interno', 'No se pudo cargar la función de comisiones');
+        }
+    } else {
+        cargarConciliacion();
+    }
+}
+
+async function cargarConciliacion() {
+    // Reutilizar lógica de fecha de comisiones (mes/año)
+    let anio = document.getElementById('filtro-comision-anio').value;
+    let mes = document.getElementById('filtro-comision-mes').value;
+    const tipo = document.getElementById('filtro-comision-tipo').value;
+
+    // Default to current month if not selected or correct type
+    if (!anio) anio = new Date().getFullYear();
+    if (!mes && tipo === 'mes') mes = new Date().getMonth() + 1;
+
+    // Si el filtro no es 'mes', advertir o forzar mes actual
+    if (tipo !== 'mes') {
+        const hoy = new Date();
+        anio = hoy.getFullYear();
+        mes = hoy.getMonth() + 1;
+        // Opcional: mostrarMensaje('info', 'ℹ️', 'Nota', 'La auditoría se muestra por mes actual');
+    }
+
+    const tbody = document.getElementById('conciliacion-body');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando datos...</td></tr>';
+
+    try {
+        const res = await fetchConToken(`/api/reportes/admin/conciliacion?anio=${anio}&mes=${mes}`);
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay registros para este período</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.data.map(item => {
+                const diff = parseFloat(item.diferencia);
+                const valorSistema = parseFloat(item.valor_sistema);
+                const valorReportado = parseFloat(item.valor_reportado);
+
+                // Color logic
+                const isOk = item.estado === 'ok';
+                const diffClass = isOk ? 'text-success' : 'text-danger';
+                const rowClass = isOk ? '' : 'bg-light-danger'; // Opcional: resaltar fila
+
+                return `
+                <tr class="${rowClass}">
+                    <td>${formatearFechaSinTZ(item.fecha)}</td>
+                    <td>${item.nombre_manicurista || item.email_manicurista}</td>
+                    <td>$${valorSistema.toLocaleString('es-CO')}</td>
+                    <td>$${valorReportado.toLocaleString('es-CO')}</td>
+                    <td class="${diffClass}" style="font-weight: bold;">
+                        $${diff.toLocaleString('es-CO')}
+                    </td>
+                    <td>
+                        ${isOk
+                        ? '<span class="badge badge-success">✓ Correcto</span>'
+                        : '<span class="badge badge-danger">⚠️ Descuadre</span>'}
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        } else {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error: ${data.message}</td></tr>`;
+        }
+    } catch (error) {
+        console.error(error);
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error de conexión</td></tr>';
+    }
+}
