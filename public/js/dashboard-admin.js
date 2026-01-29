@@ -38,6 +38,7 @@ try {
 // HELPER: FETCH CON TOKEN
 // =============================================
 async function fetchConToken(url, options = {}) {
+    // ... (sin cambios)
     const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
@@ -53,6 +54,40 @@ async function fetchConToken(url, options = {}) {
     }
 
     return response;
+}
+
+// =============================================
+// HELPERS UI: SWEETALERT2
+// =============================================
+function mostrarModal(mensaje, tipo = 'info') {
+    let icon = tipo;
+    if (tipo === 'error') icon = 'error';
+    if (tipo === 'success') icon = 'success';
+    if (tipo === 'warning') icon = 'warning';
+
+    Swal.fire({
+        title: tipo === 'error' ? 'Error' : (tipo === 'success' ? '¡Éxito!' : 'Información'),
+        html: mensaje,
+        icon: icon,
+        confirmButtonColor: '#e91e63'
+    });
+}
+
+function confirmarAccion(titulo, texto, callback) {
+    Swal.fire({
+        title: titulo || '¿Estás seguro?',
+        text: texto || "No podrás revertir esta acción",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, confirmar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            callback();
+        }
+    });
 }
 
 // =============================================
@@ -198,8 +233,10 @@ function renderizarCitas(citas) {
                 <td>${formatearFecha(cita.fecha)}</td>
                 <td>${formatearHora(cita.hora_inicio)} - ${formatearHora(cita.hora_fin)}</td>
                 <td>
-                    <strong>${cita.nombre_cliente}</strong><br>
-                    <small>${cita.telefono_cliente}</small>
+                    <strong>${cita.nombre_cliente}</strong>
+                </td>
+                <td>
+                    ${cita.telefono_contacto || cita.telefono_cliente || '<span class="text-muted">-</span>'}
                 </td>
                 <td>${cita.nombre_servicio}</td>
                 <td>${cita.nombre_manicurista}</td>
@@ -423,6 +460,7 @@ async function guardarCita() {
 
     const datos = {
         email_cliente: emailFinal, // null si es invitado
+        telefono_contacto: document.getElementById('cita-telefono').value, // Nuevo campo
         email_manicurista: document.getElementById('cita-manicurista').value,
         id_servicio: document.getElementById('cita-servicio').value,
         duracion: document.getElementById('cita-duracion').value,
@@ -536,30 +574,13 @@ function limpiarFiltros() {
 // =============================================
 // MOSTRAR MENSAJE
 // =============================================
+// =============================================
+// MOSTRAR MENSAJE (Adaptado a SweetAlert2)
+// =============================================
 function mostrarMensaje(tipo, icono, titulo, mensaje) {
-    // Validar que haya contenido
-    if (!tipo || !icono || !titulo || !mensaje) {
-        console.error('Faltan parámetros para mostrar el mensaje');
-        return;
-    }
-
-    const modal = document.getElementById('modal-mensaje');
-    const iconElement = document.getElementById('mensaje-icon');
-    const tituloElement = document.getElementById('mensaje-titulo');
-    const textoElement = document.getElementById('mensaje-texto');
-
-    // Validar que existan los elementos
-    if (!modal || !iconElement || !tituloElement || !textoElement) {
-        console.error('Elementos del modal no encontrados');
-        return;
-    }
-
-    iconElement.textContent = icono;
-    iconElement.className = `modal-icon ${tipo}`;
-    tituloElement.textContent = titulo;
-    textoElement.innerHTML = mensaje; // Usar innerHTML para permitir formato (negritas, saltos de línea)
-
-    modal.classList.remove('hidden');
+    // Redirigir a nuestro helper de SweetAlert
+    // "icono" se ignora porque SweetAlert usa sus propios iconos basados en el tipo
+    mostrarModal(mensaje, tipo);
 }
 
 function cerrarModalMensaje() {
@@ -598,6 +619,7 @@ async function editarCita(idCita) {
         document.getElementById('cita-fecha').removeAttribute('min');
         document.getElementById('cita-cliente-search').value = cita.nombre_cliente;
         document.getElementById('cita-cliente').value = cita.email_cliente;
+        document.getElementById('cita-telefono').value = cita.telefono_contacto || ''; // Poblar teléfono
         document.getElementById('cita-manicurista').value = cita.email_manicurista;
         document.getElementById('cita-servicio').value = cita.id_servicio;
 
@@ -650,15 +672,11 @@ async function editarCita(idCita) {
     }
 }
 
-// Variable para almacenar la acción a confirmar
-let accionPendiente = null;
-
 // =============================================
 // CONFIRMAR CANCELAR CITA
 // =============================================
 function confirmarCancelar(idCita) {
-    mostrarModalConfirmacion(
-        '⚠️',
+    confirmarAccion(
         '¿Cancelar cita?',
         'Esta acción cambiará el estado de la cita a "cancelada". La cita permanecerá en el historial.',
         () => cancelarCita(idCita)
@@ -669,44 +687,14 @@ function confirmarCancelar(idCita) {
 // CONFIRMAR ELIMINAR CITA
 // =============================================
 function confirmarEliminar(idCita) {
-    mostrarModalConfirmacion(
-        '🗑️',
+    confirmarAccion(
         '¿Eliminar cita?',
         'Esta acción eliminará permanentemente la cita de la base de datos. Esta acción NO se puede deshacer.',
         () => eliminarCita(idCita)
     );
 }
 
-// =============================================
-// MOSTRAR MODAL DE CONFIRMACIÓN
-// =============================================
-function mostrarModalConfirmacion(icono, titulo, mensaje, callback) {
-    document.getElementById('confirm-icon').textContent = icono;
-    document.getElementById('confirm-titulo').textContent = titulo;
-    document.getElementById('confirm-mensaje').textContent = mensaje;
-
-    accionPendiente = callback;
-
-    document.getElementById('modal-confirmacion').classList.remove('hidden');
-}
-
-// =============================================
-// CERRAR MODAL DE CONFIRMACIÓN
-// =============================================
-function cerrarModalConfirmacion() {
-    document.getElementById('modal-confirmacion').classList.add('hidden');
-    accionPendiente = null;
-}
-
-// =============================================
-// EJECUTAR ACCIÓN CONFIRMADA
-// =============================================
-function ejecutarAccionConfirmada() {
-    if (accionPendiente) {
-        accionPendiente();
-        cerrarModalConfirmacion();
-    }
-}
+// (Eliminados helpers manuales de confirmación: mostrarModalConfirmacion, cerrarModalConfirmacion, ejecutarAccionConfirmada)
 
 // =============================================
 // CANCELAR CITA (cambia estado a cancelada)
@@ -761,8 +749,7 @@ async function eliminarCita(idCita) {
 // CERRAR SESIÓN (con confirmación)
 // =============================================
 function cerrarSesion() {
-    mostrarModalConfirmacion(
-        '🚪',
+    confirmarAccion(
         '¿Cerrar sesión?',
         '¿Estás seguro de que deseas cerrar tu sesión?',
         () => {
@@ -857,11 +844,6 @@ async function cargarHorariosDisponibles() {
                 }
             }
 
-            // Habilitar botón guardar solo cuando se seleccione un horario
-            selectHora.addEventListener('change', function () {
-                btnGuardar.disabled = !this.value;
-            });
-
             // Si no hay horario seleccionado, deshabilitar botón (si NO fue habilitado arriba)
             if (!selectHora.value) {
                 btnGuardar.disabled = true;
@@ -902,6 +884,15 @@ document.addEventListener('DOMContentLoaded', () => {
         cargarHorariosDisponibles();
     });
 
+    // Validar selección de horario para habilitar botón
+    const selectHora = document.getElementById('cita-hora');
+    if (selectHora) {
+        selectHora.addEventListener('change', function () {
+            const btnGuardar = document.getElementById('btn-guardar-cita');
+            if (btnGuardar) btnGuardar.disabled = !this.value;
+        });
+    }
+
     // Cerrar modales con click fuera o ESC
     document.getElementById('modal-cita').addEventListener('click', (e) => {
         if (e.target.id === 'modal-cita') {
@@ -909,23 +900,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('modal-mensaje').addEventListener('click', (e) => {
-        if (e.target.id === 'modal-mensaje') {
-            cerrarModalMensaje();
-        }
-    });
 
-    document.getElementById('modal-confirmacion').addEventListener('click', (e) => {
-        if (e.target.id === 'modal-confirmacion') {
-            cerrarModalConfirmacion();
-        }
-    });
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             cerrarModalCita();
-            cerrarModalMensaje();
-            cerrarModalConfirmacion();
         }
     });
 });
@@ -1279,6 +1258,9 @@ function renderizarVistaSemanal() {
                     // Obtener Color
                     const colorM = obtenerColorManicurista(cita.email_manicurista);
 
+                    // TELEFONO (Ahora viene directo del backend en telefono_cliente)
+                    const telefonoDisplay = cita.telefono_cliente || '';
+
                     html += `
                         <div class="cita-slot estado-${cita.estado} ${esCorta}" 
                              style="--slot-height: ${height}px; height: ${height}px; z-index: ${10 + index}; width: ${width}%; left: ${left}%; border-right: 5px solid ${colorM};"
@@ -1288,6 +1270,7 @@ function renderizarVistaSemanal() {
                             <div class="cita-hora">${cita.hora_inicio.substring(0, 5)} - ${cita.hora_fin.substring(0, 5)}</div>
                             <div class="cita-manicurista" style="font-size: 0.8em; font-weight: bold;">💅 ${cita.nombre_manicurista.split(' ')[0]}</div>
                             <div class="cita-cliente">${cita.nombre_cliente.split(' ')[0]}</div>
+                            ${telefonoDisplay ? `<div class="cita-telefono" style="font-size:0.75em">📞 ${telefonoDisplay}</div>` : ''}
                             ${esCorta ? '' : `<div class="cita-servicio">${cita.nombre_servicio}</div>`}
                         </div>
                     `;

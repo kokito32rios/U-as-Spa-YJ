@@ -31,4 +31,7 @@ router.get('/helpers/horarios-disponibles', verificarToken, citasController.obte
 // GET /api/citas/helpers/agenda - Obtener citas para el calendario
 router.get('/helpers/agenda', verificarToken, citasController.obtenerCitasAgenda);
 
+// GET /api/citas/helpers/mis-comisiones - Obtener mis comisiones
+router.get('/helpers/mis-comisiones', verificarToken, citasController.obtenerComisionesManicurista);
+
 module.exports = router;

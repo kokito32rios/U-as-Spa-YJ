@@ -36,6 +36,11 @@ app.get('/dashboard-admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'dashboard-admin.html'));
 });
 
+// Ruta dashboard manicurista
+app.get('/dashboard-manicurista.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'dashboard-manicurista.html'));
+});
+
 // Ruta del catálogo - Página pública
 app.get('/catalogo.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'catalogo.html'));
@@ -54,6 +59,7 @@ const serviciosRoutes = require('./routes/servicios.routes');
 const catalogoRoutes = require('./routes/catalogo.routes');
 const authRoutes = require('./routes/auth.routes');
 const citasRoutes = require('./routes/citas.routes');
+const reportesRoutes = require('./routes/reportes.routes');
 const horariosRoutes = require('./routes/horarios.routes');
 
 // Usar rutas
@@ -61,6 +67,7 @@ app.use('/api/servicios', serviciosRoutes);
 app.use('/api/catalogo', catalogoRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/citas', citasRoutes);
+app.use('/api/reportes', reportesRoutes);
 app.use('/api/horarios', horariosRoutes);
 app.use('/api/usuarios', require('./routes/usuarios.routes'));
 app.use('/api/comisiones', require('./routes/comisiones.routes'));

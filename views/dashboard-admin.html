@@ -417,6 +417,7 @@
                 <th>Fecha</th>
                 <th>Hora</th>
                 <th>Cliente</th>
+                <th>Teléfono</th>
                 <th>Servicio</th>
                 <th>Manicurista</th>
                 <th>Estado</th>
@@ -995,11 +996,17 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Cliente</label>
+            <label for="cita-cliente-search">Cliente</label>
             <input type="text" id="cita-cliente-search" list="lista-clientes" class="form-input"
-              placeholder="Buscar cliente..." autocomplete="off">
+              placeholder="Buscar cliente o escribir nombre...">
             <datalist id="lista-clientes"></datalist>
             <input type="hidden" id="cita-cliente">
+          </div>
+
+          <!-- Nuevo Campo Teléfono (Opcional/Auto-llenado) -->
+          <div class="form-group">
+            <label for="cita-telefono">Teléfono de Contacto</label>
+            <input type="tel" id="cita-telefono" class="form-input" placeholder="Ej: 3001234567">
           </div>
 
           <div class="form-group">
@@ -1084,34 +1091,7 @@
     </div>
   </div>
 
-  <!-- MODAL: MENSAJES -->
-  <div id="modal-mensaje" class="modal-overlay hidden">
-    <div class="modal-box">
-      <div class="modal-icon" id="mensaje-icon"></div>
-      <h3 id="mensaje-titulo"></h3>
-      <p id="mensaje-texto"></p>
-      <button class="btn-modal" onclick="cerrarModalMensaje()">
-        Entendido
-      </button>
-    </div>
-  </div>
 
-  <!-- MODAL: CONFIRMACIÓN -->
-  <div id="modal-confirmacion" class="modal-overlay hidden">
-    <div class="modal-box">
-      <div class="modal-icon-confirm" id="confirm-icon">⚠️</div>
-      <h3 id="confirm-titulo">¿Estás seguro?</h3>
-      <p id="confirm-mensaje">Esta acción no se puede deshacer.</p>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="cerrarModalConfirmacion()">
-          Cancelar
-        </button>
-        <button class="btn btn-primary" id="btn-confirmar" onclick="ejecutarAccionConfirmada()">
-          Confirmar
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- MODAL: HORARIO -->
   <div id="modal-horario" class="modal-overlay hidden">
@@ -1402,6 +1382,8 @@
     </div>
   </div>
 
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/js/dashboard-admin.js"></script>
 </body>

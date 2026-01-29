@@ -4,7 +4,7 @@
 function togglePassword() {
     const passwordInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eye-icon');
-    
+
     if (passwordInput.type === 'password') {
         // Mostrar contraseña
         passwordInput.type = 'text';
@@ -30,10 +30,10 @@ window.addEventListener('DOMContentLoaded', () => {
     if (token) {
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            
+
             // Verificar si el token no ha expirado
             if (payload.exp * 1000 > Date.now()) {
-                const rol = payload.nombre_rol;
+                const rol = payload.nombre_rol.toLowerCase();
                 window.location.href = `/dashboard-${rol}.html`;
             } else {
                 localStorage.removeItem('token');
@@ -49,29 +49,29 @@ window.addEventListener('DOMContentLoaded', () => {
 // =============================================
 function mostrarModal(tipo, icono, titulo, mensaje) {
     console.log('Mostrando modal:', { tipo, icono, titulo, mensaje });
-    
+
     const modal = document.getElementById('modal');
     const modalIcon = document.getElementById('modal-icon');
     const modalTitulo = document.getElementById('modal-titulo');
     const modalMensaje = document.getElementById('modal-mensaje');
-    
+
     if (!modal || !modalIcon || !modalTitulo || !modalMensaje) {
         console.error('Elementos del modal no encontrados');
         alert(`${titulo}\n\n${mensaje}`);
         return;
     }
-    
+
     // Configurar icono
     modalIcon.textContent = icono;
     modalIcon.className = `modal-icon ${tipo}`;
-    
+
     // Configurar contenido
     modalTitulo.textContent = titulo;
     modalMensaje.textContent = mensaje;
-    
+
     // Mostrar modal
     modal.classList.remove('hidden');
-    
+
     console.log('Modal mostrado correctamente');
 }
 
@@ -105,45 +105,45 @@ function mostrarModalRegistro(e) {
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('form-login');
     const btnLogin = document.getElementById('btn-login');
-    
+
     if (!form || !btnLogin) {
         console.error('Formulario o botón no encontrados');
         return;
     }
-    
+
     const btnText = btnLogin.querySelector('.btn-text');
     const btnLoader = btnLogin.querySelector('.btn-loader');
-    
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         console.log('Formulario enviado');
-        
+
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
-        
+
         console.log('Email:', email);
-        
+
         // Validación básica
         if (!email || !password) {
             mostrarModal('warning', '⚠️', 'Campos requeridos', 'Por favor completa todos los campos');
             return;
         }
-        
+
         // Validar formato de email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             mostrarModal('warning', '⚠️', 'Email inválido', 'Por favor ingresa un correo electrónico válido');
             return;
         }
-        
+
         // Mostrar loader
         btnLogin.disabled = true;
         btnText.classList.add('hidden');
         btnLoader.classList.remove('hidden');
-        
+
         console.log('Enviando petición al servidor...');
-        
+
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -152,28 +152,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({ email, password })
             });
-            
+
             console.log('Respuesta recibida:', response.status);
-            
+
             const data = await response.json();
             console.log('Data:', data);
-            
+
             // Ocultar loader
             btnLogin.disabled = false;
             btnText.classList.remove('hidden');
             btnLoader.classList.add('hidden');
-            
+
             if (data.success) {
                 // Guardar token
                 localStorage.setItem('token', data.token);
-                
+
                 // Mostrar éxito y redirigir
                 mostrarModal('success', '✓', '¡Bienvenido!', `Hola ${data.usuario.nombre}, redirigiendo...`);
-                
+
                 setTimeout(() => {
-                    window.location.href = `/dashboard-${data.usuario.rol}.html`;
+                    const rol = data.usuario.rol.toLowerCase();
+                    window.location.href = `/dashboard-${rol}.html`;
                 }, 1500);
-                
+
             } else {
                 // Manejar diferentes tipos de error
                 if (data.tipo === 'usuario_no_existe') {
@@ -199,14 +200,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     );
                 }
             }
-            
+
         } catch (error) {
             console.error('Error en fetch:', error);
-            
+
             btnLogin.disabled = false;
             btnText.classList.remove('hidden');
             btnLoader.classList.add('hidden');
-            
+
             mostrarModal(
                 'error',
                 '⚠️',
@@ -215,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
     });
-    
+
     // Cerrar modal con ESC
     document.addEventListener('keydown', (e) => {
         const modal = document.getElementById('modal');
@@ -223,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cerrarModal();
         }
     });
-    
+
     // Cerrar modal al hacer click fuera
     const modal = document.getElementById('modal');
     if (modal) {

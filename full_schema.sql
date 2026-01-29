@@ -118,6 +118,7 @@ CREATE TABLE citas (
     fecha DATE NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,
+    telefono_contacto VARCHAR(20) DEFAULT NULL,
     estado VARCHAR(20) NOT NULL DEFAULT 'pendiente' 
         CHECK (estado IN ('pendiente', 'confirmada', 'completada', 'cancelada', 'no_asistio')),
     precio DECIMAL(10, 2) DEFAULT 0, -- Precio al momento de la cita
@@ -232,3 +233,21 @@ CREATE TABLE cierres_caja (
     
     INDEX idx_fechas (fecha_inicio, fecha_fin)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- 12. REPORTES DIARIOS (Conciliación)
+-- =============================================
+CREATE TABLE reportes_manicurista (
+    id_reporte BIGINT AUTO_INCREMENT PRIMARY KEY,
+    email_manicurista VARCHAR(255) NOT NULL,
+    fecha DATE NOT NULL,
+    descripcion TEXT NOT NULL,
+    valor_reportado DECIMAL(10, 2) NOT NULL,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (email_manicurista) REFERENCES usuarios(email) 
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    
+    INDEX idx_manicurista_fecha (email_manicurista, fecha)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci 
+COMMENT='Registro manual de servicios por manicurista para conciliación de caja';
