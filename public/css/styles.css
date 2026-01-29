@@ -42,7 +42,7 @@ body {
     position: relative;
     height: 100vh;
     min-height: 600px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    background: url('../img/hero-bg.jpeg') no-repeat center center/cover;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -60,6 +60,7 @@ body {
     background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="2" fill="white" opacity="0.1"/></svg>');
     background-size: 50px 50px;
     animation: float 20s linear infinite;
+    z-index: 1;
 }
 
 @keyframes float {
@@ -78,7 +79,38 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.1);
+    /* Gradiente con los colores originales pero mucho más transparente para lucir la foto */
+    background: linear-gradient(135deg, rgba(207, 122, 100, 0.35) 0%, rgba(231, 178, 164, 0.35) 100%);
+    z-index: 0;
+}
+
+
+
+/* =============================================
+   HERO RESPONSIVE (Optimizacion para fotos verticales en PC)
+   ============================================= */
+@media (min-width: 1024px) {
+    .hero {
+        /* Capa 1 (Frente): Imagen completa (contain) para que no se corte ni pixelee */
+        /* Capa 2 (Fondo): Imagen borrosa (cover) para rellenar los huecos negros con estilo */
+        background:
+            url('../img/hero-bg.jpeg') no-repeat center center/contain,
+            url('../img/hero-bg.jpeg') no-repeat center center/cover;
+
+        /* Efecto de desenfoque simulado en el fondo */
+        box-shadow: inset 0 0 0 1000px rgba(0, 0, 0, 0.5);
+        /* Oscurecer fondo si es necesario */
+    }
+
+    /* Ajustar el overlay para que no tape tanto la imagen central */
+    .hero-overlay {
+        background: linear-gradient(135deg, rgba(207, 122, 100, 0.2) 0%, rgba(231, 178, 164, 0.2) 100%);
+        backdrop-filter: blur(5px);
+        /* Desenfocar solo los bordes si es posible, o todo el fondo */
+        /* Nota: backdrop-filter aqui afectaria a todo lo que esta DETRAS del overlay, incluyendo la imagen sharp.
+           Mejor NO usar blur aqui si queremos nitidez. */
+        backdrop-filter: none;
+    }
 }
 
 .hero-content {
