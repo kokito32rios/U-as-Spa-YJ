@@ -1,0 +1,97 @@
+<!-- Filtros Dashboard - Estructura Correcta Comisiones -->
+<div class="filters-container"
+    style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+    <div style="display: flex; gap: 1rem; margin-bottom: 0; flex-wrap: wrap; align-items: flex-end;">
+
+        <!-- Selector de Tipo de Filtro -->
+        <div class="form-group" style="min-width: 150px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Filtrar
+                por:</label>
+            <select id="dash-filtro-periodo" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                onchange="cambiarPeriodoDashboard()">
+                <option value="mes">Mes</option>
+                <option value="semana">Semana</option>
+                <option value="rango">Rango de Fechas</option>
+            </select>
+        </div>
+
+        <!-- Filtro por Mes (visible por defecto) -->
+        <div id="dash-grupo-mes" class="form-group" style="min-width: 150px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Mes:</label>
+            <select id="dash-filtro-mes" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+            </select>
+        </div>
+
+        <!-- Filtro por Semana (oculto por defecto) -->
+        <div id="dash-grupo-semana" class="form-group" style="min-width: 200px; display: none;">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Semana:</label>
+            <select id="dash-filtro-semana" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <!-- Se llenará dinámicamente -->
+            </select>
+        </div>
+
+        <!-- Filtro por Rango (oculto por defecto) -->
+        <div id="dash-grupo-rango" style="display: none; flex: 1; min-width: 300px;">
+            <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                <div class="form-group" style="flex: 1;">
+                    <label
+                        style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Desde:</label>
+                    <input type="date" id="dash-fecha-inicio" class="form-control"
+                        style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label
+                        style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Hasta:</label>
+                    <input type="date" id="dash-fecha-fin" class="form-control"
+                        style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Año (siempre visible) -->
+        <div id="dash-grupo-anio" class="form-group" style="min-width: 120px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Año:</label>
+            <select id="dash-filtro-anio" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                onchange="cambiarPeriodoDashboard()">
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+            </select>
+        </div>
+
+        <!-- Filtro por Manicurista -->
+        <div class="form-group" style="min-width: 180px;">
+            <label
+                style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Manicurista:</label>
+            <select id="dash-filtro-manicurista" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Todas</option>
+                <!-- Se llena dinámicamente -->
+            </select>
+        </div>
+
+        <!-- Botón Aplicar -->
+        <div class="form-group">
+            <button class="btn btn-primary"
+                style="padding: 0.6rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;"
+                onclick="cargarDashboard()">
+                <span>🔍</span> Aplicar
+            </button>
+        </div>
+    </div>
+</div>
