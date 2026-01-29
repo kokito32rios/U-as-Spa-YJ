@@ -92,13 +92,233 @@
         </div>
       </header>
 
-      <!-- SECCIÓN: DASHBOARD (NUEVA) -->
+      <!-- SECCIÓN: DASHBOARD FINANCIERO -->
       <section id="seccion-dashboard" class="content-section">
+        <!-- Filtros estilo Comisiones -->
+        <div class="filters-bar">
+          <div class="filter-group">
+            <label>Filtrar por:</label>
+            <select id="dash-filtro-periodo" class="form-input-sm" onchange="cambiarPeriodoDashboard()">
+              <option value="mes">Mes</option>
+              <option value="semana">Semana</option>
+              <option value="rango">Rango de Fechas</option>
+            </select>
+          </div>
+          <div class="filter-group" id="dash-grupo-mes">
+            <label>Mes:</label>
+            <select id="dash-filtro-mes" class="form-input-sm">
+              <option value="1">Enero</option>
+              <option value="2">Febrero</option>
+              <option value="3">Marzo</option>
+              <option value="4">Abril</option>
+              <option value="5">Mayo</option>
+              <option value="6">Junio</option>
+              <option value="7">Julio</option>
+              <option value="8">Agosto</option>
+              <option value="9">Septiembre</option>
+              <option value="10">Octubre</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+          </div>
+          <div class="filter-group" id="dash-grupo-semana" style="display:none;">
+            <label>Semana:</label>
+            <select id="dash-filtro-semana" class="form-input-sm">
+              <!-- Se llenará dinámicamente -->
+            </select>
+          </div>
+          <div class="filter-group" id="dash-grupo-anio">
+            <label>Año:</label>
+            <select id="dash-filtro-anio" class="form-input-sm" onchange="cambiarPeriodoDashboard()">
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+            </select>
+          </div>
+          <div class="filter-group" id="dash-grupo-rango"
+            style="display:none; flex-direction: row; gap: 0.5rem; align-items: center;">
+            <label>Desde:</label>
+            <input type="date" id="dash-fecha-inicio" class="form-input-sm" style="min-width: 140px;">
+            <label style="margin-left: 0.5rem;">Hasta:</label>
+            <input type="date" id="dash-fecha-fin" class="form-input-sm" style="min-width: 140px;">
+          </div>
+          <div class="filter-group">
+            <label>Manicurista:</label>
+            <select id="dash-filtro-manicurista" class="form-input-sm">
+              <option value="">Todas</option>
+              <!-- Se llena dinámicamente -->
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="cargarDashboard()">🔍 Aplicar</button>
+        </div>
+
+        <!-- Widgets de métricas -->
         <div class="metrics-grid">
-          <!-- Placeholder for future widgets -->
-          <div class="metric-card">
-            <h3>Próximamente</h3>
-            <p>Aquí verás tus estadísticas clave.</p>
+          <div class="metric-card metric-ingresos">
+            <div class="metric-icon">💰</div>
+            <div class="metric-info">
+              <span class="metric-label">Ingresos</span>
+              <span class="metric-value" id="dash-ingresos">$0</span>
+              <span class="metric-sub" id="dash-ingresos-cant">0 pagos</span>
+            </div>
+          </div>
+
+          <div class="metric-card metric-gastos">
+            <div class="metric-icon">📉</div>
+            <div class="metric-info">
+              <span class="metric-label">Gastos</span>
+              <span class="metric-value" id="dash-gastos">$0</span>
+              <span class="metric-sub" id="dash-gastos-detalle">Local: $0 | Deducciones: $0</span>
+            </div>
+          </div>
+
+          <div class="metric-card metric-comisiones">
+            <div class="metric-icon">👩‍💼</div>
+            <div class="metric-info">
+              <span class="metric-label">Comisiones</span>
+              <span class="metric-value" id="dash-comisiones">$0</span>
+              <span class="metric-sub">Pagadas a manicuristas</span>
+            </div>
+          </div>
+
+          <div class="metric-card metric-balance">
+            <div class="metric-icon">📊</div>
+            <div class="metric-info">
+              <span class="metric-label">Balance Neto</span>
+              <span class="metric-value" id="dash-balance">$0</span>
+              <span class="metric-sub">Ingresos - Gastos - Comisiones</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen de citas -->
+        <div class="citas-summary">
+          <div class="cita-stat">
+            <span class="cita-stat-value" id="dash-citas-total">0</span>
+            <span class="cita-stat-label">Total Citas</span>
+          </div>
+          <div class="cita-stat completadas">
+            <span class="cita-stat-value" id="dash-citas-completadas">0</span>
+            <span class="cita-stat-label">Completadas</span>
+          </div>
+          <div class="cita-stat canceladas">
+            <span class="cita-stat-value" id="dash-citas-canceladas">0</span>
+            <span class="cita-stat-label">Canceladas</span>
+          </div>
+          <div class="cita-stat pendientes">
+            <span class="cita-stat-value" id="dash-citas-pendientes">0</span>
+            <span class="cita-stat-label">Pendientes</span>
+          </div>
+        </div>
+
+        <!-- CUADRE DE CAJA -->
+        <div class="cuadre-caja">
+          <h3>🧾 Cuadre de Caja</h3>
+          <div class="cuadre-grid">
+            <div class="cuadre-item cuadre-total">
+              <span class="cuadre-icon">💵</span>
+              <div class="cuadre-info">
+                <span class="cuadre-label">Ingreso Total</span>
+                <span class="cuadre-value" id="cuadre-total">$0</span>
+              </div>
+            </div>
+            <div class="cuadre-item cuadre-efectivo">
+              <span class="cuadre-icon">💰</span>
+              <div class="cuadre-info">
+                <span class="cuadre-label">Efectivo</span>
+                <span class="cuadre-value" id="cuadre-efectivo">$0</span>
+                <span class="cuadre-sub" id="cuadre-efectivo-count">0 pagos</span>
+              </div>
+            </div>
+            <div class="cuadre-item cuadre-transferencia">
+              <span class="cuadre-icon">🏦</span>
+              <div class="cuadre-info">
+                <span class="cuadre-label">Transferencia</span>
+                <span class="cuadre-value" id="cuadre-transferencia">$0</span>
+                <span class="cuadre-sub" id="cuadre-transferencia-count">0 pagos</span>
+              </div>
+            </div>
+          </div>
+          <div class="cuadre-resumen">
+            <div class="cuadre-resumen-item">
+              <span>📤 Total Gastos del Período:</span>
+              <span class="text-danger" id="cuadre-gastos-periodo">$0</span>
+            </div>
+            <div class="cuadre-resumen-item destacado">
+              <span>🔢 Debe haber en efectivo:</span>
+              <span class="text-success" id="cuadre-debe-efectivo">$0</span>
+            </div>
+          </div>
+          <!-- Tabla de Cuadre de Caja -->
+          <div class="cuadre-tabla">
+            <h4>📋 Resumen Diario del Período</h4>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Total Ingresos</th>
+                    <th>Gastos</th>
+                    <th>💵 Efectivo</th>
+                    <th>🏦 Transferencia</th>
+                  </tr>
+                </thead>
+                <tbody id="cuadre-tabla-tbody">
+                  <tr>
+                    <td colspan="5" style="text-align:center;">Cargando...</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="cuadre-totales">
+                    <td><strong>TOTALES</strong></td>
+                    <td id="cuadre-tabla-total-ingresos"><strong>$0</strong></td>
+                    <td id="cuadre-tabla-total-gastos"><strong>$0</strong></td>
+                    <td id="cuadre-tabla-total-efectivo"><strong>$0</strong></td>
+                    <td id="cuadre-tabla-total-transferencia"><strong>$0</strong></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfico -->
+        <div class="chart-container">
+          <h3>📈 Ingresos vs Gastos por Mes</h3>
+          <canvas id="chart-ingresos-gastos"></canvas>
+        </div>
+
+        <!-- Resumen por manicurista -->
+        <div class="manicuristas-summary">
+          <h3>👩 Resumen por Manicurista</h3>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Manicurista</th>
+                  <th>Servicios</th>
+                  <th>Ingresos Generados</th>
+                  <th>Comisión</th>
+                  <th>Deducciones</th>
+                  <th>💰 Total a Pagar</th>
+                </tr>
+              </thead>
+              <tbody id="dash-manicuristas-tbody">
+                <tr>
+                  <td colspan="7" style="text-align:center;">Cargando...</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr style="font-weight: bold; background-color: #f8f9fa;">
+                  <td colspan="2">TOTAL</td>
+                  <td id="dash-man-total-servicios">0</td>
+                  <td id="dash-man-total-ingresos" class="text-success">$0</td>
+                  <td id="dash-man-total-comision" class="text-warning">$0</td>
+                  <td id="dash-man-total-deducciones" class="text-danger">$0</td>
+                  <td id="dash-man-total-pagar" style="color: #007bff; font-size: 1.1em;">$0</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
       </section>
@@ -547,9 +767,16 @@
       <section id="seccion-gastos" class="content-section">
         <div class="filters-bar">
           <div class="filter-group">
+            <label>Filtrar por:</label>
+            <select id="gastos-filtro-periodo" class="form-input-sm" onchange="cambiarPeriodoGastos()">
+              <option value="mes">Mes</option>
+              <option value="semana">Semana</option>
+              <option value="rango">Rango de Fechas</option>
+            </select>
+          </div>
+          <div class="filter-group" id="gastos-grupo-mes">
             <label>Mes:</label>
-            <select id="gastos-filtro-mes" class="form-input-sm" onchange="cargarGastos()">
-              <option value="">Todos</option>
+            <select id="gastos-filtro-mes" class="form-input-sm">
               <option value="1">Enero</option>
               <option value="2">Febrero</option>
               <option value="3">Marzo</option>
@@ -564,21 +791,35 @@
               <option value="12">Diciembre</option>
             </select>
           </div>
-          <div class="filter-group">
+          <div class="filter-group" id="gastos-grupo-semana" style="display:none;">
+            <label>Semana:</label>
+            <select id="gastos-filtro-semana" class="form-input-sm">
+              <!-- Se llenará dinámicamente -->
+            </select>
+          </div>
+          <div class="filter-group" id="gastos-grupo-anio">
             <label>Año:</label>
-            <select id="gastos-filtro-anio" class="form-input-sm" onchange="cargarGastos()">
+            <select id="gastos-filtro-anio" class="form-input-sm" onchange="cambiarPeriodoGastos()">
               <option value="2025">2025</option>
               <option value="2026" selected>2026</option>
             </select>
           </div>
+          <div class="filter-group" id="gastos-grupo-rango"
+            style="display:none; flex-direction: row; gap: 0.5rem; align-items: center;">
+            <label>Desde:</label>
+            <input type="date" id="gastos-fecha-inicio" class="form-input-sm" style="min-width: 140px;">
+            <label style="margin-left: 0.5rem;">Hasta:</label>
+            <input type="date" id="gastos-fecha-fin" class="form-input-sm" style="min-width: 140px;">
+          </div>
           <div class="filter-group">
             <label>Tipo:</label>
-            <select id="gastos-filtro-tipo" class="form-input-sm" onchange="cargarGastos()">
+            <select id="gastos-filtro-tipo" class="form-input-sm">
               <option value="">Todos</option>
               <option value="gasto_local">Gasto Local</option>
               <option value="deduccion_manicurista">Deducción Manicurista</option>
             </select>
           </div>
+          <button class="btn btn-primary btn-sm" onclick="cargarGastos()">🔍 Aplicar</button>
           <div class="filter-group">
             <span class="badge badge-danger" id="gastos-total-display">Total: $0</span>
           </div>
@@ -732,8 +973,6 @@
               <option value="">Seleccione...</option>
               <option value="efectivo">💵 Efectivo</option>
               <option value="transferencia">📲 Transferencia</option>
-              <option value="nequi">📱 Nequi</option>
-              <option value="tarjeta">💳 Tarjeta</option>
             </select>
           </div>
         </div>
@@ -1068,6 +1307,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/js/dashboard-admin.js"></script>
 </body>
 

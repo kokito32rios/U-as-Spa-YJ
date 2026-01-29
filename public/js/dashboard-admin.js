@@ -56,6 +56,16 @@ async function fetchConToken(url, options = {}) {
 }
 
 // =============================================
+// HELPER: FORMATEAR FECHA SIN TIMEZONE
+// =============================================
+function formatearFechaSinTZ(fechaString) {
+    // Si la fecha viene como "2026-01-29", evitar conversión de timezone
+    const fecha = new Date(fechaString + 'T00:00:00');
+    const opciones = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'America/Bogota' };
+    return fecha.toLocaleDateString('es-CO', opciones);
+}
+
+// =============================================
 // CAMBIAR SECCIÓN
 // =============================================
 function cambiarSeccion(seccion) {
@@ -125,6 +135,9 @@ function cambiarSeccion(seccion) {
         inicializarUsuarios();
     } else if (seccion === 'comisiones') {
         inicializarComisiones();
+    } else if (seccion === 'dashboard') {
+        cargarManicuristasFiltro();
+        cargarDashboard();
     }
 }
 
@@ -3103,14 +3116,13 @@ function toggleImagenPrincipal(id, idServicio, esPrincipal) {
 // GASTOS - CRUD
 // =============================================
 async function cargarGastos() {
-    const mes = document.getElementById('gastos-filtro-mes').value;
-    const anio = document.getElementById('gastos-filtro-anio').value;
+    const { fechaInicio, fechaFin } = obtenerFechasGastos();
     const tipo = document.getElementById('gastos-filtro-tipo').value;
 
-    let url = '/api/gastos?';
-    if (mes) url += `mes=${mes}&`;
-    if (anio) url += `anio=${anio}&`;
-    if (tipo) url += `tipo=${tipo}&`;
+    if (!fechaInicio || !fechaFin) return;
+
+    let url = `/api/gastos?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+    if (tipo) url += `&tipo=${tipo}`;
 
     try {
         const res = await fetchConToken(url);
@@ -3288,4 +3300,559 @@ function confirmarEliminarGasto(id) {
             console.error(error);
         }
     });
+}
+
+// =============================================
+// DASHBOARD FINANCIERO
+// =============================================
+let dashboardChart = null;
+
+// Obtener fechas según período seleccionado (Dashboard)
+function obtenerFechasDashboard() {
+    const periodo = document.getElementById('dash-filtro-periodo').value;
+    const hoy = new Date();
+    let fechaInicio, fechaFin;
+
+    switch (periodo) {
+        case 'semana':
+            // Obtener del selector de semana
+            const semanaSelect = document.getElementById('dash-filtro-semana');
+            if (semanaSelect.value) {
+                const [desde, hasta] = semanaSelect.value.split('|');
+                fechaInicio = desde;
+                fechaFin = hasta;
+            } else {
+                // Fallback a semana actual
+                const inicioSemana = new Date(hoy);
+                const diaSemana = inicioSemana.getDay();
+                const diff = diaSemana === 0 ? -6 : 1 - diaSemana;
+                inicioSemana.setDate(inicioSemana.getDate() + diff);
+                fechaInicio = inicioSemana.toISOString().split('T')[0];
+                const finSemana = new Date(inicioSemana);
+                finSemana.setDate(finSemana.getDate() + 6);
+                fechaFin = finSemana.toISOString().split('T')[0];
+            }
+            break;
+        case 'mes':
+            // Mes seleccionado en los dropdowns
+            const mes = document.getElementById('dash-filtro-mes').value;
+            const anio = document.getElementById('dash-filtro-anio').value;
+            // Primer día del mes
+            fechaInicio = `${anio}-${mes.padStart(2, '0')}-01`;
+            // Último día del mes
+            const ultimoDia = new Date(anio, mes, 0).getDate();
+            fechaFin = `${anio}-${mes.padStart(2, '0')}-${ultimoDia}`;
+            break;
+        case 'rango':
+            fechaInicio = document.getElementById('dash-fecha-inicio').value;
+            fechaFin = document.getElementById('dash-fecha-fin').value;
+            break;
+    }
+
+    return { fechaInicio, fechaFin };
+}
+
+function cambiarPeriodoDashboard() {
+    const periodo = document.getElementById('dash-filtro-periodo').value;
+    const grupoMes = document.getElementById('dash-grupo-mes');
+    const grupoSemana = document.getElementById('dash-grupo-semana');
+    const grupoAnio = document.getElementById('dash-grupo-anio');
+    const grupoRango = document.getElementById('dash-grupo-rango');
+
+    // Ocultar todos
+    grupoMes.style.display = 'none';
+    grupoSemana.style.display = 'none';
+    grupoAnio.style.display = 'none';
+    grupoRango.style.display = 'none';
+
+    if (periodo === 'mes') {
+        grupoMes.style.display = 'flex';
+        grupoAnio.style.display = 'flex';
+    } else if (periodo === 'semana') {
+        grupoSemana.style.display = 'flex';
+        grupoAnio.style.display = 'flex';
+        poblarSemanasDashboard();
+    } else if (periodo === 'rango') {
+        grupoRango.style.display = 'flex';
+        const hoy = new Date();
+        if (!document.getElementById('dash-fecha-inicio').value) {
+            document.getElementById('dash-fecha-inicio').value = hoy.toISOString().split('T')[0];
+        }
+        if (!document.getElementById('dash-fecha-fin').value) {
+            document.getElementById('dash-fecha-fin').value = hoy.toISOString().split('T')[0];
+        }
+    }
+}
+
+function poblarSemanasDashboard() {
+    const selectSemana = document.getElementById('dash-filtro-semana');
+    const anio = document.getElementById('dash-filtro-anio').value || new Date().getFullYear();
+
+    selectSemana.innerHTML = '';
+
+    // Generar semanas del año
+    const primerDia = new Date(anio, 0, 1);
+    const ultimoDia = new Date(anio, 11, 31);
+
+    let semanaActual = new Date(primerDia);
+    // Ajustar al lunes de esa semana
+    const diaSemana = semanaActual.getDay();
+    const diff = diaSemana === 0 ? -6 : 1 - diaSemana;
+    semanaActual.setDate(semanaActual.getDate() + diff);
+
+    let numSemana = 1;
+
+    while (semanaActual <= ultimoDia) {
+        const finSemana = new Date(semanaActual);
+        finSemana.setDate(finSemana.getDate() + 6);
+
+        const desde = semanaActual.toISOString().split('T')[0];
+        const hasta = finSemana.toISOString().split('T')[0];
+
+        const option = document.createElement('option');
+        option.value = `${desde}|${hasta}`;
+        option.textContent = `Semana ${numSemana}: ${formatearFechaCorta(semanaActual)} - ${formatearFechaCorta(finSemana)}`;
+        selectSemana.appendChild(option);
+
+        semanaActual.setDate(semanaActual.getDate() + 7);
+        numSemana++;
+    }
+
+    // Seleccionar la semana actual
+    const hoy = new Date();
+    const opciones = selectSemana.options;
+    for (let i = 0; i < opciones.length; i++) {
+        const [desde, hasta] = opciones[i].value.split('|');
+        if (hoy >= new Date(desde) && hoy <= new Date(hasta)) {
+            selectSemana.selectedIndex = i;
+            break;
+        }
+    }
+}
+
+// Cargar lista de manicuristas para el filtro
+async function cargarManicuristasFiltro() {
+    try {
+        const res = await fetchConToken('/api/usuarios');
+        const data = await res.json();
+
+        if (data.success) {
+            const select = document.getElementById('dash-filtro-manicurista');
+            // Filtrar solo manicuristas (id_rol = 3) y activos
+            data.usuarios
+                .filter(u => u.id_rol === 3 && u.activo === 1)
+                .forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.email;
+                    option.textContent = `${m.nombre} ${m.apellido}`;
+                    select.appendChild(option);
+                });
+        }
+    } catch (error) {
+        console.error('Error cargando manicuristas:', error);
+    }
+}
+
+
+async function cargarDashboard() {
+    const { fechaInicio, fechaFin } = obtenerFechasDashboard();
+
+    if (!fechaInicio || !fechaFin) {
+        return; // Esperar a que el usuario complete filtros si faltan
+    }
+
+    // Obtener filtro de manicurista
+    const emailManicurista = document.getElementById('dash-filtro-manicurista').value;
+
+    // Cargar métricas
+    await cargarMetricasDashboard(fechaInicio, fechaFin, emailManicurista);
+    // Cargar gráfico (pasamos el año de la fecha de inicio para contexto, o el año seleccionado)
+    await cargarGraficoDashboard(fechaInicio.split('-')[0]);
+    // Cargar resumen manicuristas
+    await cargarResumenManicuristas(fechaInicio, fechaFin, emailManicurista);
+    // Cargar cuadre de caja (incluye la tabla detalle)
+    await cargarCuadreCaja(fechaInicio, fechaFin, emailManicurista);
+}
+
+async function cargarMetricasDashboard(fechaInicio, fechaFin, emailManicurista = '') {
+    try {
+        let url = `/api/dashboard/metricas?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+        if (emailManicurista) url += `&email_manicurista=${emailManicurista}`;
+
+        const res = await fetchConToken(url);
+        const data = await res.json();
+
+        if (data.success) {
+            const m = data.metricas;
+
+            // Actualizar widgets
+            document.getElementById('dash-ingresos').textContent =
+                `$${m.ingresos.total.toLocaleString('es-CO')}`;
+            document.getElementById('dash-ingresos-cant').textContent =
+                `${m.ingresos.cantidad} pagos`;
+
+            document.getElementById('dash-gastos').textContent =
+                `$${m.gastos.total.toLocaleString('es-CO')}`;
+            document.getElementById('dash-gastos-detalle').textContent =
+                `Local: $${m.gastos.local.toLocaleString('es-CO')} | Deducciones: $${m.gastos.deducciones.toLocaleString('es-CO')}`;
+
+            document.getElementById('dash-comisiones').textContent =
+                `$${m.comisiones.total.toLocaleString('es-CO')}`;
+
+            const balanceEl = document.getElementById('dash-balance');
+            balanceEl.textContent = `$${m.balance.toLocaleString('es-CO')}`;
+            balanceEl.style.color = m.balance >= 0 ? '#28a745' : '#dc3545';
+
+            // Citas
+            document.getElementById('dash-citas-total').textContent = m.citas.total;
+            document.getElementById('dash-citas-completadas').textContent = m.citas.completadas;
+            document.getElementById('dash-citas-canceladas').textContent = m.citas.canceladas;
+            document.getElementById('dash-citas-pendientes').textContent = m.citas.pendientes;
+        }
+    } catch (error) {
+        console.error('Error cargando métricas:', error);
+    }
+}
+
+async function cargarGraficoDashboard(anio) {
+    try {
+        const res = await fetchConToken(`/api/dashboard/grafico?anio=${anio}`);
+        const data = await res.json();
+
+        if (data.success) {
+            const ctx = document.getElementById('chart-ingresos-gastos').getContext('2d');
+
+            // Destruir chart anterior si existe
+            if (dashboardChart) {
+                dashboardChart.destroy();
+            }
+
+            dashboardChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.grafico.labels,
+                    datasets: [
+                        {
+                            label: 'Ingresos',
+                            data: data.grafico.datasets.ingresos,
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            borderColor: '#28a745',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Gastos',
+                            data: data.grafico.datasets.gastos,
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            borderColor: '#dc3545',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Comisiones',
+                            data: data.grafico.datasets.comisiones,
+                            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                            borderColor: '#ffc107',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return '$' + value.toLocaleString('es-CO');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error cargando gráfico:', error);
+    }
+}
+
+async function cargarResumenManicuristas(fechaInicio, fechaFin, emailManicurista = '') {
+    try {
+        let url = `/api/dashboard/manicuristas?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+        if (emailManicurista) url += `&email_manicurista=${emailManicurista}`;
+
+        const res = await fetchConToken(url);
+        const data = await res.json();
+
+        if (data.success) {
+            const tbody = document.getElementById('dash-manicuristas-tbody');
+
+            if (data.resumen.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Sin datos para el período</td></tr>';
+                // Reset totals
+                document.getElementById('dash-man-total-servicios').textContent = '0';
+                document.getElementById('dash-man-total-ingresos').textContent = '$0';
+                document.getElementById('dash-man-total-comision').textContent = '$0';
+                document.getElementById('dash-man-total-deducciones').textContent = '$0';
+                document.getElementById('dash-man-total-pagar').textContent = '$0';
+                return;
+            }
+
+            // Calcular totales
+            let totalServicios = 0;
+            let totalIngresos = 0;
+            let totalComision = 0;
+            let totalDeducciones = 0;
+            let totalPagar = 0;
+
+            tbody.innerHTML = data.resumen.map(m => {
+                const comision = parseFloat(m.comision_total);
+                const deducciones = parseFloat(m.deducciones);
+                const totalAPagar = comision - deducciones;
+
+                // Acumular totales
+                totalServicios += parseInt(m.cantidad_servicios);
+                totalIngresos += parseFloat(m.ingresos_generados);
+                totalComision += comision;
+                totalDeducciones += deducciones;
+                totalPagar += totalAPagar;
+
+                return `
+                <tr>
+                    <td><strong>${formatearFechaSinTZ(m.fecha)}</strong></td>
+                    <td>${m.nombre_manicurista}</td>
+                    <td>${m.cantidad_servicios}</td>
+                    <td class="text-success">$${parseFloat(m.ingresos_generados).toLocaleString('es-CO')}</td>
+                    <td class="text-warning">$${comision.toLocaleString('es-CO')}</td>
+                    <td class="text-danger">$${deducciones.toLocaleString('es-CO')}</td>
+                    <td><strong style="color: #007bff;">$${totalAPagar.toLocaleString('es-CO')}</strong></td>
+                </tr>
+                `;
+            }).join('');
+
+            // Actualizar footer con totales
+            document.getElementById('dash-man-total-servicios').textContent = totalServicios;
+            document.getElementById('dash-man-total-ingresos').textContent = `$${totalIngresos.toLocaleString('es-CO')}`;
+            document.getElementById('dash-man-total-comision').textContent = `$${totalComision.toLocaleString('es-CO')}`;
+            document.getElementById('dash-man-total-deducciones').textContent = `$${totalDeducciones.toLocaleString('es-CO')}`;
+            document.getElementById('dash-man-total-pagar').textContent = `$${totalPagar.toLocaleString('es-CO')}`;
+        }
+    } catch (error) {
+        console.error('Error cargando resumen manicuristas:', error);
+    }
+}
+
+// Cuadre de Caja
+async function cargarCuadreCaja(fechaInicio, fechaFin, emailManicurista = '') {
+    try {
+        let url = `/api/dashboard/cuadre?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+        if (emailManicurista) url += `&email_manicurista=${emailManicurista}`;
+        const res = await fetchConToken(url);
+        const data = await res.json();
+
+        if (data.success) {
+            const c = data.cuadre;
+
+            // Total
+            document.getElementById('cuadre-total').textContent = `$${c.total.toLocaleString('es-CO')}`;
+
+            // Por método
+            const updateMetodo = (id, metodoData) => {
+                document.getElementById(`cuadre-${id}`).textContent = `$${metodoData.total.toLocaleString('es-CO')}`;
+                document.getElementById(`cuadre-${id}-count`).textContent = `${metodoData.cantidad} pagos`;
+            };
+
+            updateMetodo('efectivo', c.metodos.efectivo);
+            updateMetodo('transferencia', c.metodos.transferencia);
+
+            // Gastos y debe efectivo
+            document.getElementById('cuadre-gastos-periodo').textContent = `$${c.gastos.toLocaleString('es-CO')}`;
+            const debeEl = document.getElementById('cuadre-debe-efectivo');
+            debeEl.textContent = `$${c.debeEfectivo.toLocaleString('es-CO')}`;
+            debeEl.style.color = c.debeEfectivo >= 0 ? '#28a745' : '#dc3545';
+        }
+
+        // Cargar tabla detalle pagos
+        await cargarDetallePagos(fechaInicio, fechaFin, emailManicurista);
+
+    } catch (error) {
+        console.error('Error cargando cuadre de caja:', error);
+    }
+}
+
+async function cargarDetallePagos(fechaInicio, fechaFin, emailManicurista = '') {
+    try {
+        let url = `/api/dashboard/detalle-pagos?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+        if (emailManicurista) url += `&email_manicurista=${emailManicurista}`;
+        const res = await fetchConToken(url);
+        const data = await res.json();
+        const tbody = document.getElementById('cuadre-tabla-tbody');
+
+        if (data.success) {
+            if (data.resumen.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay datos en este período</td></tr>';
+                document.getElementById('cuadre-tabla-total-ingresos').textContent = '$0';
+                document.getElementById('cuadre-tabla-total-gastos').textContent = '$0';
+                document.getElementById('cuadre-tabla-total-efectivo').textContent = '$0';
+                document.getElementById('cuadre-tabla-total-transferencia').textContent = '$0';
+                return;
+            }
+
+            let totalIngresos = 0;
+            let totalGastos = 0;
+            let totalEfectivo = 0;
+            let totalTransferencia = 0;
+
+            tbody.innerHTML = data.resumen.map(dia => {
+                totalIngresos += dia.total_ingresos;
+                totalGastos += dia.total_gastos;
+                totalEfectivo += dia.efectivo;
+                totalTransferencia += dia.transferencia;
+
+                return `
+                <tr>
+                    <td><strong>${formatearFechaSinTZ(dia.fecha)}</strong></td>
+                    <td class="text-success">$${dia.total_ingresos.toLocaleString('es-CO')}</td>
+                    <td class="text-danger">$${dia.total_gastos.toLocaleString('es-CO')}</td>
+                    <td>$${dia.efectivo.toLocaleString('es-CO')}</td>
+                    <td>$${dia.transferencia.toLocaleString('es-CO')}</td>
+                </tr>
+                `;
+            }).join('');
+
+            // Actualizar totales
+            document.getElementById('cuadre-tabla-total-ingresos').innerHTML = `<strong>$${totalIngresos.toLocaleString('es-CO')}</strong>`;
+            document.getElementById('cuadre-tabla-total-gastos').innerHTML = `<strong>$${totalGastos.toLocaleString('es-CO')}</strong>`;
+            document.getElementById('cuadre-tabla-total-efectivo').innerHTML = `<strong>$${totalEfectivo.toLocaleString('es-CO')}</strong>`;
+            document.getElementById('cuadre-tabla-total-transferencia').innerHTML = `<strong>$${totalTransferencia.toLocaleString('es-CO')}</strong>`;
+        }
+    } catch (error) {
+        console.error('Error al cargar detalle de pagos:', error);
+    }
+}
+
+
+// =============================================
+// LOGICA DE FILTROS GASTOS (Similar a Dashboard/Comisiones)
+// =============================================
+function cambiarPeriodoGastos() {
+    const periodo = document.getElementById('gastos-filtro-periodo').value;
+    const grupoMes = document.getElementById('gastos-grupo-mes');
+    const grupoSemana = document.getElementById('gastos-grupo-semana');
+    const grupoAnio = document.getElementById('gastos-grupo-anio');
+    const grupoRango = document.getElementById('gastos-grupo-rango');
+
+    grupoMes.style.display = 'none';
+    grupoSemana.style.display = 'none';
+    grupoAnio.style.display = 'none';
+    grupoRango.style.display = 'none';
+
+    if (periodo === 'mes') {
+        grupoMes.style.display = 'flex';
+        grupoAnio.style.display = 'flex';
+    } else if (periodo === 'semana') {
+        grupoSemana.style.display = 'flex';
+        grupoAnio.style.display = 'flex';
+        poblarSemanasGastos();
+    } else if (periodo === 'rango') {
+        grupoRango.style.display = 'flex';
+        const hoy = new Date();
+        if (!document.getElementById('gastos-fecha-inicio').value) {
+            document.getElementById('gastos-fecha-inicio').value = hoy.toISOString().split('T')[0];
+        }
+        if (!document.getElementById('gastos-fecha-fin').value) {
+            document.getElementById('gastos-fecha-fin').value = hoy.toISOString().split('T')[0];
+        }
+    }
+}
+
+function poblarSemanasGastos() {
+    const selectSemana = document.getElementById('gastos-filtro-semana');
+    const anio = document.getElementById('gastos-filtro-anio').value || new Date().getFullYear();
+
+    selectSemana.innerHTML = '';
+
+    // Generar semanas del año
+    const primerDia = new Date(anio, 0, 1);
+    const ultimoDia = new Date(anio, 11, 31);
+
+    let semanaActual = new Date(primerDia);
+    // Ajustar al lunes de esa semana
+    const diaSemana = semanaActual.getDay();
+    const diff = diaSemana === 0 ? -6 : 1 - diaSemana;
+    semanaActual.setDate(semanaActual.getDate() + diff);
+
+    let numSemana = 1;
+
+    while (semanaActual <= ultimoDia) {
+        const finSemana = new Date(semanaActual);
+        finSemana.setDate(finSemana.getDate() + 6);
+
+        const desde = semanaActual.toISOString().split('T')[0];
+        const hasta = finSemana.toISOString().split('T')[0];
+
+        const option = document.createElement('option');
+        option.value = `${desde}|${hasta}`;
+        option.textContent = `Semana ${numSemana}: ${formatearFechaCorta(semanaActual)} - ${formatearFechaCorta(finSemana)}`;
+        selectSemana.appendChild(option);
+
+        semanaActual.setDate(semanaActual.getDate() + 7);
+        numSemana++;
+    }
+
+    // Seleccionar la semana actual
+    const hoy = new Date();
+    const opciones = selectSemana.options;
+    for (let i = 0; i < opciones.length; i++) {
+        const [desde, hasta] = opciones[i].value.split('|');
+        if (hoy >= new Date(desde) && hoy <= new Date(hasta)) {
+            selectSemana.selectedIndex = i;
+            break;
+        }
+    }
+}
+
+function obtenerFechasGastos() {
+    const periodo = document.getElementById('gastos-filtro-periodo').value;
+    const hoy = new Date();
+    let fechaInicio, fechaFin;
+
+    switch (periodo) {
+        case 'semana':
+            // Obtener del selector de semana
+            const semanaSelect = document.getElementById('gastos-filtro-semana');
+            if (semanaSelect.value) {
+                const [desde, hasta] = semanaSelect.value.split('|');
+                fechaInicio = desde;
+                fechaFin = hasta;
+            } else {
+                // Fallback a semana actual
+                const inicioSemana = new Date(hoy);
+                const diaSemana = inicioSemana.getDay();
+                const diff = diaSemana === 0 ? -6 : 1 - diaSemana;
+                inicioSemana.setDate(inicioSemana.getDate() + diff);
+                fechaInicio = inicioSemana.toISOString().split('T')[0];
+                const finSemana = new Date(inicioSemana);
+                finSemana.setDate(finSemana.getDate() + 6);
+                fechaFin = finSemana.toISOString().split('T')[0];
+            }
+            break;
+        case 'mes':
+            const mes = document.getElementById('gastos-filtro-mes').value;
+            const anio = document.getElementById('gastos-filtro-anio').value;
+            fechaInicio = `${anio}-${mes.padStart(2, '0')}-01`;
+            const ultimoDia = new Date(anio, mes, 0).getDate();
+            fechaFin = `${anio}-${mes.padStart(2, '0')}-${ultimoDia}`;
+            break;
+        case 'rango':
+            fechaInicio = document.getElementById('gastos-fecha-inicio').value;
+            fechaFin = document.getElementById('gastos-fecha-fin').value;
+            break;
+    }
+    return { fechaInicio, fechaFin };
 }

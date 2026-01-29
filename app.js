@@ -66,6 +66,7 @@ app.use('/api/usuarios', require('./routes/usuarios.routes'));
 app.use('/api/comisiones', require('./routes/comisiones.routes'));
 app.use('/api/galeria', require('./routes/galeria.routes'));
 app.use('/api/gastos', require('./routes/gastos.routes'));
+app.use('/api/dashboard', require('./routes/dashboard.routes'));
 
 // TODO: Agregar más rutas aquí
 // const authRoutes = require('./routes/auth.routes');

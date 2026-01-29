@@ -5,7 +5,7 @@ const db = require('../config/db');
 // =============================================
 exports.obtenerGastos = async (req, res) => {
     try {
-        const { mes, anio, tipo } = req.query;
+        const { mes, anio, tipo, fecha_inicio, fecha_fin } = req.query;
 
         let query = `
             SELECT 
@@ -22,12 +22,18 @@ exports.obtenerGastos = async (req, res) => {
         `;
         const params = [];
 
-        if (mes && anio) {
-            query += ` AND MONTH(g.fecha_gasto) = ? AND YEAR(g.fecha_gasto) = ?`;
-            params.push(mes, anio);
-        } else if (anio) {
-            query += ` AND YEAR(g.fecha_gasto) = ?`;
-            params.push(anio);
+        if (fecha_inicio && fecha_fin) {
+            query += ` AND DATE(g.fecha_gasto) BETWEEN ? AND ?`;
+            params.push(fecha_inicio, fecha_fin);
+        } else {
+            // Legacy filters
+            if (mes && anio) {
+                query += ` AND MONTH(g.fecha_gasto) = ? AND YEAR(g.fecha_gasto) = ?`;
+                params.push(mes, anio);
+            } else if (anio) {
+                query += ` AND YEAR(g.fecha_gasto) = ?`;
+                params.push(anio);
+            }
         }
 
         if (tipo) {
