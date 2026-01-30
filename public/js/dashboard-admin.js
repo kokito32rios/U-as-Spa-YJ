@@ -850,30 +850,40 @@ function confirmarEliminar(idCita) {
 // (Eliminados helpers manuales de confirmación: mostrarModalConfirmacion, cerrarModalConfirmacion, ejecutarAccionConfirmada)
 
 // =============================================
-// CANCELAR CITA (cambia estado a cancelada)
+// CANCELAR CITA
 // =============================================
-async function cancelarCita(idCita) {
-    try {
-        const response = await fetchConToken(`/api/citas/${idCita}`, {
-            method: 'PUT',
-            body: JSON.stringify({ estado: 'cancelada' })
-        });
+async function cancelarCita(id) {
+    const confirm = await Swal.fire({
+        title: '¿Cancelar Cita?',
+        text: "La cita cambiará a estado 'Cancelada'. Se liberará el horario.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, cancelar'
+    });
 
-        const data = await response.json();
+    if (confirm.isConfirmed) {
+        try {
+            const response = await fetchConToken(`/api/citas/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ estado: 'cancelada' })
+            });
+            const data = await response.json();
 
-        if (data.success) {
-            mostrarMensaje('success', '✓', 'Éxito', 'Cita cancelada exitosamente');
-            cargarCitas();
-        } else {
-            mostrarMensaje('error', '❌', 'Error', data.message);
+            if (data.success) {
+                mostrarMensaje('success', '✓', 'Cita Cancelada', 'El horario ha sido liberado');
+                cerrarModalCita();
+                cargarAgenda();
+            } else {
+                mostrarMensaje('error', '❌', 'Error', data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarMensaje('error', '❌', 'Error', 'No se pudo cancelar la cita');
         }
-
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarMensaje('error', '❌', 'Error', 'No se pudo cancelar la cita');
     }
 }
-
 // =============================================
 // ELIMINAR CITA (borra de la BD)
 // =============================================

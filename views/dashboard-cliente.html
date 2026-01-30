@@ -295,9 +295,22 @@
     <script>
         const socket = io();
         socket.on('calendario_actualizado', (data) => {
+            console.log('socket: calendario_actualizado', data);
             // Si el cliente está viendo "Mis Citas", recargar
             if (typeof cargarMisCitas === 'function') {
                 cargarMisCitas();
+                // Opcional: mostrar toast discreto
+                /*
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+                Toast.fire({ icon: 'info', title: 'Citas actualizadas' });
+                */
+            } else {
+                console.warn('cargarMisCitas no está definida');
             }
         });
     </script>
