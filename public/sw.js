@@ -2,7 +2,7 @@ const CACHE_NAME = 'unas-spa-v2';
 const ASSETS_TO_CACHE = [
     '/',
     '/login.html',
-    '/css/style.css', // Adjust based on actual file structure
+    '/css/styles.css', // Corrected filename
     '/js/login.js',
     '/manifest.json'
 ];
