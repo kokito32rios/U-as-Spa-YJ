@@ -108,7 +108,11 @@
         <div class="contacto-card">
           <div class="contacto-icon">📞</div>
           <h3>Teléfono</h3>
-          <p>Consulta disponibilidad</p>
+          <p>
+            <a href="https://wa.me/573042754182" target="_blank" style="color: inherit; text-decoration: none;">
+              304 275 4182
+            </a>
+          </p>
         </div>
         <div class="contacto-card">
           <div class="contacto-icon">⏰</div>
@@ -123,7 +127,7 @@
   <footer class="footer">
     <div class="container">
       <p>
-        &copy; 2025 Uñas Spa Yaneth Jiménez. Todos los derechos reservados.
+        &copy; <span id="current-year"></span> Uñas Spa Yaneth Jiménez. Todos los derechos reservados.
       </p>
       <p class="footer-tagline">
         Belleza, elegancia y profesionalismo en cada detalle
@@ -132,7 +136,7 @@
   </footer>
 
   <!-- BOTÓN FLOTANTE DE WHATSAPP -->
-  <a href="https://wa.me/573001234567?text=Hola%2C%20me%20interesa%20agendar%20una%20cita%20en%20Uñas%20Spa%20Yaneth%20Jiménez"
+  <a href="https://wa.me/573042754182?text=Hola%2C%20me%20interesa%20agendar%20una%20cita%20en%20Uñas%20Spa%20Yaneth%20Jiménez"
     class="whatsapp-float" target="_blank" aria-label="Contactar por WhatsApp">
     <svg viewBox="0 0 32 32" class="whatsapp-icon">
       <path fill="currentColor"
@@ -146,6 +150,9 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // Set current year
+      document.getElementById('current-year').textContent = new Date().getFullYear();
+
       const menuToggle = document.getElementById('mobile-menu-toggle');
       const navLinks = document.querySelector('.nav-links');
 

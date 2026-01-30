@@ -160,7 +160,7 @@ function cancelarCitaWhatsApp(id, servicio, fecha, hora, manicurista) {
         cancelButtonText: 'No, mantener cita'
     }).then((result) => {
         if (result.isConfirmed) {
-            const numeroAdmin = "573045343123"; // Updated via user request
+            const numeroAdmin = "573042754182"; // Updated via user request
             const mensaje = `Hola, soy ${document.getElementById('user-name').textContent}. Quisiera cancelar/reagendar mi cita de *${servicio}* programada para el *${fecha} a las ${hora}* con *${manicurista}*.`;
             const url = `https://wa.me/${numeroAdmin}?text=${encodeURIComponent(mensaje)}`;
             window.open(url, '_blank');
