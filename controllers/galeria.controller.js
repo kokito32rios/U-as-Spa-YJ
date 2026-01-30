@@ -46,8 +46,8 @@ exports.subirImagen = async (req, res) => {
         }
 
         const { id_servicio, descripcion } = req.body;
-        // La ruta accesible desde el navegador (asumiendo que public/ es raíz estática)
-        const url_imagen = `/uploads/galeria/${req.file.filename}`;
+        // Con Cloudinary, req.file.path ya es la URL (https://res.cloudinary...)
+        const url_imagen = req.file.path;
 
         const query = `
             INSERT INTO trabajos_imagenes (id_servicio, url_imagen, descripcion, activo)

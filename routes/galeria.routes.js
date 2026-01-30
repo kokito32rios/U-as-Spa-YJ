@@ -9,34 +9,30 @@ const fs = require('fs');
 // =============================================
 // CONFIGURACIÓN MULTER
 // =============================================
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const uploadPath = path.join(__dirname, '../public/uploads/galeria');
-        // Crear carpeta si no existe
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
+// =============================================
+// CONFIGURACIÓN CLOUDINARY
+// =============================================
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'unas_spa_galeria', // Folder in Cloudinary
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+        transformation: [{ width: 1000, height: 1000, crop: 'limit' }] // Resize for optimization
     },
-    filename: function (req, file, cb) {
-        // Nombre único: fecha + random + extensión
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
 });
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-    fileFilter: (req, file, cb) => {
-        const filetypes = /jpeg|jpg|png|webp/;
-        const mimetype = filetypes.test(file.mimetype);
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        if (mimetype && extname) {
-            return cb(null, true);
-        }
-        cb(new Error('Solo se permiten imágenes (jpeg, jpg, png, webp)'));
-    }
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
 // =============================================
