@@ -512,16 +512,24 @@
     <script>
         const socket = io();
         socket.on('calendario_actualizado', (data) => {
+            console.log('🔔 Socket recibido:', data);
+
             // Recargar agenda si existe la función
             if (typeof cargarAgenda === 'function') {
-                cargarAgenda();
+                console.log('🔄 Recargando agenda...');
+                cargarAgenda().then(() => {
+                    console.log('✅ Agenda recargada');
+                }).catch(err => console.error('❌ Error recargando agenda:', err));
+
                 const Toast = Swal.mixin({
                     toast: true,
                     position: 'top-end',
                     showConfirmButton: false,
                     timer: 3000
                 });
-                Toast.fire({ icon: 'info', title: 'Nueva actualización en la agenda' });
+                Toast.fire({ icon: 'info', title: 'Calendario actualizado' });
+            } else {
+                console.error('⚠️ cargarAgenda no está definida', typeof cargarAgenda);
             }
         });
     </script>

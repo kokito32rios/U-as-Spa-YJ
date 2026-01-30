@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS excepciones_horario (
 -- CITAS
 CREATE TABLE IF NOT EXISTS citas (
     id_cita INT AUTO_INCREMENT PRIMARY KEY,
-    email_cliente VARCHAR(100) NOT NULL,
+    email_cliente VARCHAR(100) NULL,
     email_manicurista VARCHAR(100) NOT NULL,
     id_servicio INT NOT NULL,
     fecha DATE NOT NULL,

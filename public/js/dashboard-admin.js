@@ -488,10 +488,13 @@ async function guardarCita() {
     let notasRaw = document.getElementById('cita-notas-cliente').value || '';
     let notasFinal = notasRaw;
 
-    if (nombreCliente && !clienteEncontrado) {
-        // Inyectar el nombre en las notas para que el backend lo recupere
-        // Formato: [Cliente: Nombre] Nota original ...
+    // Validar si el cliente es nulo (permitido ahora)
+    if (!emailFinal && nombreCliente) {
+        // Si escribió un nombre pero no seleccionó de la lista, lo guardamos en notas
         notasFinal = `[Cliente: ${nombreCliente}] ${notasRaw}`;
+    } else if (!emailFinal) {
+        // Nada, es anónimo total
+        notasFinal = `[Cliente: Anónimo] ${notasRaw}`;
     }
 
     const datos = {
