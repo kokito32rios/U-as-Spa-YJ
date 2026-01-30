@@ -7,11 +7,17 @@ const { verificarToken, soloAdmin } = require('../middleware/auth.middleware');
 // RUTAS PROTEGIDAS (requieren autenticación)
 // =============================================
 
+// GET /api/citas/mis-citas - Obtener citas del cliente (Nuevo)
+router.get('/mis-citas', verificarToken, citasController.obtenerMisCitas);
+
 // GET /api/citas - Obtener todas las citas
 router.get('/', verificarToken, citasController.obtenerCitas);
 
 // POST /api/citas - Crear nueva cita
 router.post('/', verificarToken, citasController.crearCita);
+
+// POST /api/citas/agendar - Alias para crear nueva cita (Semántica cliente)
+router.post('/agendar', verificarToken, citasController.crearCita);
 
 // PUT /api/citas/:id - Actualizar cita
 router.put('/:id', verificarToken, citasController.actualizarCita);

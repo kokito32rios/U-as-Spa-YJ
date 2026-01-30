@@ -13,4 +13,7 @@ router.get('/manicuristas', dashboardController.obtenerResumenManicuristas);
 router.get('/cuadre', dashboardController.obtenerCuadreCaja);
 router.get('/detalle-pagos', dashboardController.obtenerDetallePagos);
 
+// Ruta para dashboard de cliente
+router.get('/cliente', dashboardController.renderDashboardCliente);
+
 module.exports = router;

@@ -41,6 +41,11 @@ app.get('/dashboard-manicurista.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'dashboard-manicurista.html'));
 });
 
+// Ruta dashboard cliente
+app.get('/dashboard-cliente.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'dashboard-cliente.html'));
+});
+
 // Ruta del catálogo - Página pública
 app.get('/catalogo.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'catalogo.html'));

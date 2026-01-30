@@ -451,3 +451,14 @@ exports.obtenerDetallePagos = async (req, res) => {
         res.status(500).json({ success: false, error: 'Error al obtener detalle de pagos', details: error.message });
     }
 };
+// =============================================
+// RENDER DASHBOARD CLIENTE
+// =============================================
+exports.renderDashboardCliente = (req, res) => {
+    // Validar rol (aunque middleware auth ya valida token, aseguramos rol)
+    if (req.usuario.rol !== 'cliente') {
+        return res.status(403).send('Acceso denegado: Área exclusiva para clientes');
+    }
+    const path = require('path');
+    res.sendFile(path.join(__dirname, '../views/dashboard-cliente.html'));
+};

@@ -1,6 +1,39 @@
 const db = require('../config/db');
 
 // =============================================
+// OBTENER MIS CITAS (CLIENTE)
+// =============================================
+exports.obtenerMisCitas = async (req, res) => {
+    try {
+        const email = req.usuario.email;
+
+        // Obtener citas futuras y pasadas
+        const [citas] = await db.query(`
+            SELECT 
+                c.id_cita,
+                c.fecha,
+                c.hora_inicio,
+                c.hora_fin,
+                c.estado,
+                s.nombre as nombre_servicio,
+                c.precio,
+                CONCAT(u.nombre, ' ', u.apellido) as nombre_manicurista,
+                c.email_manicurista
+            FROM citas c
+            JOIN servicios s ON c.id_servicio = s.id_servicio
+            JOIN usuarios u ON c.email_manicurista = u.email
+            WHERE c.email_cliente = ?
+            ORDER BY c.fecha DESC, c.hora_inicio DESC
+        `, [email]);
+
+        res.json({ success: true, citas });
+    } catch (error) {
+        console.error('Error al obtener mis citas:', error);
+        res.status(500).json({ success: false, error: 'Error al obtener mis citas' });
+    }
+};
+
+// =============================================
 // OBTENER TODAS LAS CITAS (Admin)
 // =============================================
 exports.obtenerCitas = async (req, res) => {
@@ -99,15 +132,29 @@ exports.obtenerCitas = async (req, res) => {
 // =============================================
 exports.crearCita = async (req, res) => {
     try {
-        const {
+        // Si es cliente, asignar email automáticamente desde el token
+        // Y buscar su teléfono si no viene en el body
+        if (req.usuario && req.usuario.nombre_rol === 'cliente') {
+            req.body.email_cliente = req.usuario.email;
+        }
+
+        let {
             email_cliente,
             email_manicurista,
             id_servicio,
             fecha,
             hora_inicio,
             notas_cliente,
-            telefono_contacto // Nuevo campo
+            telefono_contacto
         } = req.body;
+
+        // Auto-fill telefono si es cliente y no lo envió
+        if (req.usuario && req.usuario.nombre_rol === 'cliente' && !telefono_contacto) {
+            const [userData] = await db.query('SELECT telefono FROM usuarios WHERE email = ?', [req.usuario.email]);
+            if (userData.length > 0) {
+                telefono_contacto = userData[0].telefono;
+            }
+        }
 
         // Validar campos requeridos
         if (!email_manicurista || !id_servicio || !fecha || !hora_inicio) {
