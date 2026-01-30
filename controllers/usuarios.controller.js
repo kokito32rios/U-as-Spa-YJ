@@ -120,29 +120,46 @@ exports.actualizarUsuario = async (req, res) => {
     try {
         const { id } = req.params;
         const { nombre, apellido, email, rol, password } = req.body;
-        const apellidoFinal = apellido || '';
 
-        // Verificar si existe otro usuario con ese email (excluyendo al actual)
-        // Como email es PK, esto es redundante si id == email, pero válido si permitimos cambiar email (complejo con PK).
-        // Bloquearemos cambio de email por ahora para simplificar, o validamos que sea el mismo.
-
-        if (email !== id) {
+        // Validar cambio de email (que es el ID)
+        if (email && email !== id) {
             return res.status(400).json({ success: false, message: 'No se puede cambiar el email (es el identificador)' });
         }
 
-        let query, params;
+        const fieldsToUpdate = [];
+        const params = [];
+
+        if (nombre) {
+            fieldsToUpdate.push('nombre = ?');
+            params.push(nombre);
+        }
+
+        if (apellido !== undefined) {
+            fieldsToUpdate.push('apellido = ?');
+            params.push(apellido);
+        }
+
+        // Solo actualizar rol si se envía
+        if (rol) {
+            fieldsToUpdate.push('id_rol = ?');
+            params.push(rol);
+        }
 
         if (password && password.trim() !== '') {
-            // Actualizar con password
             const salt = await bcrypt.genSalt(10);
             const passwordHash = await bcrypt.hash(password, salt);
-            query = 'UPDATE usuarios SET nombre = ?, apellido = ?, id_rol = ?, password_hash = ? WHERE email = ?';
-            params = [nombre, apellidoFinal, rol, passwordHash, id];
-        } else {
-            // Actualizar sin password
-            query = 'UPDATE usuarios SET nombre = ?, apellido = ?, id_rol = ? WHERE email = ?';
-            params = [nombre, apellidoFinal, rol, id];
+            fieldsToUpdate.push('password_hash = ?');
+            params.push(passwordHash);
         }
+
+        if (fieldsToUpdate.length === 0) {
+            return res.status(400).json({ success: false, message: 'No se enviaron datos para actualizar' });
+        }
+
+        // Agregar ID al final de params
+        params.push(id);
+
+        const query = `UPDATE usuarios SET ${fieldsToUpdate.join(', ')} WHERE email = ?`;
 
         const [result] = await db.query(query, params);
 
@@ -153,7 +170,7 @@ exports.actualizarUsuario = async (req, res) => {
         res.json({ success: true, message: 'Usuario actualizado exitosamente' });
 
     } catch (error) {
-        console.error(error);
+        console.error('Error actualizarUsuario:', error);
         res.status(500).json({ success: false, message: 'Error al actualizar usuario' });
     }
 };

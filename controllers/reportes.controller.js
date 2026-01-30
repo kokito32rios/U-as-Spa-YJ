@@ -112,10 +112,10 @@ exports.eliminarReporte = async (req, res) => {
         const { id } = req.params;
         const email_manicurista = req.usuario.email;
 
-        // Verificar que sea del usuario y de hoy
+        // Verificar que sea del usuario
         const checkQuery = `
             SELECT id_reporte FROM reportes_manicurista 
-            WHERE id_reporte = ? AND email_manicurista = ? AND fecha = CURRENT_DATE()
+            WHERE id_reporte = ? AND email_manicurista = ?
         `;
 
         const [rows] = await db.query(checkQuery, [id, email_manicurista]);
@@ -123,7 +123,7 @@ exports.eliminarReporte = async (req, res) => {
         if (rows.length === 0) {
             return res.status(403).json({
                 success: false,
-                message: 'No puedes eliminar este reporte (no existe o no es de hoy)'
+                message: 'No puedes eliminar este reporte (no existe o no es tuyo)'
             });
         }
 
@@ -181,11 +181,20 @@ exports.actualizarReporte = async (req, res) => {
 // Obtener conciliación (Admin)
 exports.obtenerConciliacion = async (req, res) => {
     try {
-        const { anio, mes } = req.query;
+        const { anio, mes, manicurista } = req.query;
 
         // Validar parámetros
         if (!anio || !mes) {
             return res.status(400).json({ success: false, message: 'Año y mes son requeridos' });
+        }
+
+        // Params array for queries
+        const params = [anio, mes];
+        let whereManicurista = '';
+
+        if (manicurista) {
+            whereManicurista = ' AND email_manicurista = ?';
+            params.push(manicurista);
         }
 
         // 1. Obtener Reportes de Manicuristas (Agrupado por día y manicurista)
@@ -195,10 +204,10 @@ exports.obtenerConciliacion = async (req, res) => {
                 email_manicurista, 
                 SUM(valor_reportado) as total_reportado
             FROM reportes_manicurista
-            WHERE YEAR(fecha) = ? AND MONTH(fecha) = ?
+            WHERE YEAR(fecha) = ? AND MONTH(fecha) = ? ${whereManicurista}
             GROUP BY fecha, email_manicurista
         `;
-        const [reportes] = await db.query(queryReportes, [anio, mes]);
+        const [reportes] = await db.query(queryReportes, params);
 
         // 2. Obtener Ventas del Sistema (Citas completadas)
         const querySistema = `
@@ -206,12 +215,12 @@ exports.obtenerConciliacion = async (req, res) => {
                 DATE(fecha) as fecha, 
                 email_manicurista, 
                 SUM(precio) as total_sistema,
-                (SELECT nombre_completo FROM usuarios u WHERE u.email = c.email_manicurista) as nombre_manicurista
+                (SELECT CONCAT(nombre, ' ', apellido) FROM usuarios u WHERE u.email = c.email_manicurista) as nombre_manicurista
             FROM citas c
-            WHERE YEAR(fecha) = ? AND MONTH(fecha) = ? AND estado = 'completada'
+            WHERE YEAR(fecha) = ? AND MONTH(fecha) = ? AND estado = 'completada' ${whereManicurista}
             GROUP BY DATE(fecha), email_manicurista
         `;
-        const [sistema] = await db.query(querySistema, [anio, mes]);
+        const [sistema] = await db.query(querySistema, params);
 
         // 3. Unificar datos (Full Outer Join simulado)
         // Crear un mapa único por clave "fecha_email"
@@ -243,7 +252,7 @@ exports.obtenerConciliacion = async (req, res) => {
             } else {
                 // Buscar nombre si no existe en el mapa (query adicional o opcional)
                 // Para simplificar, si no hay citas completadas pero hubo reporte, mostramos email
-                const [user] = await db.query('SELECT nombre_completo FROM usuarios WHERE email = ?', [item.email_manicurista]);
+                const [user] = await db.query("SELECT CONCAT(nombre, ' ', apellido) as nombre_completo FROM usuarios WHERE email = ?", [item.email_manicurista]);
                 const nombre = user.length > 0 ? user[0].nombre_completo : item.email_manicurista;
 
                 mapa.set(key, {

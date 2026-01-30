@@ -34,4 +34,7 @@ router.get('/helpers/agenda', verificarToken, citasController.obtenerCitasAgenda
 // GET /api/citas/helpers/mis-comisiones - Obtener mis comisiones
 router.get('/helpers/mis-comisiones', verificarToken, citasController.obtenerComisionesManicurista);
 
+// GET /api/citas/helpers/admin/comisiones - Obtener comisiones globales (Admin)
+router.get('/helpers/admin/comisiones', verificarToken, soloAdmin, citasController.obtenerComisionesGlobales);
+
 module.exports = router;

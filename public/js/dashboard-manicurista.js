@@ -29,33 +29,77 @@ document.addEventListener('DOMContentLoaded', () => {
 // =============================================
 // SETUP LISTENERS UI
 // =============================================
+// =============================================
+// SETUP LISTENERS UI
+// =============================================
 function setupListeners() {
-    const menuToggle = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.querySelector('.sidebar');
     const backdrop = document.getElementById('sidebar-backdrop');
-
-    if (menuToggle) {
-        menuToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('sidebar-open');
-            sidebar.classList.toggle('active');
-            backdrop.classList.toggle('active');
-        });
-    }
-
     if (backdrop) {
         backdrop.addEventListener('click', () => {
             cerrarSidebarMobile();
         });
+    }
+
+    // Resize listener for responsive agenda
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (window.agendaInicializada && window.agendaVistaActual === 'semanal') {
+                renderizarVistaSemanal();
+            }
+        }, 250); // Debounce 250ms
+    });
+}
+
+// Global function for toggle button
+window.toggleMobileMenu = function () {
+    const menuToggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+
+    if (sidebar) {
+        sidebar.classList.toggle('sidebar-open');
+        sidebar.classList.toggle('active');
+    }
+
+    if (menuToggle) {
+        menuToggle.classList.toggle('active');
+    }
+
+    if (backdrop) {
+        backdrop.classList.toggle('active');
+    }
+}
+
+// Alias for sidebar toggle (Desktop/Mobile compatibility)
+window.toggleSidebar = function () {
+    // Check if we are in mobile view (<= 768px)
+    if (window.innerWidth <= 768) {
+        window.toggleMobileMenu();
+    } else {
+        // Desktop collapse logic
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('collapsed');
+        }
     }
 }
 
 function cerrarSidebarMobile() {
     const sidebar = document.querySelector('.sidebar');
     const backdrop = document.getElementById('sidebar-backdrop');
+    const menuToggle = document.getElementById('mobile-menu-toggle');
+
     if (sidebar) {
         sidebar.classList.remove('sidebar-open');
         sidebar.classList.remove('active');
     }
+
+    if (menuToggle) {
+        menuToggle.classList.remove('active');
+    }
+
     if (backdrop) backdrop.classList.remove('active');
 }
 
@@ -132,8 +176,21 @@ function cargarInfoUsuario() {
 }
 
 window.cerrarSesion = function () {
-    localStorage.removeItem('token');
-    window.location.href = '/login.html';
+    Swal.fire({
+        title: '¿Cerrar sesión?',
+        text: "Tendrás que iniciar sesión nuevamente",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, salir',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+    });
 }
 
 // =============================================
@@ -196,6 +253,7 @@ window.cargarAgenda = async function () {
 // ---------------------------------------------
 window.cambiarVistaAgenda = function (vista) {
     agendaVistaActual = vista;
+    window.mobileSoloHoy = false; // Reset filter
     document.getElementById('btn-vista-semanal').classList.toggle('active', vista === 'semanal');
     document.getElementById('btn-vista-mensual').classList.toggle('active', vista === 'mensual');
     document.getElementById('calendario-semanal').classList.toggle('hidden', vista !== 'semanal');
@@ -204,6 +262,7 @@ window.cambiarVistaAgenda = function (vista) {
 }
 
 window.navegarAgenda = function (direccion) {
+    window.mobileSoloHoy = false; // Reset filter
     if (agendaVistaActual === 'semanal') {
         agendaFechaActual.setDate(agendaFechaActual.getDate() + (direccion * 7));
     } else {
@@ -214,6 +273,10 @@ window.navegarAgenda = function (direccion) {
 
 window.irAHoy = function () {
     agendaFechaActual = new Date();
+    // En móvil, "Hoy" activa el filtro estricto de solo mostrar hoy
+    if (window.innerWidth <= 768) {
+        window.mobileSoloHoy = true;
+    }
     cargarAgenda();
 }
 
@@ -250,9 +313,17 @@ function formatearFechaISO(fecha) {
 
 function actualizarTituloFecha() {
     const titulo = document.getElementById('agenda-fecha-titulo');
+    if (!titulo) return;
+
     const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
     if (agendaVistaActual === 'semanal') {
+        // Validación para modo "Solo Hoy" en móvil
+        if (window.mobileSoloHoy && window.innerWidth <= 768) {
+            titulo.textContent = `Hoy, ${agendaFechaActual.getDate()} de ${meses[agendaFechaActual.getMonth()]}`;
+            return;
+        }
+
         const { fechaInicio, fechaFin } = obtenerRangoFechas();
         const inicio = new Date(fechaInicio + 'T00:00:00');
         const fin = new Date(fechaFin + 'T00:00:00');
@@ -276,14 +347,8 @@ function renderizarVistaSemanal() {
     const hoyStr = formatearFechaISO(new Date());
 
     const diasSemana = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    const horas = [];
-    for (let h = 8; h < 20; h++) {
-        horas.push(`${h.toString().padStart(2, '0')}:00`);
-        horas.push(`${h.toString().padStart(2, '0')}:30`);
-    }
 
-    // A. Renderizar Leyenda (Solo la manicurista actual)
-    // Aunque solo sea una, la mostramos para mantener el estilo
+    // LEYENDA (Solo la manicurista actual)
     const leyendaContainer = document.getElementById('leyenda-manicuristas-container');
     if (leyendaContainer) {
         const color = '#e91e63'; // Color fijo para "mi"
@@ -305,7 +370,118 @@ function renderizarVistaSemanal() {
         `;
     }
 
-    // B. Renderizar Grid
+    // --- MODO MÓVIL: VISTA DE TARJETAS ---
+    if (window.innerWidth <= 768) {
+        let htmlMobile = '<div class="agenda-mobile-view">';
+
+        // Iterar por cada día de la semana
+        for (let i = 0; i < 7; i++) {
+            const fecha = new Date(inicioSemana);
+            fecha.setDate(inicioSemana.getDate() + i);
+            const fechaStr = formatearFechaISO(fecha);
+            const esHoy = fechaStr === hoyStr;
+
+            // Si está activo "Solo Hoy", saltar los días que no son hoy
+            if (window.mobileSoloHoy && !esHoy) {
+                continue;
+            }
+
+            // Filtrar citas para este día
+            const citasDia = agendaDatos.citas
+                .filter(c => c.fecha.split('T')[0] === fechaStr)
+                .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+            // Logic to show day:
+            // IF 'mobileSoloHoy' is true, we ALWAYS show the day header (even if empty) to indicate we are looking at today.
+            // ELSE (normal week view), we only show existing appointments to save space (or maybe we should show empty days? 
+            // The previous logic was "if (citasDia.length > 0)". 
+            // Let's change it: If "Solo Hoy", show it regardless. If not, stick to "only if has data" OR maybe show all? 
+            // Admin panel logic was "if (citasDia.length > 0)". I'll stick to that for normal view, but force show for "Solo Hoy".
+
+            if (citasDia.length > 0 || (window.mobileSoloHoy && esHoy)) {
+                const diaNombre = diasSemana[i];
+                const diaNumero = fecha.getDate();
+
+                htmlMobile += `
+                    <div class="mobile-day-group ${esHoy ? 'today' : ''}" style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 10px; border-bottom: 2px solid #ddd; padding-bottom: 5px; color: ${esHoy ? 'var(--primary-color)' : '#333'}">
+                            ${diaNombre} ${diaNumero} ${esHoy ? '(Hoy)' : ''}
+                        </h4>
+                `;
+
+                if (citasDia.length === 0) {
+                    htmlMobile += `<p class="text-muted" style="font-style:italic;">No hay citas para hoy.</p>`;
+                } else {
+                    citasDia.forEach(cita => {
+                        const horaInicio = cita.hora_inicio.substring(0, 5);
+                        const horaFin = cita.hora_fin.substring(0, 5);
+                        let estadoClass = '';
+                        switch (cita.estado) {
+                            case 'pendiente': estadoClass = '#ffc107'; break;
+                            case 'confirmada': estadoClass = '#17a2b8'; break;
+                            case 'completada': estadoClass = '#28a745'; break;
+                            default: estadoClass = '#ddd';
+                        }
+
+                        htmlMobile += `
+                            <div class="agenda-card" style="border-left: 4px solid ${estadoClass}; margin-bottom: 10px;">
+                                <span class="agenda-time">${horaInicio} - ${horaFin}</span>
+                                <div class="agenda-details">
+                                    <span class="agenda-client">👤 ${cita.nombre_cliente}</span>
+                                    <span class="agenda-service">💅 ${cita.nombre_servicio}</span>
+                                    <span class="agenda-status" style="background-color: ${estadoClass}20; color: ${estadoClass};">
+                                        ${cita.estado.charAt(0).toUpperCase() + cita.estado.slice(1)}
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                htmlMobile += `</div>`;
+            }
+        }
+
+        // Si no hubo citas en toda la semana (y no estamos en modo solo hoy o hoy no estaba en el rango - edge case)
+        if (htmlMobile === '<div class="agenda-mobile-view">') {
+            if (window.mobileSoloHoy) {
+                // Should have been handled above if 'esHoy' was found. If not found, it means 'hoy' is not in this week?
+                // But irAHoy sets date to today.
+                htmlMobile += `<div class="empty-state"><p>No se encontraron datos para hoy.</p></div>`;
+            } else {
+                htmlMobile += `<div class="empty-state"><p>No hay citas programadas para esta semana</p></div>`;
+            }
+        }
+
+        htmlMobile += '</div>';
+        grid.innerHTML = htmlMobile;
+
+        // Ajustar estilos del grid para móvil
+        grid.classList.remove('calendario-grid');
+        grid.classList.add('agenda-mobile-view');
+
+        // Auto-scroll al día de hoy si existe
+        setTimeout(() => {
+            const hoyElement = grid.querySelector('.mobile-day-group.today');
+            if (hoyElement) {
+                hoyElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+
+        return;
+    }
+
+    // --- MODO ESCRITORIO: CALENDARIO GRID (Original) ---
+    grid.classList.remove('agenda-mobile-view');
+    grid.classList.add('calendario-grid');
+    grid.style.display = ''; // Limpiar estilo inline si quedó algo
+
+    const horas = [];
+    for (let h = 8; h < 20; h++) {
+        horas.push(`${h.toString().padStart(2, '0')}:00`);
+        horas.push(`${h.toString().padStart(2, '0')}:30`);
+    }
+
     let html = '<div class="calendario-header"><div class="calendario-header-cell">Hora</div>';
     for (let i = 0; i < 7; i++) {
         const fecha = new Date(inicioSemana);
@@ -316,34 +492,70 @@ function renderizarVistaSemanal() {
     }
     html += '</div>';
 
+    // Filas (Horas) - Grid Plano
+    const hoy = new Date(); // Para verificar pasado/futuro
+
     horas.forEach(hora => {
         html += `<div class="calendario-hora">${hora}</div>`;
+
         for (let i = 0; i < 7; i++) {
             const fecha = new Date(inicioSemana);
             fecha.setDate(inicioSemana.getDate() + i);
             const fechaStr = formatearFechaISO(fecha);
 
-            // Filtrar mis citas
-            const citasEnSlot = agendaDatos.citas.filter(c =>
+            // Verificar si es pasado
+            const [h, m] = hora.split(':');
+            const esPasado = fechaStr < hoyStr || (fechaStr === hoyStr && (parseInt(h) < hoy.getHours() || (parseInt(h) === hoy.getHours() && parseInt(m) <= hoy.getMinutes())));
+            const clasePasado = esPasado ? 'pasado' : '';
+
+            // Buscar cita en este slot
+            let citasEnSlot = agendaDatos.citas.filter(c =>
                 c.fecha.split('T')[0] === fechaStr &&
                 c.hora_inicio.substring(0, 5) === hora
             );
 
-            html += `<div class="calendario-celda" style="position:relative; min-height:40px;">`;
-
-            citasEnSlot.forEach((cita, index) => {
-                // Convert 'HH:MM:SS' to duration roughly
-                // Simplified visually for now
-                const color = '#e91e63';
-                html += `
-                    <div class="cita-slot estado-${cita.estado}" 
-                         style="border-left: 4px solid ${color}; background:rgba(233,30,99, 0.1); padding:2px; font-size:0.8rem; margin-bottom:2px; border-radius:4px; cursor:pointer;"
-                         title="${cita.nombre_servicio} - ${cita.nombre_cliente}">
-                        <strong>${cita.hora_inicio.substring(0, 5)}</strong> ${cita.nombre_servicio}<br>
-                        <small>👤 ${cita.nombre_cliente}</small>
-                    </div>
-                 `;
+            // Filtrar canceladas futuras
+            citasEnSlot = citasEnSlot.filter(c => {
+                if (c.estado === 'cancelada' && !esPasado) return false;
+                return true;
             });
+
+            html += `<div class="calendario-celda ${clasePasado}" 
+                        style="position: relative; height: 60px;"
+                        onclick="abrirModalRegistro('${fechaStr}', '${hora}')">`;
+
+            if (citasEnSlot.length > 0) {
+                const width = 100 / citasEnSlot.length;
+
+                citasEnSlot.forEach((cita, index) => {
+                    const start = new Date(`2000-01-01T${cita.hora_inicio}`);
+                    const end = new Date(`2000-01-01T${cita.hora_fin}`);
+                    const diffMin = (end - start) / 60000;
+
+                    const slots = diffMin / 30;
+                    const height = (slots * 60) - 2;
+
+                    const left = index * width;
+                    const color = '#e91e63';
+
+                    const esCorta = diffMin <= 45 ? 'cita-corta' : '';
+
+                    html += `
+                        <div class="cita-slot estado-${cita.estado} ${esCorta}" 
+                             style="position: absolute; top: 0; left: ${left}%; width: ${width}%; height: ${height}px; z-index: ${10 + index}; border-left: 4px solid ${color};"
+                             onclick="event.stopPropagation(); mostrarDetalleCita(${JSON.stringify(cita).replace(/"/g, '&quot;')})">
+                            <div class="cita-info">
+                                <strong style="display:block; font-size:1.1em; margin-bottom:2px;">
+                                    ${cita.hora_inicio.substring(0, 5)} - ${cita.hora_fin.substring(0, 5)}
+                                </strong>
+                                <span style="font-size:0.9em;">${cita.nombre_service || cita.nombre_servicio}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else if (!esPasado) {
+                html += '<div class="slot-disponible" style="opacity:0; transition: opacity 0.2s; font-size:1.5rem; text-align:center; line-height:60px;">+</div>';
+            }
 
             html += `</div>`;
         }
@@ -351,6 +563,7 @@ function renderizarVistaSemanal() {
 
     grid.innerHTML = html;
 }
+
 
 function renderizarVistaMensual() {
     const grid = document.getElementById('calendario-mensual-grid');
@@ -769,7 +982,41 @@ window.cerrarModal = function () {
     Swal.close();
 }
 
-window.cambiarPassword = function (e) { e.preventDefault(); alert('Pendiente'); }
+window.cambiarPassword = async function (e) {
+    e.preventDefault();
+
+    const newPass = document.getElementById('new-pass').value;
+    if (!newPass || newPass.trim().length < 6) {
+        mostrarModal('La contraseña debe tener al menos 6 caracteres', 'error');
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('token');
+        const email = window.usuarioEmail; // Asegurar que esta variable global esté set
+
+        const res = await fetch(`/api/usuarios/${email}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ password: newPass })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            mostrarModal('Contraseña actualizada correctamente', 'success');
+            document.getElementById('form-password').reset();
+        } else {
+            mostrarModal(data.message || 'Error al actualizar', 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        mostrarModal('Error de conexión', 'error');
+    }
+}
 
 // =============================================
 // SECCIÓN COMISIONES
@@ -953,32 +1200,59 @@ window.cargarComisiones = async function () {
         const response = await fetch(`/api/citas/helpers/mis-comisiones?${params}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-
         const data = await response.json();
 
         if (data.success) {
-            if (data.comisiones.length === 0) {
-                if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay comisiones en este periodo</td></tr>';
-                if (totalMes) totalMes.textContent = formatCurrency(0);
-                return;
-            }
-
             if (tbody) {
-                tbody.innerHTML = data.comisiones.map(c => {
-                    const porcentaje = c.valor_servicio > 0 ? Math.round((c.ganancia / c.valor_servicio) * 100) : 0;
-                    return `
-                        <tr>
-                            <td>${c.fecha.split('T')[0]}</td>
-                            <td>${c.nombre_servicio}</td>
-                            <td>${formatCurrency(c.valor_servicio)}</td>
-                            <td>${porcentaje}%</td>
-                            <td class="text-success font-bold">${formatCurrency(c.ganancia)}</td>
-                        </tr>
-                    `;
-                }).join('');
+                if (data.comisiones.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay comisiones en este periodo</td></tr>';
+                } else {
+                    tbody.innerHTML = data.comisiones.map(c => {
+                        const porcentaje = c.valor_servicio > 0 ? Math.round((c.ganancia / c.valor_servicio) * 100) : 0;
+                        return `
+                            <tr>
+                                <td>${c.fecha.split('T')[0]}</td>
+                                <td>${c.nombre_servicio}</td>
+                                <td>${formatCurrency(c.valor_servicio)}</td>
+                                <td>${porcentaje}%</td>
+                                <td class="text-success font-bold">${formatCurrency(c.ganancia)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
             }
 
-            if (totalMes) totalMes.textContent = formatCurrency(data.total);
+            // Actualizar Totales (ahora viene objeto totales)
+            // Soporte retrocompatible por si el backend viejo responde solo con 'total'
+            const totalComis = data.totales ? data.totales.comisiones : (data.total || 0);
+
+            if (totalMes) totalMes.textContent = formatCurrency(totalComis);
+
+            // Poblar Deducciones
+            const tbodyDeducciones = document.getElementById('deducciones-tbody');
+            const totalDeduccionesEl = document.getElementById('comis-total-deducciones');
+            const totalPagarEl = document.getElementById('comis-total-pagar');
+
+            if (tbodyDeducciones) {
+                if (data.deducciones && data.deducciones.length > 0) {
+                    tbodyDeducciones.innerHTML = data.deducciones.map(d => `
+                        <tr>
+                            <td>${d.fecha.split('T')[0]}</td>
+                             <td>${d.descripcion}</td>
+                             <td class="text-danger font-bold">-${formatCurrency(d.monto)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbodyDeducciones.innerHTML = '<tr><td colspan="3" class="text-center">Sin deducciones</td></tr>';
+                }
+            }
+
+            if (totalDeduccionesEl && data.totales) {
+                totalDeduccionesEl.textContent = formatCurrency(data.totales.deducciones || 0);
+            }
+            if (totalPagarEl && data.totales) {
+                totalPagarEl.textContent = formatCurrency(data.totales.pagar || 0);
+            }
 
         } else {
             console.error('Error:', data.message);

@@ -381,31 +381,123 @@
       <!-- SECCIÓN: AGENDAMIENTO -->
       <section id="seccion-agendamiento" class="content-section active">
         <!-- Filtros -->
-        <div class="filters-bar">
-          <div class="filter-group">
-            <label>Fecha:</label>
-            <input type="date" id="filtro-fecha" class="filter-input" />
+        <!-- Filtros Mejorados Agendamiento -->
+        <div class="filters-container"
+          style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+          <div style="display: flex; gap: 1rem; margin-bottom: 0; flex-wrap: wrap; align-items: flex-end;">
+
+            <!-- Selector de Tipo de Filtro -->
+            <div class="form-group" style="min-width: 150px;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Filtrar
+                por:</label>
+              <select id="agendamiento-filtro-periodo" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                onchange="cambiarPeriodoAgendamiento()">
+                <option value="dia">Día Específico</option>
+                <option value="mes">Mes</option>
+                <option value="semana">Semana</option>
+                <option value="rango">Rango de Fechas</option>
+              </select>
+            </div>
+
+            <!-- Filtro por Día (Visible por defecto) -->
+            <div id="agendamiento-grupo-dia" class="form-group" style="min-width: 150px;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Fecha:</label>
+              <input type="date" id="filtro-fecha" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <!-- Filtro por Mes (Oculto) -->
+            <div id="agendamiento-grupo-mes" class="form-group" style="min-width: 150px; display: none;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Mes:</label>
+              <select id="agendamiento-filtro-mes" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+              </select>
+            </div>
+
+            <!-- Filtro por Semana (Oculto) -->
+            <div id="agendamiento-grupo-semana" class="form-group" style="min-width: 200px; display: none;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Semana:</label>
+              <select id="agendamiento-filtro-semana" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <!-- Se llenará dinámicamente -->
+              </select>
+            </div>
+
+            <!-- Año (Oculto en modo día) -->
+            <div id="agendamiento-grupo-anio" class="form-group" style="min-width: 100px; display: none;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Año:</label>
+              <select id="agendamiento-filtro-anio" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                onchange="cambiarPeriodoAgendamiento()">
+                <!-- JS -->
+              </select>
+            </div>
+
+            <!-- Filtro por Rango (Oculto) -->
+            <div id="agendamiento-grupo-rango" style="display: none; flex: 1; min-width: 300px;">
+              <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                <div class="form-group" style="flex: 1;">
+                  <label
+                    style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Desde:</label>
+                  <input type="date" id="agendamiento-fecha-inicio" class="form-control"
+                    style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label
+                    style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Hasta:</label>
+                  <input type="date" id="agendamiento-fecha-fin" class="form-control"
+                    style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Estado -->
+            <div class="form-group" style="min-width: 150px;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Estado:</label>
+              <select id="filtro-estado" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Todos</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="confirmada">Confirmada</option>
+                <option value="completada">Completada</option>
+                <option value="cancelada">Cancelada</option>
+              </select>
+            </div>
+
+            <!-- Manicurista -->
+            <div class="form-group" style="min-width: 150px;">
+              <label
+                style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Manicurista:</label>
+              <select id="filtro-manicurista" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Todas</option>
+              </select>
+            </div>
+
+            <!-- Botones -->
+            <div class="form-group">
+              <button class="btn btn-primary" onclick="aplicarFiltros()"
+                style="padding: 0.6rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🔍</span> Filtrar
+              </button>
+            </div>
+            <div class="form-group">
+              <button class="btn btn-text" onclick="limpiarFiltros()" style="padding: 0.6rem;">Limpiar</button>
+            </div>
           </div>
-          <div class="filter-group">
-            <label>Estado:</label>
-            <select id="filtro-estado" class="filter-input">
-              <option value="">Todos</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="confirmada">Confirmada</option>
-              <option value="completada">Completada</option>
-              <option value="cancelada">Cancelada</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>Manicurista:</label>
-            <select id="filtro-manicurista" class="filter-input">
-              <option value="">Todas</option>
-            </select>
-          </div>
-          <button class="btn btn-primary" onclick="aplicarFiltros()">
-            Filtrar
-          </button>
-          <button class="btn-text" onclick="limpiarFiltros()">Limpiar</button>
         </div>
 
         <!-- Tabla de Citas -->
@@ -617,13 +709,7 @@
           <h3>💰 Comisiones y Pagos</h3>
         </div>
 
-        <!-- View Toggle -->
-        <div class="view-toggle-container" style="margin-bottom: 20px; display: flex; gap: 10px;">
-          <button class="btn btn-primary active" id="btn-view-comisiones"
-            onclick="cambiarVistaComisiones('comisiones')">Reporte Comisiones</button>
-          <button class="btn btn-secondary" id="btn-view-conciliacion"
-            onclick="cambiarVistaComisiones('conciliacion')">Auditoría Cuadres</button>
-        </div>
+        <!-- View Toggle Removed as per user request (Redundant with Sidebar) -->
 
         <!-- Filtros Comisiones Mejorados -->
         <div class="filters-container"
@@ -640,6 +726,19 @@
                 <option value="mes">Mes</option>
                 <option value="semana">Semana</option>
                 <option value="rango">Rango de Fechas</option>
+                <option value="conciliacion">Auditoría de Cuadres</option>
+              </select>
+            </div>
+
+            <!-- Manicurista -->
+            <div class="form-group" style="min-width: 200px;">
+              <label
+                style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Manicurista:</label>
+              <select id="filtro-comision-manicurista" class="form-control"
+                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                onchange="aplicarFiltrosComisiones()">
+                <option value="">Todas</option>
+                <!-- Dinámico -->
               </select>
             </div>
 

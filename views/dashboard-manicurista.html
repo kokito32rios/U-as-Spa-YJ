@@ -12,7 +12,7 @@
 
 <body>
     <!-- Mobile Menu Toggle -->
-    <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu" onclick="toggleMobileMenu()">
         <span class="hamburger-line"></span>
         <span class="hamburger-line"></span>
         <span class="hamburger-line"></span>
@@ -298,6 +298,46 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- DEDUCCIONES Y TOTALES -->
+                <div style="margin-top: 30px;">
+                    <h4 style="border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 15px;">📉 Deducciones
+                        y Total a Pagar</h4>
+
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <div class="metric-card" style="background: #fff3cd; color: #856404; max-width: 300px;">
+                            <div class="metric-info">
+                                <span class="metric-label">Total Deducciones</span>
+                                <span class="metric-value" id="comis-total-deducciones">$0</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card" style="background: #d4edda; color: #155724; max-width: 300px;">
+                            <div class="metric-info">
+                                <span class="metric-label">Total a Pagar (Neto)</span>
+                                <span class="metric-value" id="comis-total-pagar" style="font-weight: bold;">$0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <h5>Detalle de Deducciones</h5>
+                        <table class="data-table" id="tabla-mis-deducciones">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Descripción</th>
+                                    <th>Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deducciones-tbody">
+                                <tr>
+                                    <td colspan="3" class="text-center">Sin deducciones</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 

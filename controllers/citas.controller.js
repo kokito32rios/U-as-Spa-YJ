@@ -48,6 +48,9 @@ exports.obtenerCitas = async (req, res) => {
         if (fecha) {
             query += ` AND c.fecha = ?`;
             params.push(fecha);
+        } else if (req.query.fecha_inicio && req.query.fecha_fin) {
+            query += ` AND c.fecha BETWEEN ? AND ?`;
+            params.push(req.query.fecha_inicio, req.query.fecha_fin);
         }
 
         if (estado) {
@@ -395,10 +398,9 @@ exports.eliminarCita = async (req, res) => {
 exports.obtenerManicuristasDisponibles = async (req, res) => {
     try {
         const [manicuristas] = await db.query(`
-            SELECT u.email, CONCAT(u.nombre, ' ', u.apellido) as nombre_completo
+            SELECT u.email, CONCAT(u.nombre, ' ', COALESCE(u.apellido, '')) as nombre_completo, u.nombre as nombre_simple, u.apellido
             FROM usuarios u
-            JOIN roles r ON u.id_rol = r.id_rol
-            WHERE r.nombre_rol = 'manicurista' AND u.activo = 1
+            WHERE u.id_rol = 3 AND u.activo = 1
             ORDER BY u.nombre ASC
         `);
 
@@ -621,6 +623,9 @@ exports.obtenerClientes = async (req, res) => {
 // =============================================
 // OBTENER COMISIONES MANICURISTA
 // =============================================
+// =============================================
+// OBTENER COMISIONES MANICURISTA
+// =============================================
 exports.obtenerComisionesManicurista = async (req, res) => {
     try {
         const { fecha_inicio, fecha_fin } = req.query;
@@ -634,30 +639,83 @@ exports.obtenerComisionesManicurista = async (req, res) => {
             });
         }
 
+        // Query robusto: Basado en citas completadas, no solo en pagos registrados
+        // Si no hay pago registrado, se estima la comisión basada en la configuración
         const query = `
             SELECT 
                 c.fecha,
                 c.hora_inicio,
                 s.nombre as nombre_servicio,
                 c.precio as valor_servicio,
-                p.comision_manicurista as ganancia
-            FROM pagos p
-            JOIN citas c ON p.id_cita = c.id_cita
+                COALESCE(
+                    p.comision_manicurista, 
+                    (c.precio * (
+                        SELECT COALESCE(porcentaje, 0) 
+                        FROM comisiones_manicuristas cm 
+                        WHERE cm.email_manicurista = c.email_manicurista 
+                        AND cm.anio = YEAR(c.fecha) 
+                        LIMIT 1
+                    ) / 100)
+                ) as ganancia
+            FROM citas c
             JOIN servicios s ON c.id_servicio = s.id_servicio
+            LEFT JOIN pagos p ON p.id_cita = c.id_cita
             WHERE c.email_manicurista = ?
             AND c.fecha BETWEEN ? AND ?
+            AND c.estado = 'completada'
             ORDER BY c.fecha DESC, c.hora_inicio DESC
         `;
 
         const [comisiones] = await db.query(query, [email_manicurista, fecha_inicio, fecha_fin]);
 
-        // Calcular totales
-        const total = comisiones.reduce((sum, item) => sum + Number(item.ganancia), 0);
+        // Calcular totales de comisiones
+        const totalComisiones = comisiones.reduce((sum, item) => sum + Number(item.ganancia || 0), 0);
+
+        // OBTENER DEDUCCIONES
+        const queryDeducciones = `
+            SELECT 
+                fecha,
+                descripcion,
+                monto
+            FROM gastos
+            WHERE tipo = 'deduccion_manicurista'
+            AND (
+                usuario_asociado = ? 
+                OR (usuario_asociado IS NULL AND descripcion LIKE CONCAT('%', (SELECT nombre FROM usuarios WHERE email = ?), '%'))
+            )
+            AND fecha BETWEEN ? AND ?
+            ORDER BY fecha DESC
+        `;
+
+        // Nota: usuario_asociado debería ser el email o ID. Asumimos que se guarda algo que vincula.
+        // Si no hay 'usuario_asociado', la lógica actual de gastos podría ser precaria.
+        // Revisando el modal de gastos en dashboard-admin.js, al guardar gasto tipo 'deduccion_manicurista', 
+        // se envía 'manicurista' (email) en el body.
+        // Asumimos que en la tabla gastos existe una columna 'usuario_asociado' o 'email_manicurista'.
+        // Verificando estructura de gastos en dashboard-admin.js (guardarGasto):
+        // const datos = { descripcion, monto, fecha, tipo, usuario_asociado: manicurista };
+        // Sí, se        // OBTENER DEDUCCIONES
+        const [deducciones] = await db.query(`
+            SELECT id_gasto, fecha_gasto as fecha, descripcion, monto
+            FROM gastos
+            WHERE tipo = 'deduccion_manicurista'
+            AND email_manicurista = ?
+            AND DATE(fecha_gasto) BETWEEN ? AND ?
+            ORDER BY fecha_gasto DESC
+        `, [email_manicurista, fecha_inicio, fecha_fin]);
+
+        const totalDeducciones = deducciones.reduce((sum, item) => sum + Number(item.monto || 0), 0);
+        const totalPagar = totalComisiones - totalDeducciones;
 
         res.json({
             success: true,
             comisiones,
-            total
+            deducciones,
+            totales: {
+                comisiones: totalComisiones,
+                deducciones: totalDeducciones,
+                pagar: totalPagar
+            }
         });
 
     } catch (error) {
@@ -665,6 +723,82 @@ exports.obtenerComisionesManicurista = async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Error al obtener comisiones'
+        });
+    }
+};
+
+// =============================================
+// OBTENER COMISIONES GLOBALES (ADMIN)
+// =============================================
+exports.obtenerComisionesGlobales = async (req, res) => {
+    try {
+        const { fecha_inicio, fecha_fin, manicurista } = req.query;
+
+        // Default: mes actual si no hay fechas
+        let fInicio = fecha_inicio;
+        let fFin = fecha_fin;
+
+        if (!fInicio || !fFin) {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = now.getMonth();
+            fInicio = new Date(y, m, 1).toISOString().split('T')[0];
+            fFin = new Date(y, m + 1, 0).toISOString().split('T')[0];
+        }
+
+        let query = `
+            SELECT 
+                c.fecha,
+                c.hora_inicio,
+                c.email_manicurista,
+                (SELECT CONCAT(nombre, ' ', apellido) FROM usuarios u WHERE u.email = c.email_manicurista) as nombre_manicurista,
+                s.nombre as nombre_servicio,
+                c.precio as valor_servicio,
+                COALESCE(
+                    p.comision_manicurista, 
+                    (c.precio * (
+                        SELECT COALESCE(porcentaje, 0) 
+                        FROM comisiones_manicuristas cm 
+                        WHERE cm.email_manicurista = c.email_manicurista 
+                        AND cm.anio = YEAR(c.fecha) 
+                        LIMIT 1
+                    ) / 100)
+                ) as ganancia,
+                c.estado
+            FROM citas c
+            JOIN servicios s ON c.id_servicio = s.id_servicio
+            LEFT JOIN pagos p ON p.id_cita = c.id_cita
+            WHERE c.fecha BETWEEN ? AND ?
+            AND c.estado = 'completada'
+        `;
+
+        const params = [fInicio, fFin];
+
+        if (manicurista) {
+            query += ' AND c.email_manicurista = ?';
+            params.push(manicurista);
+        }
+
+        query += ' ORDER BY c.fecha DESC, c.hora_inicio DESC';
+
+        const [comisiones] = await db.query(query, params);
+
+        // Calcular totales
+        const total = comisiones.reduce((sum, item) => sum + Number(item.ganancia || 0), 0);
+        const totalServicios = comisiones.reduce((sum, item) => sum + Number(item.valor_servicio || 0), 0);
+
+        res.json({
+            success: true,
+            comisiones,
+            total,
+            totalServicios
+        });
+
+    } catch (error) {
+        console.error('Error al obtener comisiones globales:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener comisiones globales'
         });
     }
 };

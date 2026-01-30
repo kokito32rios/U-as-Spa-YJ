@@ -733,3 +733,27 @@ body {
         display: none;
     }
 }
+
+/* =============================================
+   FORM CONTROLS
+   ============================================= */
+.form-control {
+    width: 100%;
+    padding: 10px 15px;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+.form-control:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: var(--primary-color);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(207, 122, 100, 0.25);
+}

@@ -113,6 +113,47 @@
   font-size: 1.2rem;
 }
 
+/* =============================================
+   SIDEBAR COLLAPSED (DESKTOP)
+   ============================================= */
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.sidebar.collapsed .sidebar-header h2,
+.sidebar.collapsed .sidebar-header p,
+.sidebar.collapsed .nav-item span:last-child {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-header {
+  padding: 20px 10px;
+  text-align: center;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 14px 10px;
+}
+
+.sidebar.collapsed .nav-icon {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.sidebar.collapsed~.main-content {
+  margin-left: 80px;
+}
+
+.sidebar.collapsed .btn-logout .logout-text {
+  display: none;
+}
+
+.sidebar.collapsed .btn-logout {
+  justify-content: center;
+}
+
+/* Fix para limpiar estilos */
 .btn-logout .logout-text {
   margin-left: 5px;
   /* El texto se ocultará si no hay espacio gracias al overflow del padre,

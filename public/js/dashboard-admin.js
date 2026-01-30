@@ -148,11 +148,14 @@ function cambiarSeccion(seccion) {
         'servicios': 'Gestión de Servicios',
         'usuarios': 'Gestión de Usuarios',
         'comisiones': 'Gestión de Comisiones',
+        'conciliacion': 'Auditoría de Cuadres',
         'horarios': 'Gestión de Horarios',
         'galeria': 'Gestión de Galería',
         'gastos': 'Gestión de Gastos'
     };
-    document.getElementById('section-title').textContent = titulos[seccion];
+    if (titulos[seccion]) {
+        document.getElementById('section-title').textContent = titulos[seccion];
+    }
 
     // Mostrar/Ocultar botones de acción según la sección
     // Resetear visibilidad de todos
@@ -183,7 +186,7 @@ function cambiarSeccion(seccion) {
 
     // Cargar datos según sección
     if (seccion === 'agendamiento') {
-        cargarCitas();
+        inicializarAgendamiento();
     } else if (seccion === 'agenda') {
         inicializarAgenda();
     } else if (seccion === 'horarios') {
@@ -216,11 +219,20 @@ async function cargarCitas() {
     try {
         // Construir query params
         const params = new URLSearchParams();
-        const fecha = document.getElementById('filtro-fecha').value;
+
+        // Nueva Lógica de Filtros
+        const { fechaInicio, fechaFin, periodo } = obtenerFechasAgendamiento();
+
+        if (periodo === 'dia') {
+            if (fechaInicio) params.append('fecha', fechaInicio);
+        } else {
+            if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+            if (fechaFin) params.append('fecha_fin', fechaFin);
+        }
+
         const estado = document.getElementById('filtro-estado').value;
         const manicurista = document.getElementById('filtro-manicurista').value;
 
-        if (fecha) params.append('fecha', fecha);
         if (estado) params.append('estado', estado);
         if (manicurista) params.append('manicurista', manicurista);
 
@@ -596,6 +608,123 @@ function limpiarFiltros() {
 }
 
 // =============================================
+// HELPER: AGENDAMIENTO SEARCH LOGIC
+// =============================================
+function inicializarAgendamiento() {
+    const selectAnio = document.getElementById('agendamiento-filtro-anio');
+    console.log('DEBUG: inicializarAgendamiento called', selectAnio);
+    if (selectAnio && selectAnio.options.length === 0) {
+        console.log('DEBUG: Populating years');
+        const currentYear = new Date().getFullYear();
+        selectAnio.innerHTML = '';
+        selectAnio.innerHTML += `<option value="${currentYear}">${currentYear}</option>`;
+        selectAnio.innerHTML += `<option value="${currentYear - 1}">${currentYear - 1}</option>`;
+        selectAnio.value = currentYear;
+    } else {
+        console.log('DEBUG: Year select not found or already populated', selectAnio ? selectAnio.options.length : 'null');
+    }
+
+    // Set default date if empty
+    if (!document.getElementById('filtro-fecha').value) {
+        document.getElementById('filtro-fecha').value = new Date().toISOString().split('T')[0];
+    }
+
+    cambiarPeriodoAgendamiento();
+    cargarCitas();
+}
+
+function cambiarPeriodoAgendamiento() {
+    const periodo = document.getElementById('agendamiento-filtro-periodo').value;
+
+    document.getElementById('agendamiento-grupo-dia').style.display = 'none';
+    document.getElementById('agendamiento-grupo-mes').style.display = 'none';
+    document.getElementById('agendamiento-grupo-semana').style.display = 'none';
+    document.getElementById('agendamiento-grupo-anio').style.display = 'none';
+    document.getElementById('agendamiento-grupo-rango').style.display = 'none';
+
+    if (periodo === 'dia') {
+        document.getElementById('agendamiento-grupo-dia').style.display = 'block';
+    } else if (periodo === 'mes') {
+        document.getElementById('agendamiento-grupo-mes').style.display = 'block';
+        document.getElementById('agendamiento-grupo-anio').style.display = 'block';
+    } else if (periodo === 'semana') {
+        document.getElementById('agendamiento-grupo-semana').style.display = 'block';
+        document.getElementById('agendamiento-grupo-anio').style.display = 'block';
+        poblarSemanasAgendamiento();
+    } else if (periodo === 'rango') {
+        document.getElementById('agendamiento-grupo-rango').style.display = 'block';
+    }
+}
+
+function poblarSemanasAgendamiento() {
+    const selectSemana = document.getElementById('agendamiento-filtro-semana');
+    const anio = document.getElementById('agendamiento-filtro-anio').value || new Date().getFullYear();
+
+    selectSemana.innerHTML = '';
+
+    const primerDia = new Date(anio, 0, 1);
+    const ultimoDia = new Date(anio, 11, 31);
+
+    let semanaActual = new Date(primerDia);
+    const diaSemana = semanaActual.getDay();
+    const diff = diaSemana === 0 ? -6 : 1 - diaSemana;
+    semanaActual.setDate(semanaActual.getDate() + diff);
+
+    let numSemana = 1;
+
+    while (semanaActual <= ultimoDia) {
+        const finSemana = new Date(semanaActual);
+        finSemana.setDate(finSemana.getDate() + 6);
+
+        const desde = semanaActual.toISOString().split('T')[0];
+        const hasta = finSemana.toISOString().split('T')[0];
+
+        const option = document.createElement('option');
+        option.value = `${desde}|${hasta}`;
+        option.textContent = `Semana ${numSemana}: ${formatearFechaCorta(semanaActual)} - ${formatearFechaCorta(finSemana)}`;
+        selectSemana.appendChild(option);
+
+        semanaActual.setDate(semanaActual.getDate() + 7);
+        numSemana++;
+    }
+
+    // Select current week if applicable
+    const hoy = new Date();
+    const opciones = selectSemana.options;
+    for (let i = 0; i < opciones.length; i++) {
+        const [desde, hasta] = opciones[i].value.split('|');
+        if (hoy >= new Date(desde) && hoy <= new Date(hasta)) {
+            selectSemana.selectedIndex = i;
+            break;
+        }
+    }
+}
+
+function obtenerFechasAgendamiento() {
+    const periodo = document.getElementById('agendamiento-filtro-periodo').value;
+    let fechaInicio, fechaFin;
+
+    if (periodo === 'dia') {
+        fechaInicio = document.getElementById('filtro-fecha').value;
+        fechaFin = null; // Single date logic
+    } else if (periodo === 'mes') {
+        const mes = document.getElementById('agendamiento-filtro-mes').value;
+        const anio = document.getElementById('agendamiento-filtro-anio').value;
+        const ultimoDia = new Date(anio, mes, 0).getDate();
+        fechaInicio = `${anio}-${mes.toString().padStart(2, '0')}-01`;
+        fechaFin = `${anio}-${mes.toString().padStart(2, '0')}-${ultimoDia}`;
+    } else if (periodo === 'semana') {
+        const val = document.getElementById('agendamiento-filtro-semana').value;
+        if (val) [fechaInicio, fechaFin] = val.split('|');
+    } else if (periodo === 'rango') {
+        fechaInicio = document.getElementById('agendamiento-fecha-inicio').value;
+        fechaFin = document.getElementById('agendamiento-fecha-fin').value;
+    }
+
+    return { fechaInicio, fechaFin, periodo };
+}
+
+// =============================================
 // MOSTRAR MENSAJE
 // =============================================
 // =============================================
@@ -891,7 +1020,9 @@ async function cargarHorariosDisponibles() {
 // INICIALIZAR
 // =============================================
 document.addEventListener('DOMContentLoaded', () => {
-    cargarCitas();
+    // Validar si estamos en la sección de agendamiento (aunque por defecto carga ahí)
+    // O simplemente llamar al inicializador que ya maneja la carga
+    inicializarAgendamiento();
     cargarManicuristas();
 
     // Listeners para actualizar horarios disponibles
@@ -1082,6 +1213,7 @@ function actualizarTituloFecha() {
 // =============================================
 function cambiarVistaAgenda(vista) {
     agendaVistaActual = vista;
+    window.mobileSoloHoy = false; // Reset mobile filter
 
     // Actualizar botones
     document.getElementById('btn-vista-semanal').classList.toggle('active', vista === 'semanal');
@@ -1098,6 +1230,7 @@ function cambiarVistaAgenda(vista) {
 // NAVEGAR AGENDA
 // =============================================
 function navegarAgenda(direccion) {
+    window.mobileSoloHoy = false; // Reset mobile filter
     if (agendaVistaActual === 'semanal') {
         agendaFechaActual.setDate(agendaFechaActual.getDate() + (direccion * 7));
     } else {
@@ -1108,6 +1241,7 @@ function navegarAgenda(direccion) {
 
 function irAHoy() {
     agendaFechaActual = new Date();
+    window.mobileSoloHoy = true; // Activar filtro de solo hoy en móvil
     cargarAgenda();
 }
 
@@ -2432,6 +2566,23 @@ function cambiarTipoFiltroComision() {
         hace7Dias.setDate(hace7Dias.getDate() - 7);
         document.getElementById('filtro-comision-desde').valueAsDate = hace7Dias;
         document.getElementById('filtro-comision-hasta').valueAsDate = hoy;
+    } else if (tipo === 'conciliacion') {
+        // Conciliación suele ser mensual
+        document.getElementById('filtro-mes-container').style.display = 'block';
+    }
+
+    console.log('Cambio de filtro tipo:', tipo); // DEBUG
+
+    // Gestionar visibilidad de tablas
+    const tablaComisiones = document.getElementById('container-tabla-comisiones');
+    const tablaConciliacion = document.getElementById('container-tabla-conciliacion');
+
+    if (tipo === 'conciliacion') {
+        if (tablaComisiones) tablaComisiones.classList.add('hidden');
+        if (tablaConciliacion) tablaConciliacion.classList.remove('hidden');
+    } else {
+        if (tablaComisiones) tablaComisiones.classList.remove('hidden');
+        if (tablaConciliacion) tablaConciliacion.classList.add('hidden');
     }
 }
 
@@ -2486,6 +2637,34 @@ function formatearFechaCorta(fecha) {
     return `${fecha.getDate()} ${meses[fecha.getMonth()]}`;
 }
 
+async function poblarFiltroManicuristas() {
+    const select = document.getElementById('filtro-comision-manicurista');
+    if (!select) return;
+
+    try {
+        const res = await fetchConToken('/api/citas/helpers/manicuristas?fecha=2000-01-01');
+        const data = await res.json();
+
+        if (data.success) {
+            // Guardar selección actual si existe
+            const currentVal = select.value;
+
+            select.innerHTML = '<option value="">Todas</option>';
+            data.manicuristas.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.email;
+                opt.textContent = m.nombre_completo; // Corregido: backend devuelve nombre_completo
+                select.appendChild(opt);
+            });
+
+            // Restaurar selección si es posible, si no vacio
+            if (currentVal) select.value = currentVal;
+        }
+    } catch (e) {
+        console.error("Error cargando manicuristas filtro", e);
+    }
+}
+
 function inicializarComisiones() {
     const today = new Date();
     const currentYear = today.getFullYear();
@@ -2494,38 +2673,124 @@ function inicializarComisiones() {
     const selectAnio = document.getElementById('filtro-comision-anio');
     const selectMes = document.getElementById('filtro-comision-mes');
 
-    if (selectAnio && selectAnio.options.length === 0) {
-        selectAnio.innerHTML = '';
-
-        const opt1 = document.createElement('option');
-        opt1.value = currentYear;
-        opt1.textContent = currentYear;
-        selectAnio.appendChild(opt1);
-
-        const opt2 = document.createElement('option');
-        opt2.value = currentYear + 1;
-        opt2.textContent = currentYear + 1;
-        selectAnio.appendChild(opt2);
-    }
-
     if (selectAnio) {
-        selectAnio.value = currentYear.toString();
+        // Force populate logic
+        selectAnio.innerHTML = '';
+        const years = [2025, 2026, 2027];
+        years.forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            if (y === currentYear) opt.selected = true;
+            selectAnio.appendChild(opt);
+        });
     }
 
     if (selectMes) {
         selectMes.value = currentMonth.toString();
     }
 
+    console.log('Inicializando módulo de comisiones...');
+
     // Inicializar el tipo de filtro
     cambiarTipoFiltroComision();
 
-    cargarComisiones();
+    // Cargar selector de manicuristas
+    poblarFiltroManicuristas();
+
+    // Cargar datos iniciales
+    aplicarFiltrosComisiones();
+}
+
+// Auto-init if element exists
+if (document.getElementById('filtro-comision-anio')) {
+    inicializarComisiones();
+}
+
+// Dispatcher para el botón "Aplicar"
+function aplicarFiltrosComisiones() {
+    const tipo = document.getElementById('filtro-comision-tipo').value;
+    console.log('Aplicando filtros. Tipo:', tipo); // DEBUG
+
+    if (tipo === 'conciliacion') {
+        console.log('Cargando conciliación...');
+        cargarConciliacion();
+    } else {
+        console.log('Cargando comisiones...');
+        cargarComisiones();
+    }
+}
+window.aplicarFiltrosComisiones = aplicarFiltrosComisiones;
+
+// Función helper para cambiar vista desde el sidebar
+window.cambiarVistaComisiones = function (vista) {
+    const select = document.getElementById('filtro-comision-tipo');
+    if (!select) return;
+
+    if (vista === 'conciliacion') {
+        select.value = 'conciliacion';
+    } else {
+        // Default a mes si no es conciliacion
+        select.value = 'mes';
+    }
+
+    // Disparar cambio de UI y carga de datos
+    cambiarTipoFiltroComision();
+    aplicarFiltrosComisiones();
+}
+
+async function cargarConciliacion() {
+    const tbody = document.getElementById('conciliacion-body');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando datos...</td></tr>';
+
+    try {
+        const anio = document.getElementById('filtro-comision-anio').value;
+        const mes = document.getElementById('filtro-comision-mes').value;
+        const manicurista = document.getElementById('filtro-comision-manicurista').value;
+
+        let query = `?anio=${anio}&mes=${mes}`;
+        if (manicurista) query += `&manicurista=${manicurista}`;
+
+        const response = await fetchConToken(`/api/reportes/admin/conciliacion${query}`);
+        const result = await response.json();
+
+        if (result.success) {
+            if (result.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay datos para conciliar en este periodo</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = result.data.map(item => {
+                const diff = parseFloat(item.diferencia);
+                const colorClass = Math.abs(diff) < 1 ? 'text-success' : 'text-danger font-bold';
+                const estadoIcon = Math.abs(diff) < 1 ? '✅ Cuadrado' : '⚠️ Descuadre';
+
+                return `
+                    <tr>
+                        <td>${item.fecha}</td>
+                        <td>${item.nombre_manicurista}</td>
+                        <td>$${Number(item.valor_sistema).toLocaleString('es-CO')}</td>
+                         <td>$${Number(item.valor_reportado).toLocaleString('es-CO')}</td>
+                        <td class="${colorClass}">$${Number(diff).toLocaleString('es-CO')}</td>
+                        <td>${estadoIcon}</td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red">${result.message}</td></tr>`;
+        }
+
+    } catch (error) {
+        console.error('Error cargando conciliación:', error);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-red">Error de conexión</td></tr>';
+    }
 }
 
 async function cargarComisiones() {
     try {
         const tipo = document.getElementById('filtro-comision-tipo').value;
         const anio = document.getElementById('filtro-comision-anio').value;
+        const manicurista = document.getElementById('filtro-comision-manicurista') ? document.getElementById('filtro-comision-manicurista').value : '';
 
         let query = `?tipo=${tipo}&anio=${anio}`;
 
@@ -2544,6 +2809,10 @@ async function cargarComisiones() {
             if (desde && hasta) {
                 query += `&desde=${desde}&hasta=${hasta}`;
             }
+        }
+
+        if (manicurista) {
+            query += `&manicurista=${manicurista}`;
         }
 
         const response = await fetchConToken(`/api/comisiones/resumen${query}`);
@@ -3938,22 +4207,20 @@ document.addEventListener('DOMContentLoaded', function () {
    RENDERIZADO AGENDA MÓVIL
    ============================================= */
 function renderizarAgendaMovil(citas) {
-    const contenedor = document.getElementById('calendario-semanal'); // Usar el contenedor padre o el grid
-    const containerAgenda = document.getElementById('seccion-agenda');
+    const mobileViewId = 'agenda-mobile-view';
+    let mobileView = document.getElementById(mobileViewId);
 
-    // Si no es móvil, no hacer nada (se maneja en renderizarVistaSemanal)
+    // Si no es móvil, no hacer nada
     if (window.innerWidth > 767) return;
 
-    // Ocultar grids
+    // Ocultar grids desktop
     document.getElementById('calendario-semanal-grid').classList.add('hidden');
     document.getElementById('calendario-mensual-grid').classList.add('hidden');
 
-    // Buscar o crear contenedor móvil
-    let mobileView = document.getElementById('agenda-mobile-view');
-    if (mobileView) mobileView.remove(); // Limpiar anterior
-
+    // Crear/Limpiar contenedor móvil
+    if (mobileView) mobileView.remove();
     mobileView = document.createElement('div');
-    mobileView.id = 'agenda-mobile-view';
+    mobileView.id = mobileViewId;
     mobileView.className = 'agenda-mobile-view';
 
     // Insertar después del header
@@ -3961,65 +4228,105 @@ function renderizarAgendaMovil(citas) {
     header.parentNode.insertBefore(mobileView, header.nextSibling);
 
     if (!citas || citas.length === 0) {
-        mobileView.innerHTML = '<div class="empty-state"><p>No hay citas para este día/semana</p></div>';
+        mobileView.innerHTML = '<div class="empty-state"><p>No hay citas para este periodo</p></div>';
         return;
     }
 
-    // Ordenar citas por fecha y hora
-    citas.sort((a, b) => {
-        const fechaA = new Date(a.fecha.split('T')[0] + 'T' + a.hora_inicio);
-        const fechaB = new Date(b.fecha.split('T')[0] + 'T' + b.hora_inicio);
-        return fechaA - fechaB;
+    // Calcular Hoy
+    const hoyObj = new Date();
+    const hoyStr = formatearFechaISO(hoyObj);
+
+    // Agrupar citas por fecha (YYYY-MM-DD)
+    const citasPorFecha = {};
+    citas.forEach(cita => {
+        const fechaKey = cita.fecha.split('T')[0];
+        if (!citasPorFecha[fechaKey]) citasPorFecha[fechaKey] = [];
+        citasPorFecha[fechaKey].push(cita);
     });
 
-    citas.forEach(cita => {
-        const card = document.createElement('div');
-        card.className = 'agenda-card';
-        // Determinar color de borde según estado
-        let colorBorde = '#ffc107'; // pendiente
-        if (cita.estado === 'confirmada') colorBorde = '#17a2b8';
-        if (cita.estado === 'completada') colorBorde = '#28a745';
-        if (cita.estado === 'cancelada') colorBorde = '#dc3545';
+    // Obtener claves de fechas ordenadas
+    let fechasOrdenadas = Object.keys(citasPorFecha).sort();
 
-        card.style.borderLeft = `5px solid ${colorBorde}`;
+    // FILTRO: Si es "Solo Hoy", filtrar solo la fecha de hoy
+    if (window.mobileSoloHoy) {
+        if (citasPorFecha[hoyStr]) {
+            fechasOrdenadas = [hoyStr];
+        } else {
+            mobileView.innerHTML = '<div class="empty-state"><p>No hay citas para hoy.</p></div>';
+            return;
+        }
+    }
 
-        // Formatear fecha bonita
-        const fechaObj = new Date(cita.fecha.split('T')[0] + 'T12:00:00'); // Evitar problemas de timezone
+    // Renderizar grupos
+    fechasOrdenadas.forEach(fechaKey => {
+        const citasDia = citasPorFecha[fechaKey];
+        // Ordenar por hora
+        citasDia.sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+        // Header del día
+        const fechaObj = new Date(fechaKey + 'T12:00:00');
         const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const esHoy = fechaKey === hoyStr;
         const diaNombre = dias[fechaObj.getDay()];
         const diaNum = fechaObj.getDate();
 
-        card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span class="agenda-time" style="font-weight: bold; font-size: 1.1em; color: var(--primary-color);">
-                    ${cita.hora_inicio.substring(0, 5)} - ${cita.hora_fin.substring(0, 5)}
-                </span>
-                <span style="font-size: 0.85em; color: #666;">${diaNombre} ${diaNum}</span>
-            </div>
-            
-            <div class="agenda-details" style="display: flex; flex-direction: column; gap: 4px;">
-                <span class="agenda-client" style="font-weight: 600;">👤 ${cita.nombre_cliente}</span>
-                <span class="agenda-service" style="color: #555;">💅 ${cita.nombre_servicio}</span>
-                <span class="agenda-manicurista" style="font-size: 0.9em; color: #777;">👩‍🦰 ${cita.nombre_manicurista.split(' ')[0]}</span>
-                
-                <span class="agenda-status badge badge-${cita.estado}" style="width: fit-content; margin-top: 5px;">
-                    ${cita.estado.charAt(0).toUpperCase() + cita.estado.slice(1)}
-                </span>
-            </div>
-            
-            <div style="margin-top: 12px; display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 8px;">
-                <button class="btn btn-sm btn-outline-primary" style="flex: 1;" onclick="editarCita(${cita.id_cita})">✏️ Editar</button>
-            </div>
+        const groupDiv = document.createElement('div');
+        groupDiv.className = `mobile-day-group ${esHoy ? 'today' : ''}`;
+        groupDiv.style.marginBottom = '20px';
+
+        groupDiv.innerHTML = `
+            <h4 style="margin-bottom: 10px; border-bottom: 2px solid #ddd; padding-bottom: 5px; color: ${esHoy ? 'var(--primary-color)' : '#333'}">
+                ${diaNombre} ${diaNum} ${esHoy ? '(Hoy)' : ''}
+            </h4>
         `;
-        mobileView.appendChild(card);
+
+        citasDia.forEach(cita => {
+            const colorBorde = obtainingColorByState(cita.estado);
+
+            const card = document.createElement('div');
+            card.className = 'agenda-card';
+            card.style.borderLeft = `5px solid ${colorBorde}`;
+            card.style.marginBottom = '10px';
+            card.style.padding = '10px';
+            card.style.backgroundColor = 'white';
+            card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            card.style.borderRadius = '4px';
+
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="font-weight: bold; color: var(--primary-color);">
+                        ${cita.hora_inicio.substring(0, 5)} - ${cita.hora_fin.substring(0, 5)}
+                    </span>
+                    <span class="badge badge-${cita.estado}" style="font-size: 0.75em;">
+                        ${cita.estado}
+                    </span>
+                </div>
+                <div style="font-size: 0.95em;">
+                    <div>👤 <strong>${cita.nombre_cliente}</strong></div>
+                    <div>💅 ${cita.nombre_servicio}</div>
+                    <div style="margin-top:2px; font-size:0.9em; color:#666;">
+                        👩‍🦰 ${cita.nombre_manicurista.split(' ')[0]}
+                    </div>
+                </div>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
+                    <button class="btn btn-sm btn-outline-primary" style="width:100%" onclick="editarCita(${cita.id_cita})">
+                        ✏️ Editar
+                    </button>
+                </div>
+            `;
+            groupDiv.appendChild(card);
+        });
+
+        mobileView.appendChild(groupDiv);
     });
 }
 
-function obtenerColorEstado(estado) {
+// Helper local para colores
+function obtainingColorByState(estado) {
     if (estado === 'confirmada') return '#17a2b8';
     if (estado === 'completada') return '#28a745';
     if (estado === 'cancelada') return '#dc3545';
-    return '#ffc107'; // pendiente
+    return '#ffc107';
 }
 
 // Escuchar resize para actualizar vista si es necesario
@@ -4031,107 +4338,7 @@ window.addEventListener('resize', () => {
     }
 });
 // =============================================
-// LOGICA DE CONCILIACIÓN / AUDITORÍA (CUADRES)
+// LOGICA DE CONCILIACIÓN
 // =============================================
-let vistaComisionesActual = 'comisiones';
 
-function cambiarVistaComisiones(vista) {
-    vistaComisionesActual = vista;
 
-    // Toggle buttons
-    const btnComisiones = document.getElementById('btn-view-comisiones');
-    const btnConciliacion = document.getElementById('btn-view-conciliacion');
-
-    // Check if elements exist (safety)
-    if (btnComisiones && btnConciliacion) {
-        btnComisiones.className = vista === 'comisiones' ? 'btn btn-primary active' : 'btn btn-secondary';
-        btnConciliacion.className = vista === 'conciliacion' ? 'btn btn-primary active' : 'btn btn-secondary';
-    }
-
-    // Toggle containers
-    document.getElementById('container-tabla-comisiones').classList.toggle('hidden', vista !== 'comisiones');
-    document.getElementById('container-tabla-conciliacion').classList.toggle('hidden', vista !== 'conciliacion');
-
-    // Load data specific to view
-    aplicarFiltrosComisiones();
-}
-
-function aplicarFiltrosComisiones() {
-    if (vistaComisionesActual === 'comisiones') {
-        if (typeof cargarComisiones === 'function') {
-            cargarComisiones();
-        } else {
-            console.error('La función cargarComisiones no está definida');
-            mostrarMensaje('error', '❌', 'Error Interno', 'No se pudo cargar la función de comisiones');
-        }
-    } else {
-        cargarConciliacion();
-    }
-}
-
-async function cargarConciliacion() {
-    // Reutilizar lógica de fecha de comisiones (mes/año)
-    let anio = document.getElementById('filtro-comision-anio').value;
-    let mes = document.getElementById('filtro-comision-mes').value;
-    const tipo = document.getElementById('filtro-comision-tipo').value;
-
-    // Default to current month if not selected or correct type
-    if (!anio) anio = new Date().getFullYear();
-    if (!mes && tipo === 'mes') mes = new Date().getMonth() + 1;
-
-    // Si el filtro no es 'mes', advertir o forzar mes actual
-    if (tipo !== 'mes') {
-        const hoy = new Date();
-        anio = hoy.getFullYear();
-        mes = hoy.getMonth() + 1;
-        // Opcional: mostrarMensaje('info', 'ℹ️', 'Nota', 'La auditoría se muestra por mes actual');
-    }
-
-    const tbody = document.getElementById('conciliacion-body');
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando datos...</td></tr>';
-
-    try {
-        const res = await fetchConToken(`/api/reportes/admin/conciliacion?anio=${anio}&mes=${mes}`);
-        const data = await res.json();
-
-        if (data.success) {
-            if (data.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay registros para este período</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = data.data.map(item => {
-                const diff = parseFloat(item.diferencia);
-                const valorSistema = parseFloat(item.valor_sistema);
-                const valorReportado = parseFloat(item.valor_reportado);
-
-                // Color logic
-                const isOk = item.estado === 'ok';
-                const diffClass = isOk ? 'text-success' : 'text-danger';
-                const rowClass = isOk ? '' : 'bg-light-danger'; // Opcional: resaltar fila
-
-                return `
-                <tr class="${rowClass}">
-                    <td>${formatearFechaSinTZ(item.fecha)}</td>
-                    <td>${item.nombre_manicurista || item.email_manicurista}</td>
-                    <td>$${valorSistema.toLocaleString('es-CO')}</td>
-                    <td>$${valorReportado.toLocaleString('es-CO')}</td>
-                    <td class="${diffClass}" style="font-weight: bold;">
-                        $${diff.toLocaleString('es-CO')}
-                    </td>
-                    <td>
-                        ${isOk
-                        ? '<span class="badge badge-success">✓ Correcto</span>'
-                        : '<span class="badge badge-danger">⚠️ Descuadre</span>'}
-                    </td>
-                </tr>
-                `;
-            }).join('');
-        } else {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error: ${data.message}</td></tr>`;
-        }
-    } catch (error) {
-        console.error(error);
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error de conexión</td></tr>';
-    }
-}
