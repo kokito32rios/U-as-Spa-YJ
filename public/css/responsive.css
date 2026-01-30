@@ -84,7 +84,7 @@
         z-index: 1000;
         width: 280px;
         height: 100vh;
-        overflow-y: auto;
+        /* overflow-y: auto;  <-- REMOVED to keep footer visible */
         display: flex;
         flex-direction: column;
     }
