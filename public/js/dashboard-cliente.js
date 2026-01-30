@@ -127,7 +127,11 @@ function crearTarjetaCita(cita, esActiva) {
     const div = document.createElement('div');
     div.className = `cita-card-client status-${cita.estado}`;
 
-    const fecha = new Date(cita.fecha).toLocaleDateString();
+    // Fix: Parse manually to avoid timezone shift
+    // cita.fecha usually comes as 'YYYY-MM-DD' or ISO string
+    const fechaParts = cita.fecha.split('T')[0].split('-');
+    const fechaObj = new Date(fechaParts[0], fechaParts[1] - 1, fechaParts[2]);
+    const fecha = fechaObj.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     div.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
