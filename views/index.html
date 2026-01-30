@@ -21,6 +21,11 @@
     content="Donde tus manos encuentran su belleza perfecta. Servicios profesionales de manicura y pedicura en Bello, Antioquia." />
   <meta property="og:image" content="/img/og-image.jpg" />
   <meta property="og:url" content="/" />
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#e91e63">
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+  </script>
 </head>
 
 <body>

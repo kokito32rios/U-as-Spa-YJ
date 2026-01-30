@@ -171,6 +171,11 @@
             display: inline-block;
         }
     </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#e91e63">
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+    </script>
 </head>
 
 <body style="background-color: #f8f9fa;">
