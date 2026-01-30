@@ -447,7 +447,7 @@ exports.obtenerManicuristasDisponibles = async (req, res) => {
         const [manicuristas] = await db.query(`
             SELECT u.email, CONCAT(u.nombre, ' ', COALESCE(u.apellido, '')) as nombre_completo, u.nombre as nombre_simple, u.apellido
             FROM usuarios u
-            WHERE u.id_rol = 3 AND u.activo = 1
+            WHERE u.id_rol = 2 AND u.activo = 1
             ORDER BY u.nombre ASC
         `);
 

@@ -115,7 +115,7 @@ function renderCitas(citas, containerProx, containerHist) {
     });
 
     if (activas.length === 0) containerProx.innerHTML = '<p class="text-muted">No tienes citas próximas agendadas.</p>';
-    if (historial.length === 0) containerHistorial.innerHTML = '<p class="text-muted">No hay historial reciente.</p>';
+    if (historial.length === 0) containerHist.innerHTML = '<p class="text-muted">No hay historial reciente.</p>';
 
     activas.forEach(c => containerProx.appendChild(crearTarjetaCita(c, true)));
     historial.forEach(c => containerHist.appendChild(crearTarjetaCita(c, false)));
