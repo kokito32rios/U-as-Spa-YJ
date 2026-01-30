@@ -1,7 +1,7 @@
 {
     "name": "Uñas Spa YJ",
     "short_name": "Uñas YJ",
-    "start_url": "/login.html",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#e91e63",
