@@ -291,6 +291,16 @@
     </div>
 
     <script src="/js/dashboard-cliente.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        socket.on('calendario_actualizado', (data) => {
+            // Si el cliente está viendo "Mis Citas", recargar
+            if (typeof cargarMisCitas === 'function') {
+                cargarMisCitas();
+            }
+        });
+    </script>
 </body>
 
 </html>

@@ -259,6 +259,16 @@ exports.crearCita = async (req, res) => {
             telefono_contacto || null
         ]);
 
+        // Emitir evento de Socket.IO
+        if (req.io) {
+            req.io.emit('calendario_actualizado', {
+                accion: 'crear',
+                id_cita: result.insertId,
+                fecha: fecha,
+                manicurista: email_manicurista
+            });
+        }
+
         res.status(201).json({
             success: true,
             message: 'Cita creada exitosamente',
@@ -402,6 +412,14 @@ exports.actualizarCita = async (req, res) => {
             }
         }
 
+        // Emitir evento de Socket.IO
+        if (req.io) {
+            req.io.emit('calendario_actualizado', {
+                accion: 'actualizar',
+                id_cita: id
+            });
+        }
+
         res.json({
             success: true,
             message: 'Cita actualizada exitosamente'
@@ -425,6 +443,15 @@ exports.eliminarCita = async (req, res) => {
         const { id } = req.params;
         const [result] = await db.query(`DELETE FROM citas WHERE id_cita = ?`, [id]);
         if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Cita no encontrada' });
+
+        // Emitir evento de Socket.IO
+        if (req.io) {
+            req.io.emit('calendario_actualizado', {
+                accion: 'eliminar',
+                id_cita: id
+            });
+        }
+
         res.json({ success: true, message: 'Cita eliminada exitosamente' });
     } catch (error) {
         console.error('Error al eliminar cita:', error);

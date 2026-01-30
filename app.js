@@ -13,6 +13,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
 // Servir archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -104,9 +105,39 @@ app.use((err, req, res, next) => {
 });
 
 // =============================================
+// WEBSOCKETS SETUP
+// =============================================
+const http = require('http');
+const socketIo = require('socket.io');
+
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*", // Permitir todas las conexiones por ahora
+    methods: ["GET", "POST"]
+  }
+});
+
+// Middleware para inyectar io en req
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
+// Eventos de conexión
+io.on('connection', (socket) => {
+  console.log('🟢 Nuevo cliente conectado:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('🔴 Cliente desconectado:', socket.id);
+  });
+});
+
+// =============================================
 // INICIAR SERVIDOR
 // =============================================
-app.listen(PORT, () => {
+// Cambiamos app.listen por server.listen
+server.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
   console.log(`📁 Archivos estáticos: ${path.join(__dirname, 'public')}`);
   console.log(`📸 Uploads: ${path.join(__dirname, 'uploads')}`);

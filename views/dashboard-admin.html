@@ -1528,6 +1528,24 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/js/dashboard-admin.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    socket.on('calendario_actualizado', (data) => {
+      // Usar la función global definida en dashboard-admin.js
+      if (typeof cargarAgenda === 'function') {
+        cargarAgenda();
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'info',
+          title: 'Calendario actualizado',
+          showConfirmButton: false,
+          timer: 3000
+        });
+      }
+    });
+  </script>
 </body>
 
 </html>
