@@ -2,6 +2,14 @@
 let token = localStorage.getItem('token');
 let usuarioActual = null;
 
+// Inicializar Socket.IO de forma segura
+let socket;
+if (typeof io !== 'undefined') {
+    socket = io();
+} else {
+    console.error('Socket.IO no cargado correctamente');
+}
+
 // =============================================
 // VERIFICAR AUTENTICACIÓN
 // =============================================
@@ -4404,7 +4412,7 @@ window.addEventListener('resize', () => {
 // =============================================
 // SOCKET.IO LISTENERS (Actualización en Vivo Admin)
 // =============================================
-if (typeof socket !== 'undefined') {
+if (socket) {
     // 1. Recargar Dashboard General (Métricas)
     // Se dispara con casi cualquier evento financiero
     function actualizarDashboardSiVisible() {

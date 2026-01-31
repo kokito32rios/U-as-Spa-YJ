@@ -8,6 +8,14 @@ let agendaVistaActual = 'semanal'; // semanal | mensual
 let agendaDatos = { citas: [], manicuristas: [], horarios_trabajo: [], excepciones: [] };
 let agendaInicializada = false;
 
+// Inicializar Socket.IO
+let socket;
+if (typeof io !== 'undefined') {
+    socket = io();
+} else {
+    console.error('Socket.IO no cargado correctamente');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Verificar Token
     const token = localStorage.getItem('token');
@@ -1288,8 +1296,7 @@ window.cambiarSeccion = function (seccion) {
 // =============================================
 // SOCKET.IO LISTENERS (Actualización en Vivo)
 // =============================================
-if (typeof socket !== 'undefined') {
-    // 1. Comisiones y Deducciones
+if (socket) {
     socket.on('comisiones_actualizadas', (data) => {
         console.log('🔔 Socket: Comisiones actualizadas', data);
         // Solo recargar si estamos en la sección de comisiones
@@ -1308,7 +1315,6 @@ if (typeof socket !== 'undefined') {
         }
     });
 
-    // 2. Cuadre Diario (Reportes)
     socket.on('reporte_actualizado', (data) => {
         console.log('🔔 Socket: Reporte actualizado', data);
         const seccionActiva = document.querySelector('.content-section.active');
@@ -1317,13 +1323,9 @@ if (typeof socket !== 'undefined') {
         }
     });
 
-    // 3. Agenda / Citas
     socket.on('calendario_actualizado', (data) => {
         console.log('🔔 Socket: Calendario actualizado', data);
-        // Si la manicurista está viendo su agenda (misma lógica que cambiarSeccion)
         if (typeof cargarAgenda === 'function') {
-            // Podríamos validar si data.manicurista === window.usuarioEmail, pero cargarAgenda ya filtra.
-            // Simplemente recargamos si está en la sección agenda.
             const seccionActiva = document.querySelector('.content-section.active');
             if (seccionActiva && seccionActiva.id === 'seccion-agenda') {
                 cargarAgenda();

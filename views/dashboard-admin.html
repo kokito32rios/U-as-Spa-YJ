@@ -1528,26 +1528,23 @@
   </div>
 
   <!-- Scripts -->
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="/js/dashboard-admin.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/dashboard-admin.js"></script>
   <script>
-    const socket = io();
-    socket.on('calendario_actualizado', (data) => {
-      // Usar la función global definida en dashboard-admin.js
-      if (typeof cargarAgenda === 'function') {
-        cargarAgenda();
-        Swal.fire({
-          toast: true,
-          position: 'top-end',
-          icon: 'info',
-          title: 'Calendario actualizado',
-          showConfirmButton: false,
-          timer: 3000
-        });
-      }
-    });
+    // Inline script for specific calendar behavior if needed, 
+    // but main logic should be in dashboard-admin.js now.
+    // Keeping this for safety if dashboard-admin.js assumes external socket init for calendar.
+    
+    // Actually, dashboard-admin.js will now initialize 'socket'. 
+    // We can rely on that if we expose it, or just use 'socket' here if it is global.
+    // Better to remove this inline logic if dashboard-admin.js covers it.
+    
+    // However, I added "calendario_actualizado" to dashboard-admin.js in Step 9088.
+    // So this inline script is now REDUNDANT and potentially conflicting (double reload).
+    // I will remove it.
   </script>
 </body>
 
