@@ -3539,9 +3539,9 @@ async function cargarManicuristasGasto() {
         const data = await res.json();
         if (data.success) {
             const select = document.getElementById('gasto-manicurista');
-            // Filtrar manicuristas por rol (id_rol 3 = manicurista según la BD)
+            // Filtrar manicuristas por rol (id_rol 2 = manicurista según el usuario)
             const manicuristas = data.usuarios.filter(u =>
-                u.id_rol === 3 ||
+                u.id_rol === 2 ||
                 (u.rol && u.rol.toLowerCase().includes('manicurista'))
             );
             console.log('Manicuristas encontradas:', manicuristas);
@@ -3783,9 +3783,9 @@ async function cargarManicuristasFiltro() {
 
         if (data.success) {
             const select = document.getElementById('dash-filtro-manicurista');
-            // Filtrar solo manicuristas (id_rol = 3) y activos
+            // Filtrar solo manicuristas (id_rol = 2) y activos
             data.usuarios
-                .filter(u => u.id_rol === 3 && u.activo === 1)
+                .filter(u => u.id_rol === 2 && u.activo === 1)
                 .forEach(m => {
                     const option = document.createElement('option');
                     option.value = m.email;
