@@ -68,6 +68,12 @@ const citasRoutes = require('./routes/citas.routes');
 const reportesRoutes = require('./routes/reportes.routes');
 const horariosRoutes = require('./routes/horarios.routes');
 
+// Middleware para inyectar io en req (DEBE IR ANTES DE LAS RUTAS)
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
 // Usar rutas
 app.use('/api/servicios', serviciosRoutes);
 app.use('/api/catalogo', catalogoRoutes);
@@ -118,11 +124,7 @@ const io = socketIo(server, {
   }
 });
 
-// Middleware para inyectar io en req
-app.use((req, res, next) => {
-  req.io = io;
-  next();
-});
+
 
 // Eventos de conexión
 io.on('connection', (socket) => {
