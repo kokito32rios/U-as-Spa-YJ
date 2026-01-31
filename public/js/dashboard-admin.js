@@ -73,6 +73,16 @@ function mostrarModal(mensaje, tipo = 'info') {
     });
 }
 
+// Helper compatible con llamadas existentes (tipo, emoji, titulo, mensaje)
+function mostrarMensaje(tipo, emoji, titulo, mensaje) {
+    Swal.fire({
+        icon: tipo, // success, error, warning, info
+        title: titulo,
+        html: mensaje,
+        confirmButtonColor: '#3085d6'
+    });
+}
+
 function confirmarAccion(titulo, texto, callback) {
     Swal.fire({
         title: titulo || '¿Estás seguro?',

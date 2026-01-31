@@ -603,10 +603,30 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
         ];
 
         // Obtener hora actual si es hoy
+        // Obtener hora actual si es hoy (Ajustado a Zona Horaria Colombia)
         const hoy = new Date();
-        const fechaHoy = `${hoy.getFullYear()}-${(hoy.getMonth() + 1).toString().padStart(2, '0')}-${hoy.getDate().toString().padStart(2, '0')}`;
-        const esHoy = fecha === fechaHoy;
-        const horaActualMinutos = esHoy ? (hoy.getHours() * 60 + hoy.getMinutes()) : 0;
+        const formatter = new Intl.DateTimeFormat('es-CO', {
+            timeZone: 'America/Bogota',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+
+        const parts = formatter.formatToParts(hoy);
+        const getPart = (type) => parts.find(p => p.type === type).value;
+
+        const anioCO = getPart('year');
+        const mesCO = getPart('month');
+        const diaCO = getPart('day');
+        const horaCO = parseInt(getPart('hour'));
+        const minCO = parseInt(getPart('minute'));
+
+        const fechaHoyCO = `${anioCO}-${mesCO}-${diaCO}`;
+        const esHoy = fecha === fechaHoyCO;
+        const horaActualMinutos = esHoy ? (horaCO * 60 + minCO) : 0;
 
         const horariosDisponibles = [];
         const intervalo = 30;
