@@ -2010,61 +2010,67 @@ async function copiarHorario() {
         return;
     }
 
-    // Definir la acción a ejecutar cuando el usuario confirme en el modal
-    accionPendiente = async () => {
-        try {
-            const response = await fetchConToken('/api/horarios/copiar', {
-                method: 'POST',
-                body: JSON.stringify({
-                    email_origen: horariosManicuristaSeleccionada,
-                    email_destino: destino
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                mostrarMensaje('success', '✓', 'Éxito', data.message);
-                if (horariosManicuristaSeleccionada === destino) {
-                    cargarHorarios();
-                }
-            } else {
-                mostrarMensaje('error', '❌', 'Error', data.message);
-            }
-
-        } catch (error) {
-            console.error('Error al copiar:', error);
-            mostrarMensaje('error', '❌', 'Error', 'Ocurrió un error al intentar copiar el horario');
-        }
-    };
-
-    // Configurar y mostrar el modal de confirmación
     cerrarModalCopiarHorario();
-    document.getElementById('confirm-titulo').textContent = '¿Reemplazar Horario?';
-    document.getElementById('confirm-mensaje').innerHTML = `Esto <strong>eliminará permanentemente</strong> todos los horarios de la manicurista destino y copiará los de la origen.<br>¿Estás seguro?`;
-    document.getElementById('modal-confirmacion').classList.remove('hidden');
+
+    mostrarConfirmacion(
+        '⚠️',
+        '¿Reemplazar Horario?',
+        `Esto <strong>eliminará permanentemente</strong> todos los horarios de la manicurista destino y copiará los de la origen.<br>¿Estás seguro?`,
+        async () => {
+            try {
+                const response = await fetchConToken('/api/horarios/copiar', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email_origen: horariosManicuristaSeleccionada,
+                        email_destino: destino
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    mostrarMensaje('success', '✓', 'Éxito', data.message);
+                    // Solo recargar si estamos viendo a la manicurista destino (que cambió)
+                    // O recargar siempre por seguridad
+                    if (document.getElementById('horarios-manicurista').value === destino) {
+                        cargarHorarios();
+                    }
+                } else {
+                    mostrarMensaje('error', '❌', 'Error', data.message);
+                }
+
+            } catch (error) {
+                console.error('Error al copiar:', error);
+                mostrarMensaje('error', '❌', 'Error', 'Ocurrió un error al intentar copiar el horario');
+            }
+        },
+        true // isDangerous = true (Botón rojo)
+    );
 }
 
 function confirmarEliminarExcepcion(id) {
-    accionPendiente = async () => {
-        try {
-            const response = await fetchConToken(`/api/horarios/excepciones/${id}`, { method: 'DELETE' });
-            const data = await response.json();
+    mostrarConfirmacion(
+        '🗑️',
+        '¿Eliminar excepción?',
+        'Esta acción no se puede deshacer.',
+        async () => {
+            try {
+                const response = await fetchConToken(`/api/horarios/excepciones/${id}`, { method: 'DELETE' });
+                const data = await response.json();
 
-            if (data.success) {
-                mostrarMensaje('success', '✓', 'Éxito', 'Excepción eliminada');
-                cargarHorarios();
-            } else {
-                mostrarMensaje('error', '❌', 'Error', data.message);
+                if (data.success) {
+                    mostrarMensaje('success', '✓', 'Éxito', 'Excepción eliminada');
+                    cargarHorarios();
+                } else {
+                    mostrarMensaje('error', '❌', 'Error', data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarMensaje('error', '❌', 'Error', 'Error al eliminar');
             }
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    };
-
-    document.getElementById('confirm-titulo').textContent = '¿Eliminar excepción?';
-    document.getElementById('confirm-mensaje').textContent = 'Esta acción no se puede deshacer.';
-    document.getElementById('modal-confirmacion').classList.remove('hidden');
+        },
+        true // isDangerous
+    );
 }
 
 // =============================================
