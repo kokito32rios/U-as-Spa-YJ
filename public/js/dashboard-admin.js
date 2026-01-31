@@ -2306,7 +2306,7 @@ function mostrarConfirmacion(icon, titulo, mensaje, onConfirm, isDangerous = fal
     // Setup content
     modal.querySelector('.confirmacion-icon').textContent = icon;
     modal.querySelector('.confirmacion-titulo').textContent = titulo;
-    modal.querySelector('.confirmacion-mensaje').textContent = mensaje;
+    modal.querySelector('.confirmacion-mensaje').innerHTML = mensaje; // Changed from textContent to innerHTML
 
     // Setup actions
     modal.querySelector('.btn-cancelar').onclick = cerrarConfirmacion;
@@ -2752,7 +2752,7 @@ function aplicarFiltrosComisiones() {
 window.aplicarFiltrosComisiones = aplicarFiltrosComisiones;
 
 // Función helper para cambiar vista desde el sidebar
-window.cambiarVistaComisiones = function (vista) {
+function cambiarVistaComisiones(vista) {
     const select = document.getElementById('filtro-comision-tipo');
     if (!select) return;
 
