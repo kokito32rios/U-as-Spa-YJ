@@ -2183,3 +2183,14 @@ textarea.form-input {
   padding: 8px 16px;
   font-size: 0.9rem;
 }
+
+/* Responsive Date Row */
+.responsive-date-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.responsive-filter-container {
+  min-width: unset !important;
+}

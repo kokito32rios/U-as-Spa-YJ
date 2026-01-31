@@ -521,3 +521,11 @@
         width: fit-content;
     }
 }
+
+@media (max-width: 768px) {
+    .responsive-date-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+}
