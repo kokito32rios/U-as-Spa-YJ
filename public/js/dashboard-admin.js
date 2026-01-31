@@ -4468,6 +4468,31 @@ if (typeof socket !== 'undefined') {
         }
     });
 
+    // 5. Citas / Agenda / Agendamiento
+    socket.on('calendario_actualizado', (data) => {
+        console.log('🔔 Socket: Calendario actualizado', data);
+        actualizarDashboardSiVisible();
+
+        // Si estamos en Agendamiento (Tabla)
+        const seccionAgendamiento = document.getElementById('seccion-agendamiento');
+        if ((seccionAgendamiento && seccionAgendamiento.classList.contains('active')) ||
+            document.getElementById('tabla-citas').offsetParent !== null) { // Check visibility
+
+            // Si la función de aplicar filtros existe, usarla para recargar manteniendo filtros
+            if (typeof aplicarFiltros === 'function') {
+                aplicarFiltros();
+            } else if (typeof cargarCitas === 'function') {
+                cargarCitas();
+            }
+        }
+
+        // Si estamos en Agenda (Calendario)
+        const seccionAgenda = document.getElementById('seccion-agenda');
+        if (seccionAgenda && seccionAgenda.classList.contains('active')) {
+            if (typeof cargarAgenda === 'function') cargarAgenda();
+        }
+    });
+
     console.log('🟢 Listeners de Sockets activados en Dashboard Admin');
 }
 // =============================================

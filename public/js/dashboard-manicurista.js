@@ -1317,5 +1317,19 @@ if (typeof socket !== 'undefined') {
         }
     });
 
+    // 3. Agenda / Citas
+    socket.on('calendario_actualizado', (data) => {
+        console.log('🔔 Socket: Calendario actualizado', data);
+        // Si la manicurista está viendo su agenda (misma lógica que cambiarSeccion)
+        if (typeof cargarAgenda === 'function') {
+            // Podríamos validar si data.manicurista === window.usuarioEmail, pero cargarAgenda ya filtra.
+            // Simplemente recargamos si está en la sección agenda.
+            const seccionActiva = document.querySelector('.content-section.active');
+            if (seccionActiva && seccionActiva.id === 'seccion-agenda') {
+                cargarAgenda();
+            }
+        }
+    });
+
     console.log('🟢 Listeners de Sockets activados en Dashboard Manicurista');
 }
