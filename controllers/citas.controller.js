@@ -59,7 +59,8 @@ exports.obtenerCitas = async (req, res) => {
                 c.creado_en,
                 c.email_cliente,
                 ${campoTelefono}, -- Telefono especifico de la cita
-                CONCAT(uc.nombre, ' ', uc.apellido) as nombre_cliente,
+                ${esManicurista ? "'Cliente Reservado' as nombre_cliente" : "CONCAT(uc.nombre, ' ', uc.apellido) as nombre_cliente"},
+                ${campoTelUsuario} as telefono_cliente, -- Telefono del perfil
                 ${campoTelUsuario} as telefono_cliente, -- Telefono del perfil
                 c.email_manicurista,
                 CONCAT(um.nombre, ' ', um.apellido) as nombre_manicurista,
@@ -929,7 +930,7 @@ exports.obtenerCitasAgenda = async (req, res) => {
             c.estado,
             c.notas_cliente,
             c.email_cliente,
-            CONCAT(uc.nombre, ' ', uc.apellido) as nombre_cliente,
+            ${esManicurista ? "'Cliente Reservado' as nombre_cliente" : "CONCAT(uc.nombre, ' ', uc.apellido) as nombre_cliente"},
             ${campoTelUsuario} as telefono_cliente,
             ${campoTelefono} as telefono_contacto,
             c.email_manicurista,
@@ -964,12 +965,16 @@ exports.obtenerCitasAgenda = async (req, res) => {
             if (!cita.nombre_cliente && cita.notas_cliente) {
                 const match = cita.notas_cliente.match(/\[Cliente: (.*?)\]/);
                 if (match) {
-                    cita.nombre_cliente = match[1];
+                    // Si es manicurista, NO mostramos el nombre extraído de la nota
+                    cita.nombre_cliente = esManicurista ? 'Cliente Reservado' : match[1];
                 } else {
-                    cita.nombre_cliente = 'Cliente Anónimo';
+                    cita.nombre_cliente = esManicurista ? 'Cliente Reservado' : 'Cliente Anónimo';
                 }
             } else if (!cita.nombre_cliente) {
-                cita.nombre_cliente = 'Cliente Anónimo';
+                cita.nombre_cliente = esManicurista ? 'Cliente Reservado' : 'Cliente Anónimo';
+            } else if (esManicurista) {
+                // Seguridad extra: si por alguna razón vino con nombre, lo pisamos
+                cita.nombre_cliente = 'Cliente Reservado';
             }
 
             // Normalizar el retorno del telefono (usar el que exista)
