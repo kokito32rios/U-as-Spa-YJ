@@ -172,13 +172,16 @@ exports.crearCita = async (req, res) => {
             });
         }
 
-        // Validar que no sea en el pasado (solo para cerrar huecos obvios)
-        const fechaCita = new Date(`${fecha}T${hora_inicio}`);
+        // Validar que no sea en el pasado (con zona horaria Colombia)
+        // Construimos fecha ISO con offset -05:00 explícito para interpretar correctamente la entrada del usuario
+        const fechaCita = new Date(`${fecha}T${hora_inicio}:00-05:00`);
         const ahora = new Date();
-        if (fechaCita < new Date(ahora.getTime() - 5 * 60000)) {
+
+        // 10 minutos de gracia para evitar bloqueos por latencia o relojes desincronizados
+        if (fechaCita < new Date(ahora.getTime() - 10 * 60000)) {
             return res.status(400).json({
                 success: false,
-                message: 'No se pueden crear citas en el pasado'
+                message: `No se pueden crear citas en el pasado. (Hora actual servidor: ${ahora.toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' })})`
             });
         }
 

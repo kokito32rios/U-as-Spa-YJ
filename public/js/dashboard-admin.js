@@ -120,8 +120,11 @@ function cambiarSeccion(seccion) {
     // Desactivar items del menú
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 
+
     // Lógica especial para 'conciliacion' (es un sub-view de comisiones)
     if (seccion === 'conciliacion') {
+        window.modoAuditoria = true; // Activar flag global
+
         document.getElementById('seccion-comisiones').classList.add('active');
         // Activar item de menú correcto
         const navItem = document.querySelector(`.nav-item[href="#conciliacion"]`);
@@ -131,9 +134,15 @@ function cambiarSeccion(seccion) {
         document.getElementById('section-title').textContent = 'Auditoría de Cuadres';
         cambiarVistaComisiones('conciliacion');
 
+        // Mostrar selector de tipo filtro (Usuario quiere usar rangos)
+        const contenedorFiltro = document.getElementById('container-filtro-tipo');
+        if (contenedorFiltro) contenedorFiltro.style.display = 'block';
+
         // Mostrar botones header adecuados (ninguno extra)
     }
     else {
+        window.modoAuditoria = false; // Desactivar flag
+
         // Mostrar sección seleccionada
         const seccionActiva = document.getElementById(`seccion-${seccion}`);
         if (seccionActiva) {
@@ -147,6 +156,9 @@ function cambiarSeccion(seccion) {
         // Si vamos a comisiones normal, asegurarnos de resetear la vista a default
         if (seccion === 'comisiones') {
             cambiarVistaComisiones('comisiones');
+            // MOSTRAR selector de tipo filtro
+            const contenedorFiltro = document.getElementById('container-filtro-tipo');
+            if (contenedorFiltro) contenedorFiltro.style.display = 'block';
         }
     }
 
@@ -2606,7 +2618,10 @@ function cambiarTipoFiltroComision() {
     const tablaComisiones = document.getElementById('container-tabla-comisiones');
     const tablaConciliacion = document.getElementById('container-tabla-conciliacion');
 
-    if (tipo === 'conciliacion') {
+    // SI ESTAMOS EN MODO AUDITORIA:
+    // Siempre mostrar tabla conciliacion, ocultar comisiones.
+    // IGNORAR el valor del select para ocultar tablas, solo usarlo para mostrar filtros.
+    if (window.modoAuditoria || tipo === 'conciliacion') {
         if (tablaComisiones) tablaComisiones.classList.add('hidden');
         if (tablaConciliacion) tablaConciliacion.classList.remove('hidden');
     } else {
@@ -2739,9 +2754,10 @@ if (document.getElementById('filtro-comision-anio')) {
 // Dispatcher para el botón "Aplicar"
 function aplicarFiltrosComisiones() {
     const tipo = document.getElementById('filtro-comision-tipo').value;
-    console.log('Aplicando filtros. Tipo:', tipo); // DEBUG
+    console.log('Aplicando filtros. Tipo:', tipo, 'Modo Auditoría:', window.modoAuditoria); // DEBUG
 
-    if (tipo === 'conciliacion') {
+    // Si estamos en modo auditoría O seleccionaron explicitamente conciliacion
+    if (window.modoAuditoria || tipo === 'conciliacion') {
         console.log('Cargando conciliación...');
         cargarConciliacion();
     } else {
@@ -2773,11 +2789,29 @@ async function cargarConciliacion() {
     if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando datos...</td></tr>';
 
     try {
+
+        const tipo = document.getElementById('filtro-comision-tipo').value;
         const anio = document.getElementById('filtro-comision-anio').value;
         const mes = document.getElementById('filtro-comision-mes').value;
         const manicurista = document.getElementById('filtro-comision-manicurista').value;
 
         let query = `?anio=${anio}&mes=${mes}`;
+
+        // Agregar lógica de filtros por rango/semana
+        if (tipo === 'semana') {
+            const semanaValue = document.getElementById('filtro-comision-semana').value;
+            if (semanaValue) {
+                const [desde, hasta] = semanaValue.split('|');
+                query = `?desde=${desde}&hasta=${hasta}`; // Reemplazamos params
+            }
+        } else if (tipo === 'rango') {
+            const desde = document.getElementById('filtro-comision-desde').value;
+            const hasta = document.getElementById('filtro-comision-hasta').value;
+            if (desde && hasta) {
+                query = `?desde=${desde}&hasta=${hasta}`; // Reemplazamos params
+            }
+        }
+
         if (manicurista) query += `&manicurista=${manicurista}`;
 
         const response = await fetchConToken(`/api/reportes/admin/conciliacion${query}`);

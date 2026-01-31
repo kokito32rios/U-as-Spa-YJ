@@ -179,18 +179,29 @@ exports.actualizarReporte = async (req, res) => {
 };
 
 // Obtener conciliación (Admin)
+// Obtener conciliación (Admin)
 exports.obtenerConciliacion = async (req, res) => {
     try {
-        const { anio, mes, manicurista } = req.query;
+        const { anio, mes, manicurista, desde, hasta } = req.query;
 
-        // Validar parámetros
-        if (!anio || !mes) {
-            return res.status(400).json({ success: false, message: 'Año y mes son requeridos' });
+        // Validar parámetros (Flexibilidad: requerimos anio+mes O desde+hasta)
+        if ((!anio || !mes) && (!desde || !hasta)) {
+            return res.status(400).json({ success: false, message: 'Se requiere Año/Mes o Rango de Fechas' });
         }
 
         // Params array for queries
-        const params = [anio, mes];
+        const params = [];
+        let whereFecha = '';
         let whereManicurista = '';
+
+        // Construir filtro de fecha
+        if (desde && hasta) {
+            whereFecha = 'DATE(fecha) BETWEEN ? AND ?';
+            params.push(desde, hasta);
+        } else {
+            whereFecha = 'YEAR(fecha) = ? AND MONTH(fecha) = ?';
+            params.push(anio, mes);
+        }
 
         if (manicurista) {
             whereManicurista = ' AND email_manicurista = ?';
@@ -204,12 +215,15 @@ exports.obtenerConciliacion = async (req, res) => {
                 email_manicurista, 
                 SUM(valor_reportado) as total_reportado
             FROM reportes_manicurista
-            WHERE YEAR(fecha) = ? AND MONTH(fecha) = ? ${whereManicurista}
+            WHERE ${whereFecha} ${whereManicurista}
             GROUP BY fecha, email_manicurista
         `;
-        const [reportes] = await db.query(queryReportes, params);
+        // Clonar params para la segunda query
+        const paramsReportes = [...params];
+        const [reportes] = await db.query(queryReportes, paramsReportes);
 
         // 2. Obtener Ventas del Sistema (Citas completadas)
+        // NOTA: Para el sistema usamos los mismos params
         const querySistema = `
             SELECT 
                 DATE(fecha) as fecha, 
@@ -217,10 +231,11 @@ exports.obtenerConciliacion = async (req, res) => {
                 SUM(precio) as total_sistema,
                 (SELECT CONCAT(nombre, ' ', apellido) FROM usuarios u WHERE u.email = c.email_manicurista) as nombre_manicurista
             FROM citas c
-            WHERE YEAR(fecha) = ? AND MONTH(fecha) = ? AND estado = 'completada' ${whereManicurista}
+            WHERE ${whereFecha} AND estado = 'completada' ${whereManicurista}
             GROUP BY DATE(fecha), email_manicurista
         `;
-        const [sistema] = await db.query(querySistema, params);
+        const paramsSistema = [...params];
+        const [sistema] = await db.query(querySistema, paramsSistema);
 
         // 3. Unificar datos (Full Outer Join simulado)
         // Crear un mapa único por clave "fecha_email"
