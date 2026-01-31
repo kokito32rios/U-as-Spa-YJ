@@ -88,6 +88,14 @@ exports.crearGasto = async (req, res) => {
             VALUES (?, ?, ?, ?, ?)
         `, [descripcion, monto, tipo, email_manicurista || null, fecha_gasto || new Date()]);
 
+        // Emitir evento Socket.IO
+        if (req.io) {
+            req.io.emit('gastos_actualizados', {
+                email_manicurista: email_manicurista || null,
+                mensaje: 'Nuevo gasto registrado'
+            });
+        }
+
         res.json({
             success: true,
             message: 'Gasto registrado correctamente',
@@ -147,6 +155,14 @@ exports.actualizarGasto = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Gasto no encontrado' });
         }
 
+        // Emitir evento Socket.IO
+        if (req.io) {
+            req.io.emit('gastos_actualizados', {
+                email_manicurista: email_manicurista || null,
+                mensaje: 'Gasto actualizado'
+            });
+        }
+
         res.json({ success: true, message: 'Gasto actualizado correctamente' });
 
     } catch (error) {
@@ -166,6 +182,13 @@ exports.eliminarGasto = async (req, res) => {
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Gasto no encontrado' });
+        }
+
+        // Emitir evento Socket.IO
+        if (req.io) {
+            req.io.emit('gastos_actualizados', {
+                mensaje: 'Gasto eliminado'
+            });
         }
 
         res.json({ success: true, message: 'Gasto eliminado correctamente' });

@@ -20,6 +20,14 @@ exports.crearReporte = async (req, res) => {
 
         await db.query(query, [email_manicurista, descripcion, valor]);
 
+        // Emitir evento Socket.IO
+        if (req.io) {
+            req.io.emit('reporte_actualizado', {
+                email_manicurista,
+                mensaje: 'Nuevo reporte diario'
+            });
+        }
+
         res.json({ success: true, message: 'Reporte registrado exitosamente' });
 
     } catch (error) {
@@ -129,6 +137,14 @@ exports.eliminarReporte = async (req, res) => {
 
         await db.query('DELETE FROM reportes_manicurista WHERE id_reporte = ?', [id]);
 
+        // Emitir evento Socket.IO
+        if (req.io) {
+            req.io.emit('reporte_actualizado', {
+                email_manicurista,
+                mensaje: 'Reporte eliminado'
+            });
+        }
+
         res.json({ success: true, message: 'Reporte eliminado' });
 
     } catch (error) {
@@ -169,6 +185,14 @@ exports.actualizarReporte = async (req, res) => {
         `;
 
         await db.query(updateQuery, [descripcion, valor, fecha, id]);
+
+        // Emitir evento Socket.IO
+        if (req.io) {
+            req.io.emit('reporte_actualizado', {
+                email_manicurista,
+                mensaje: 'Reporte actualizado'
+            });
+        }
 
         res.json({ success: true, message: 'Reporte actualizado exitosamente' });
 

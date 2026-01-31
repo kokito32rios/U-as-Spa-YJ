@@ -1284,3 +1284,38 @@ window.cambiarSeccion = function (seccion) {
         }
     }
 }
+
+// =============================================
+// SOCKET.IO LISTENERS (Actualización en Vivo)
+// =============================================
+if (typeof socket !== 'undefined') {
+    // 1. Comisiones y Deducciones
+    socket.on('comisiones_actualizadas', (data) => {
+        console.log('🔔 Socket: Comisiones actualizadas', data);
+        // Solo recargar si estamos en la sección de comisiones
+        const seccionActiva = document.querySelector('.content-section.active');
+        if (seccionActiva && seccionActiva.id === 'seccion-comisiones') {
+            cargarComisiones();
+        }
+    });
+
+    socket.on('gastos_actualizados', (data) => {
+        console.log('🔔 Socket: Gastos actualizados', data);
+        // Los gastos pueden ser deducciones que afectan comisiones
+        const seccionActiva = document.querySelector('.content-section.active');
+        if (seccionActiva && seccionActiva.id === 'seccion-comisiones') {
+            cargarComisiones();
+        }
+    });
+
+    // 2. Cuadre Diario (Reportes)
+    socket.on('reporte_actualizado', (data) => {
+        console.log('🔔 Socket: Reporte actualizado', data);
+        const seccionActiva = document.querySelector('.content-section.active');
+        if (seccionActiva && seccionActiva.id === 'seccion-cuadre') {
+            cargarReportes();
+        }
+    });
+
+    console.log('🟢 Listeners de Sockets activados en Dashboard Manicurista');
+}

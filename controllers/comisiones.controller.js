@@ -253,6 +253,14 @@ exports.registrarPago = async (req, res) => {
             await connection.commit();
             connection.release();
 
+            // Emitir evento Socket.IO
+            if (req.io) {
+                req.io.emit('comisiones_actualizadas', {
+                    email_manicurista,
+                    mensaje: 'Pago registrado'
+                });
+            }
+
             res.json({ success: true, message: 'Pago registrado exitosamente' });
 
         } catch (error) {
@@ -293,6 +301,13 @@ exports.revertirPago = async (req, res) => {
 
             await connection.commit();
             connection.release();
+
+            // Emitir evento Socket.IO
+            if (req.io) {
+                req.io.emit('comisiones_actualizadas', {
+                    mensaje: 'Pago revertido'
+                });
+            }
 
             res.json({ success: true, message: 'Pago revertido correctamente' });
 

@@ -4400,6 +4400,76 @@ window.addEventListener('resize', () => {
         cargarAgenda();
     }
 });
+
+// =============================================
+// SOCKET.IO LISTENERS (Actualización en Vivo Admin)
+// =============================================
+if (typeof socket !== 'undefined') {
+    // 1. Recargar Dashboard General (Métricas)
+    // Se dispara con casi cualquier evento financiero
+    function actualizarDashboardSiVisible() {
+        const seccionPanel = document.getElementById('seccion-dashboard');
+        if (seccionPanel && seccionPanel.classList.contains('active')) {
+            cargarDashboard();
+        }
+    }
+
+    // 2. Comisiones
+    socket.on('comisiones_actualizadas', (data) => {
+        console.log('🔔 Socket: Comisiones actualizadas', data);
+        actualizarDashboardSiVisible();
+
+        // Si estamos en seccion comisiones
+        const seccionComisiones = document.getElementById('seccion-comisiones');
+        if (seccionComisiones && seccionComisiones.classList.contains('active')) {
+            if (typeof aplicarFiltrosComisiones === 'function') aplicarFiltrosComisiones();
+        }
+
+        // Si estamos en auditoría (conciliación)
+        const seccionConciliacion = document.getElementById('seccion-conciliacion');
+        if (seccionConciliacion && seccionConciliacion.classList.contains('active')) {
+            if (typeof cargarConciliacion === 'function') cargarConciliacion();
+        }
+    });
+
+    // 3. Gastos (incluye deducciones)
+    socket.on('gastos_actualizados', (data) => {
+        console.log('🔔 Socket: Gastos actualizados', data);
+        actualizarDashboardSiVisible();
+
+        // Si estamos en seccion comisiones (por deducciones)
+        const seccionComisiones = document.getElementById('seccion-comisiones');
+        if (seccionComisiones && seccionComisiones.classList.contains('active')) {
+            if (typeof aplicarFiltrosComisiones === 'function') aplicarFiltrosComisiones();
+        }
+
+        // Si estamos en seccion gastos
+        const seccionGastos = document.getElementById('seccion-gastos');
+        if (seccionGastos && seccionGastos.classList.contains('active')) {
+            // Intentar cargar gastos si la funcion existe, sino reload parcial
+            if (typeof cargarGastosTabla === 'function') cargarGastosTabla();
+            else if (typeof cargarGastos === 'function') cargarGastos();
+        }
+
+        // Si estamos en auditoría
+        const seccionConciliacion = document.getElementById('seccion-conciliacion');
+        if (seccionConciliacion && seccionConciliacion.classList.contains('active')) {
+            if (typeof cargarConciliacion === 'function') cargarConciliacion();
+        }
+    });
+
+    // 4. Reportes (Cuadre Diario)
+    socket.on('reporte_actualizado', (data) => {
+        console.log('🔔 Socket: Reporte actualizado', data);
+        // Auditoría se alimenta de esto
+        const seccionConciliacion = document.getElementById('seccion-conciliacion');
+        if (seccionConciliacion && seccionConciliacion.classList.contains('active')) {
+            if (typeof cargarConciliacion === 'function') cargarConciliacion();
+        }
+    });
+
+    console.log('🟢 Listeners de Sockets activados en Dashboard Admin');
+}
 // =============================================
 // LOGICA DE CONCILIACIÓN
 // =============================================
