@@ -156,62 +156,29 @@ function crearTarjetaCita(cita, esActiva) {
 // =============================================
 // WA CANCELLATION
 // =============================================
+// =============================================
+// WA CANCELLATION (SOLICITUD)
+// =============================================
 async function cancelarCitaWhatsApp(id, servicio, fecha, hora, manicurista) {
     const result = await Swal.fire({
-        title: '¿Deseas cancelar?',
-        text: "La cita se marcará como cancelada en el sistema. Si deseas reagendar, puedes hacerlo después o contactarnos.",
-        icon: 'warning',
+        title: 'Solicitar Cancelación',
+        text: "Para cancelar o reagendar tu cita, por favor comunícate directamente con nosotros vía WhatsApp.",
+        icon: 'info',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sí, cancelar cita',
-        cancelButtonText: 'No, mantener'
+        confirmButtonColor: '#25D366', // WhatsApp Green
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fab fa-whatsapp"></i> Ir a WhatsApp',
+        cancelButtonText: 'Volver'
     });
 
     if (result.isConfirmed) {
-        // 1. Cancelar en el sistema
-        try {
-            Swal.fire({ title: 'Cancelando...', didOpen: () => Swal.showLoading() });
+        const numeroAdmin = "573042754182"; // Número del Spa
+        const nombreCliente = document.getElementById('user-name').textContent || 'Cliente';
 
-            const response = await fetch(`/api/citas/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({ estado: 'cancelada' })
-            });
+        const mensaje = `Hola, soy ${nombreCliente}. Quisiera cancelar o reagendar mi cita de *${servicio}* programada para el *${fecha} a las ${hora}* con *${manicurista}*.`;
 
-            const data = await response.json();
-
-            if (data.success) {
-                // 2. Opción de WhatsApp
-                const waResult = await Swal.fire({
-                    title: '¡Cita Cancelada!',
-                    text: '¿Deseas escribirnos por WhatsApp para reagendar?',
-                    icon: 'success',
-                    showCancelButton: true,
-                    confirmButtonText: 'Sí, ir a WhatsApp',
-                    cancelButtonText: 'No, gracias'
-                });
-
-                if (waResult.isConfirmed) {
-                    const numeroAdmin = "573042754182";
-                    const mensaje = `Hola, soy ${document.getElementById('user-name').textContent}. He cancelado mi cita de *${servicio}* del *${fecha} a las ${hora}*. Quisiera reagendar.`;
-                    const url = `https://wa.me/${numeroAdmin}?text=${encodeURIComponent(mensaje)}`;
-                    window.open(url, '_blank');
-                }
-
-                // Recargar lista (aunque el socket debería hacerlo también)
-                cargarMisCitas();
-
-            } else {
-                Swal.fire('Error', data.message || 'No se pudo cancelar', 'error');
-            }
-        } catch (error) {
-            console.error(error);
-            Swal.fire('Error', 'Hubo un problema de conexión', 'error');
-        }
+        const url = `https://wa.me/${numeroAdmin}?text=${encodeURIComponent(mensaje)}`;
+        window.open(url, '_blank');
     }
 }
 
