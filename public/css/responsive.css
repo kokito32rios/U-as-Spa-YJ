@@ -334,15 +334,29 @@
     }
 
     /* Calendario responsive */
-    .calendario-grid,
-    .calendario-mensual-grid {
+    /* Weekly Grid (Block/Flex based) */
+    .calendario-grid {
         display: block !important;
         overflow-x: auto;
     }
 
-    .calendario-grid>*,
-    .calendario-mensual-grid {
+    .calendario-grid>* {
         min-width: 600px;
+    }
+
+    /* Monthly Grid (Grid based) */
+    /* Wrapper container needs overflow */
+    #calendario-mensual {
+        overflow-x: auto;
+        display: block;
+        /* Ensure it behaves as a block container for scrolling */
+    }
+
+    /* Grid itself needs min-width but MUST stay grid */
+    .calendario-mensual-grid {
+        display: grid !important;
+        min-width: 700px;
+        /* Force scroll trigger */
     }
 }
 
