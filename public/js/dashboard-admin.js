@@ -1470,7 +1470,7 @@ function renderizarVistaSemanal() {
                              onclick="event.stopPropagation(); editarCita(${cita.id_cita})">
                             <div class="cita-hora">${cita.hora_inicio.substring(0, 5)} - ${cita.hora_fin.substring(0, 5)}</div>
                             <div class="cita-manicurista" style="font-size: 0.8em; font-weight: bold;">💅 ${cita.nombre_manicurista.split(' ')[0]}</div>
-                            <div class="cita-cliente">${cita.nombre_cliente.split(' ')[0]}</div>
+                            <div class="cita-cliente">${cita.nombre_cliente}</div>
                             ${telefonoDisplay ? `<div class="cita-telefono" style="font-size:0.75em">📞 ${telefonoDisplay}</div>` : ''}
                             ${esCorta ? '' : `<div class="cita-servicio">${cita.nombre_servicio}</div>`}
                         </div>
