@@ -1526,8 +1526,8 @@ function renderizarVistaMensual() {
         const fechaStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}`;
         const esHoy = fechaStr === hoyStr ? 'es-hoy' : '';
 
-        // Contar citas del día
-        const citasDelDia = agendaDatos.citas.filter(c => c.fecha.split('T')[0] === fechaStr);
+        // Contar citas del día (excluyendo canceladas)
+        const citasDelDia = agendaDatos.citas.filter(c => c.fecha.split('T')[0] === fechaStr && c.estado !== 'cancelada');
         const numCitas = citasDelDia.length;
 
         html += `
