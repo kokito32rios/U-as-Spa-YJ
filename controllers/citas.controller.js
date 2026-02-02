@@ -68,7 +68,8 @@ exports.obtenerCitas = async (req, res) => {
                 s.nombre as nombre_servicio,
                 s.precio as precio_servicio,
                 s.duracion_minutos,
-                p.metodo_pago_cliente
+                p.metodo_pago_cliente,
+                c.nombre_cliente as nombre_manual -- Campo directo
             FROM citas c
             LEFT JOIN usuarios uc ON c.email_cliente = uc.email
             INNER JOIN usuarios um ON c.email_manicurista = um.email
@@ -105,14 +106,40 @@ exports.obtenerCitas = async (req, res) => {
 
         const [citas] = await db.query(query, params);
 
-        // Limpieza extra de notas para manicuristas (eliminar [Tel: ...])
-        if (esManicurista) {
-            citas.forEach(c => {
+        // Limpieza y logica de nombres
+        citas.forEach(c => {
+            // Prioridad: 1. Usuario registrado. 2. Nombre manual. 3. "Cliente Anónimo"
+            // NOTA: 'nombre_cliente' viene del query original como el CONCAT del usuario
+            // Pero ese CONCAT es null si no hay usuario.
+            // Vamos a re-mapear para ser claros.
+
+            // En el query de arriba, NO cambiamos la proyección original de 'nombre_cliente' (línea 62 aprox) 
+            // para no romper frontends que esperan 'nombre_cliente' como el del usuario.
+            // PERO necesitamos inyectar la lógica aquí o en SQL.
+            // Haremos un override en JS para flexibilidad.
+
+            // Revisar query original arriba:
+            // ${esManicurista ? "'Cliente Reservado' as nombre_cliente" : "CONCAT(uc.nombre, ' ', uc.apellido) as nombre_cliente"},
+
+            // Si el query devuelve NULL en nombre_cliente (porque no hay usuario), usamos nombre_manual.
+            if (!c.nombre_cliente && c.nombre_manual) {
+                c.nombre_cliente = c.nombre_manual;
+            } else if (!c.nombre_cliente) {
+                c.nombre_cliente = 'Cliente Anónimo';
+            }
+
+            if (esManicurista) {
                 if (c.notas_cliente) {
                     c.notas_cliente = c.notas_cliente.replace(/\[Tel: .*?\]/g, '').trim();
                 }
-            });
-        }
+                // Manicurista siempre ve "Cliente Reservado" si así lo define la regla, 
+                // o ve el nombre si la regla de privacidad lo permite.
+                // El código original forzaba 'Cliente Reservado'.
+                // Mantendremos esa lógica si es lo deseado, pero el user pidió ver nombres.
+                // Asumo que ADMIN quiere ver nombres siempre. Manicurista tal vez.
+                // El código original tenía un ternario en SQL.
+            }
+        });
 
         res.json({
             success: true,
@@ -146,7 +173,8 @@ exports.crearCita = async (req, res) => {
             fecha,
             hora_inicio,
             notas_cliente,
-            telefono_contacto
+            telefono_contacto,
+            nombre_cliente // Nuevo campo
         } = req.body;
 
         // Auto-fill telefono si es cliente y no lo envió
@@ -249,8 +277,9 @@ exports.crearCita = async (req, res) => {
                 estado,
                 precio,
                 notas_cliente,
-                telefono_contacto
-            ) VALUES (?, ?, ?, ?, ?, ?, 'pendiente', ?, ?, ?)
+                telefono_contacto,
+                nombre_cliente
+            ) VALUES (?, ?, ?, ?, ?, ?, 'pendiente', ?, ?, ?, ?)
         `, [
             email_cliente || null,
             email_manicurista,
@@ -260,7 +289,8 @@ exports.crearCita = async (req, res) => {
             horaFin,
             req.body.precio || 0,
             notas_cliente || null,
-            telefono_contacto || null
+            telefono_contacto || null,
+            nombre_cliente || null
         ]);
 
         // Emitir evento de Socket.IO
@@ -303,7 +333,8 @@ exports.actualizarCita = async (req, res) => {
             estado,
             notas_cliente,
             notas_manicurista,
-            telefono_contacto // Nuevo campo
+            telefono_contacto,
+            nombre_cliente // Nuevo campo
         } = req.body;
 
         // Si se cambian datos de horario, recalcular hora_fin
@@ -378,6 +409,10 @@ exports.actualizarCita = async (req, res) => {
         if (telefono_contacto !== undefined) {
             updates.push('telefono_contacto = ?');
             params.push(telefono_contacto || null);
+        }
+        if (nombre_cliente !== undefined) {
+            updates.push('nombre_cliente = ?');
+            params.push(nombre_cliente || null);
         }
 
         query += updates.join(', ') + ' WHERE id_cita = ?';

@@ -515,28 +515,25 @@ async function guardarCita() {
     // Lo tratamos como "Cliente Invitado" y lo guardamos en las notas.
 
     let emailFinal = clienteEncontrado ? clienteEncontrado.email : null;
+    let nombreFinal = clienteEncontrado ? clienteEncontrado.nombre_completo : nombreCliente;
     let notasRaw = document.getElementById('cita-notas-cliente').value || '';
-    let notasFinal = notasRaw;
 
-    // Validar si el cliente es nulo (permitido ahora)
-    if (!emailFinal && nombreCliente) {
-        // Si escribió un nombre pero no seleccionó de la lista, lo guardamos en notas
-        notasFinal = `[Cliente: ${nombreCliente}] ${notasRaw}`;
-    } else if (!emailFinal) {
-        // Nada, es anónimo total
-        notasFinal = `[Cliente: Anónimo] ${notasRaw}`;
+    // Si no hay email ni nombre, es anónimo
+    if (!emailFinal && !nombreFinal) {
+        nombreFinal = 'Cliente Anónimo';
     }
 
     const datos = {
         email_cliente: emailFinal, // null si es invitado
-        telefono_contacto: document.getElementById('cita-telefono').value, // Nuevo campo
+        nombre_cliente: nombreFinal, // Nuevo campo para guardar el nombre real/manual
+        telefono_contacto: document.getElementById('cita-telefono').value,
         email_manicurista: document.getElementById('cita-manicurista').value,
         id_servicio: document.getElementById('cita-servicio').value,
         duracion: document.getElementById('cita-duracion').value,
         precio: document.getElementById('cita-precio').value,
         fecha: document.getElementById('cita-fecha').value,
         hora_inicio: hora + ':00',
-        notas_cliente: notasFinal
+        notas_cliente: notasRaw
     };
 
     // Si es edición
