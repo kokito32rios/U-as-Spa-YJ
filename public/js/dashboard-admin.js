@@ -1901,25 +1901,22 @@ async function toggleHorarioActivo(id, nuevoEstado) {
 }
 
 function confirmarEliminarHorario(id) {
-    accionPendiente = async () => {
+    confirmarAccion('¿Eliminar horario?', 'Esta acción no se puede deshacer.', async () => {
         try {
             const response = await fetchConToken(`/api/horarios/${id}`, { method: 'DELETE' });
             const data = await response.json();
 
             if (data.success) {
                 mostrarMensaje('success', '✓', 'Éxito', 'Horario eliminado');
-                cargarHorarios();
+                cargarHorarios(); // Refrescar la lista
             } else {
                 mostrarMensaje('error', '❌', 'Error', data.message);
             }
         } catch (error) {
             console.error('Error:', error);
+            mostrarMensaje('error', '❌', 'Error', 'Error de conexión');
         }
-    };
-
-    document.getElementById('confirm-titulo').textContent = '¿Eliminar horario?';
-    document.getElementById('confirm-mensaje').textContent = 'Esta acción no se puede deshacer.';
-    document.getElementById('modal-confirmacion').classList.remove('hidden');
+    });
 }
 
 // =============================================
