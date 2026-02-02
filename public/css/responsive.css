@@ -334,12 +334,14 @@
     }
 
     /* Calendario responsive */
-    .calendario-grid {
+    .calendario-grid,
+    .calendario-mensual-grid {
         display: block !important;
         overflow-x: auto;
     }
 
-    .calendario-grid>* {
+    .calendario-grid>*,
+    .calendario-mensual-grid {
         min-width: 600px;
     }
 }
