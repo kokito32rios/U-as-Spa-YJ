@@ -523,6 +523,9 @@ async function guardarCita() {
         nombreFinal = 'Cliente Anónimo';
     }
 
+    // DEBUG: Verificar qué nombre está saliendo
+    alert(`DEBUG: Nombre Final: "${nombreFinal}" | Input: "${nombreCliente}"`);
+
     const datos = {
         email_cliente: emailFinal, // null si es invitado
         nombre_cliente: nombreFinal, // Nuevo campo para guardar el nombre real/manual
