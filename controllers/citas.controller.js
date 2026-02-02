@@ -966,6 +966,7 @@ exports.obtenerCitasAgenda = async (req, res) => {
             c.notas_cliente,
             c.email_cliente,
             ${esManicurista ? "'Cliente Reservado' as nombre_cliente" : "CONCAT(uc.nombre, ' ', uc.apellido) as nombre_cliente"},
+            c.nombre_cliente as nombre_manual,
             ${campoTelUsuario} as telefono_cliente,
             ${campoTelefono} as telefono_contacto,
             c.email_manicurista,
@@ -997,12 +998,24 @@ exports.obtenerCitasAgenda = async (req, res) => {
 
         // Procesar citas para extraer nombres... y limpiar teléfonos en notas
         const citasProcesadas = citas.map(cita => {
+            // Lógica de prioridad de nombre: 1. Usuario Registrado  2. Nombre Manual  3. Legacy Notas  4. Anónimo/Reservado
+
+            // Si es manicurista, SIEMPRE ocultamos nombres (excepto si queremos permitir ver manuales? No, el usuario dijo "restriccion solo para manicuristas")
+            // Así que si es manicurista, mantenemos 'Cliente Reservado' (que ya viene de la query como nombre_cliente).
+            // Pero si es ADMIN (no esManicurista):
+
+            if (!esManicurista) {
+                if (!cita.nombre_cliente && cita.nombre_manual) {
+                    cita.nombre_cliente = cita.nombre_manual;
+                }
+            }
+
             if (!cita.nombre_cliente && cita.notas_cliente) {
                 const match = cita.notas_cliente.match(/\[Cliente: (.*?)\]/);
                 if (match) {
                     // Si es manicurista, NO mostramos el nombre extraído de la nota
                     cita.nombre_cliente = esManicurista ? 'Cliente Reservado' : match[1];
-                } else {
+                } else if (!cita.nombre_cliente) { // Solo si aun es null
                     cita.nombre_cliente = esManicurista ? 'Cliente Reservado' : 'Cliente Anónimo';
                 }
             } else if (!cita.nombre_cliente) {
