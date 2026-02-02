@@ -1182,7 +1182,11 @@ async function cargarAgenda() {
         }
 
         loader.classList.add('hidden');
-        gridSemanal.classList.remove('hidden');
+        if (agendaVistaActual === 'semanal') {
+            gridSemanal.classList.remove('hidden');
+        } else {
+            document.getElementById('calendario-mensual-grid').classList.remove('hidden');
+        }
 
     } catch (error) {
         console.error('Error cargando agenda:', error);
@@ -1492,6 +1496,13 @@ function renderizarVistaSemanal() {
 // =============================================
 function renderizarVistaMensual() {
     const grid = document.getElementById('calendario-mensual-grid');
+
+    // LIMPIEZA MÓVIL: Si venimos de la vista semanal móvil, limpiar el contenedor móvil
+    const mobileView = document.getElementById('agenda-mobile-view');
+    if (mobileView) mobileView.remove();
+
+    // Asegurar que el grid está visible (aunque cargarAgenda lo hace, doble seguridad)
+    grid.classList.remove('hidden');
     const year = agendaFechaActual.getFullYear();
     const month = agendaFechaActual.getMonth();
     const hoy = new Date();
