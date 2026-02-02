@@ -524,7 +524,7 @@ async function guardarCita() {
     }
 
     // DEBUG: Verificar qué nombre está saliendo
-    alert(`DEBUG: Nombre Final: "${nombreFinal}" | Input: "${nombreCliente}"`);
+    // alert(`DEBUG: Nombre Final: "${nombreFinal}" | Input: "${nombreCliente}"`);
 
     const datos = {
         email_cliente: emailFinal, // null si es invitado
@@ -781,8 +781,8 @@ function cerrarModalMensaje() {
 // =============================================
 async function editarCita(idCita) {
     try {
-        // Obtener datos de la cita
-        const response = await fetchConToken('/api/citas');
+        // Obtener datos de la cita (Forzando no-cache para asegurar nombre manual reciente)
+        const response = await fetchConToken(`/api/citas?_t=${Date.now()}`);
         const data = await response.json();
 
         const cita = data.citas.find(c => c.id_cita === idCita);
