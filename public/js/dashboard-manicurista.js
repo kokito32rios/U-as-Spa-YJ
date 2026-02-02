@@ -1335,3 +1335,87 @@ if (socket) {
 
     console.log('🟢 Listeners de Sockets activados en Dashboard Manicurista');
 }
+
+// =============================================
+// MOSTRAR DETALLE CITA (Manicurista)
+// =============================================
+window.mostrarDetalleCita = function (cita) {
+    const horaInicio = cita.hora_inicio.substring(0, 5);
+    const horaFin = cita.hora_fin.substring(0, 5);
+
+    // Determinar nombre a mostrar (Prioridad: Cliente registrado > Manual > Anónimo)
+    // Nota: El backend ya hace esta lógica y lo devuelve en 'cita.nombre_cliente'
+    // Pero por seguridad visualizamos lo que llegue.
+    const clienteNombre = cita.nombre_cliente || 'Cliente Anónimo';
+    const notas = cita.notas_cliente || 'Sin notas';
+
+    // Generar botones de acción según estado
+    let botonesHtml = '';
+
+    // Solo permitir acciones si no es pasado (opcional, pero buena UX)
+    // Dejamos flexible por ahora.
+
+    if (cita.estado === 'pendiente') {
+        botonesHtml = `
+            <button onclick="actualizarEstadoCita(${cita.id_cita}, 'confirmada')" class="swal2-confirm swal2-styled" style="background-color: #17a2b8;">Confirmar</button>
+            <button onclick="actualizarEstadoCita(${cita.id_cita}, 'cancelada')" class="swal2-cancel swal2-styled" style="background-color: #dc3545;">Cancelar</button>
+        `;
+    } else if (cita.estado === 'confirmada') {
+        botonesHtml = `
+            <button onclick="actualizarEstadoCita(${cita.id_cita}, 'completada')" class="swal2-confirm swal2-styled" style="background-color: #28a745;">Completar</button>
+            <button onclick="actualizarEstadoCita(${cita.id_cita}, 'cancelada')" class="swal2-cancel swal2-styled" style="background-color: #dc3545;">Cancelar</button>
+        `;
+    }
+
+    Swal.fire({
+        title: `Detalle de Cita`,
+        html: `
+            <div style="text-align: left; margin-bottom: 1em;">
+                <p><strong>Hora:</strong> ${horaInicio} - ${horaFin}</p>
+                <p><strong>Cliente:</strong> ${clienteNombre}</p>
+                <p><strong>Servicio:</strong> ${cita.nombre_servicio}</p>
+                <p><strong>Teléfono:</strong> ${cita.telefono_cliente || cita.telefono_contacto_visible || '-'}</p>
+                <p><strong>Notas:</strong> ${notas}</p>
+                <p><strong>Estado:</strong> <span class="badge badge-${cita.estado}">${cita.estado.toUpperCase()}</span></p>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                ${botonesHtml}
+                <button onclick="Swal.close()" class="swal2-deny swal2-styled" style="background-color: #6c757d;">Cerrar</button>
+            </div>
+        `,
+        showConfirmButton: false
+    });
+}
+
+// Helper para actualizar estado
+window.actualizarEstadoCita = async function (idCita, nuevoEstado) {
+    try {
+        const token = localStorage.getItem('token');
+        // ENVIAMOS SOLO EL ESTADO. 
+        // El backend mantendra el nombre_cliente existente (porque no enviamos ese campo).
+        const response = await fetch(`/api/citas/${idCita}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.close();
+            mostrarModal(`Cita ${nuevoEstado} correctamente`, 'success');
+            // Recargar datos
+            if (typeof cargarAgenda === 'function') {
+                cargarAgenda();
+            }
+        } else {
+            mostrarModal(data.message || 'Error al actualizar', 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        mostrarModal('Error de conexión', 'error');
+    }
+}
