@@ -536,12 +536,13 @@ async function guardarCita() {
         precio: document.getElementById('cita-precio').value,
         fecha: document.getElementById('cita-fecha').value,
         hora_inicio: hora + ':00',
-        notas_cliente: notasRaw
+        notas_cliente: notasRaw,
+        estado: document.getElementById('cita-estado').value // Enviar estado siempre
     };
 
     // Si es edición
     if (id) {
-        datos.estado = document.getElementById('cita-estado').value;
+        // datos.estado ya se asignó arriba
         datos.notas_manicurista = document.getElementById('cita-notas-manicurista').value;
 
         // Si estado = completada, requerir método de pago

@@ -174,8 +174,17 @@ exports.crearCita = async (req, res) => {
             hora_inicio,
             notas_cliente,
             telefono_contacto,
-            nombre_cliente // Nuevo campo
+            nombre_cliente, // Nuevo campo
+            estado // Extraer estado (opcional)
         } = req.body;
+
+        // Validar Estado Inicial (si se envía)
+        const estadosValidos = ['pendiente', 'confirmada', 'completada', 'cancelada', 'no_asistio'];
+        let estadoFinal = 'pendiente';
+
+        if (estado && estadosValidos.includes(estado)) {
+            estadoFinal = estado;
+        }
 
         // Auto-fill telefono si es cliente y no lo envió
         if (req.usuario && req.usuario.nombre_rol === 'cliente' && !telefono_contacto) {
@@ -282,7 +291,7 @@ exports.crearCita = async (req, res) => {
                 notas_cliente,
                 telefono_contacto,
                 nombre_cliente
-            ) VALUES (?, ?, ?, ?, ?, ?, 'pendiente', ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             email_cliente || null,
             email_manicurista,
@@ -290,6 +299,7 @@ exports.crearCita = async (req, res) => {
             fecha,
             hora_inicio,
             horaFin,
+            estadoFinal, // Usar variable estadoFinal
             req.body.precio || 0,
             notas_cliente || null,
             telefono_contacto || null,
