@@ -207,7 +207,10 @@ exports.crearCita = async (req, res) => {
         const ahora = new Date();
 
         // 10 minutos de gracia para evitar bloqueos por latencia o relojes desincronizados
-        if (fechaCita < new Date(ahora.getTime() - 10 * 60000)) {
+        // PERMITIR si es ADMIN (para cuadre de caja o auditoría)
+        const esAdmin = req.usuario && req.usuario.nombre_rol === 'admin';
+
+        if (!esAdmin && fechaCita < new Date(ahora.getTime() - 10 * 60000)) {
             return res.status(400).json({
                 success: false,
                 message: `No se pueden crear citas en el pasado. (Hora actual servidor: ${ahora.toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' })})`

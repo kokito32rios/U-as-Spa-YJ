@@ -348,9 +348,9 @@ async function abrirModalNuevaCita() {
     await cargarManicuristas();
     await cargarServiciosSelect();
 
-    // Establecer fecha mínima (hoy)
-    const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('cita-fecha').min = hoy;
+    // Establecer fecha mínima (hoy) -> REMOVIDO PARA ADMIN (Permitir fechas pasadas)
+    // const hoy = new Date().toISOString().split('T')[0];
+    // document.getElementById('cita-fecha').min = hoy;
 
     // Mostrar modal
     const modal = document.getElementById('modal-cita');
