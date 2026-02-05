@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/css/dashboard.css" />
   <link rel="stylesheet" href="/css/responsive.css" />
   <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <meta name="theme-color" content="#e91e63">
   <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
@@ -31,59 +32,60 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h2>💅 Admin</h2>
+          <h2><i class="fa-solid fa-spa"></i> Admin</h2>
           <button id="sidebar-toggle" onclick="toggleSidebar()" class="btn-icon"
-            style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">☰</button>
+            style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;"><i
+              class="fa-solid fa-bars"></i></button>
         </div>
         <p id="user-welcome">Bienvenid@</p>
       </div>
 
       <nav class="sidebar-nav">
         <a href="#dashboard" class="nav-item" onclick="cambiarSeccion('dashboard')">
-          <span class="nav-icon">📊</span>
+          <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
           <span>Dashboard</span>
         </a>
         <a href="#agendamiento" class="nav-item active" onclick="cambiarSeccion('agendamiento')">
-          <span class="nav-icon">📅</span>
+          <span class="nav-icon"><i class="fa-solid fa-calendar-plus"></i></span>
           <span>Agendamiento</span>
         </a>
         <a href="#agenda" class="nav-item" onclick="cambiarSeccion('agenda')">
-          <span class="nav-icon">🗓️</span>
+          <span class="nav-icon"><i class="fa-solid fa-calendar-days"></i></span>
           <span>Agenda</span>
         </a>
         <a href="#servicios" class="nav-item" onclick="cambiarSeccion('servicios')">
-          <span class="nav-icon">✨</span>
+          <span class="nav-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
           <span>Servicios</span>
         </a>
         <a href="#usuarios" class="nav-item" onclick="cambiarSeccion('usuarios')">
-          <span class="nav-icon">👥</span>
+          <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
           <span>Usuarios</span>
         </a>
         <a href="#comisiones" class="nav-item" onclick="cambiarSeccion('comisiones')">
-          <span class="nav-icon">💰</span>
+          <span class="nav-icon"><i class="fa-solid fa-money-bill-wave"></i></span>
           <span>Comisiones</span>
         </a>
         <a href="#conciliacion" class="nav-item" onclick="cambiarSeccion('conciliacion')">
-          <span class="nav-icon">📊</span>
+          <span class="nav-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
           <span>Auditoría</span>
         </a>
         <a href="#horarios" class="nav-item" onclick="cambiarSeccion('horarios')">
-          <span class="nav-icon">⏰</span>
+          <span class="nav-icon"><i class="fa-solid fa-clock"></i></span>
           <span>Horarios</span>
         </a>
         <a href="#galeria" class="nav-item" onclick="cambiarSeccion('galeria')">
-          <span class="nav-icon">🖼️</span>
+          <span class="nav-icon"><i class="fa-solid fa-images"></i></span>
           <span>Galería</span>
         </a>
         <a href="#gastos" class="nav-item" onclick="cambiarSeccion('gastos')">
-          <span class="nav-icon">💸</span>
+          <span class="nav-icon"><i class="fa-solid fa-receipt"></i></span>
           <span>Gastos</span>
         </a>
       </nav>
 
       <div class="sidebar-footer">
         <button class="btn-logout" onclick="cerrarSesion()">
-          <span class="nav-icon">🚪</span>
+          <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
           <span class="logout-text">Cerrar Sesión</span>
         </button>
       </div>

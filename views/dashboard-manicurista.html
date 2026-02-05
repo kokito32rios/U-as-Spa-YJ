@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/css/dashboard.css" />
     <link rel="stylesheet" href="/css/responsive.css" />
     <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <meta name="theme-color" content="#e91e63">
     <script>
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
@@ -35,9 +36,11 @@
 
                 <div class="modal-header"
                     style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); padding: 1rem; display: flex; justify-content: space-between; align-items: center; color: white;">
-                    <h4 id="modal-registro-titulo" style="margin: 0; font-size: 1.2rem;">📝 Nuevo Registro</h4>
+                    <h4 id="modal-registro-titulo" style="margin: 0; font-size: 1.2rem;"><i
+                            class="fa-solid fa-pen-to-square"></i> Nuevo Registro</h4>
                     <button onclick="cerrarModalRegistro()"
-                        style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                        style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;"><i
+                            class="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <div class="modal-body" style="padding: 1.5rem;">
@@ -72,7 +75,7 @@
                             </button>
                             <button type="submit" id="btn-cuadre-submit" class="btn btn-primary"
                                 style="padding: 0.8rem 1.5rem; background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-                                <span>💾</span> Guardar
+                                <span><i class="fa-solid fa-floppy-disk"></i></span> Guardar
                             </button>
                         </div>
                     </form>
@@ -85,35 +88,36 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h2>💅 Mi Portal</h2>
+                    <h2><i class="fa-solid fa-spa"></i> Mi Portal</h2>
                     <button id="sidebar-toggle" onclick="toggleSidebar()" class="btn-icon"
-                        style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">☰</button>
+                        style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;"><i
+                            class="fa-solid fa-bars"></i></button>
                 </div>
                 <p id="user-welcome">Hola, Manicurista</p>
             </div>
 
             <nav class="sidebar-nav">
                 <a href="#agenda" class="nav-item active" onclick="cambiarSeccion('agenda')">
-                    <span class="nav-icon">📅</span>
+                    <span class="nav-icon"><i class="fa-solid fa-calendar-days"></i></span>
                     <span>Mi Agenda</span>
                 </a>
                 <a href="#comisiones" class="nav-item" onclick="cambiarSeccion('comisiones')">
-                    <span class="nav-icon">💰</span>
+                    <span class="nav-icon"><i class="fa-solid fa-money-bill-wave"></i></span>
                     <span>Mis Comisiones</span>
                 </a>
                 <a href="#cuadre" class="nav-item" onclick="cambiarSeccion('cuadre')">
-                    <span class="nav-icon">📝</span>
+                    <span class="nav-icon"><i class="fa-solid fa-file-pen"></i></span>
                     <span>Mi Cuadre</span>
                 </a>
                 <a href="#perfil" class="nav-item" onclick="cambiarSeccion('perfil')">
-                    <span class="nav-icon">👤</span>
+                    <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
                     <span>Mi Perfil</span>
                 </a>
             </nav>
 
             <div class="sidebar-footer">
                 <button class="btn-logout" onclick="cerrarSesion()">
-                    <span class="nav-icon">🚪</span>
+                    <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
                     <span class="logout-text">Cerrar Sesión</span>
                 </button>
             </div>
@@ -141,9 +145,11 @@
                             </button>
                         </div>
                         <div class="navegacion-fecha">
-                            <button class="btn-nav" onclick="navegarAgenda(-1)">◀</button>
+                            <button class="btn-nav" onclick="navegarAgenda(-1)"><i
+                                    class="fa-solid fa-chevron-left"></i></button>
                             <span id="agenda-fecha-titulo">Enero 2026</span>
-                            <button class="btn-nav" onclick="navegarAgenda(1)">▶</button>
+                            <button class="btn-nav" onclick="navegarAgenda(1)"><i
+                                    class="fa-solid fa-chevron-right"></i></button>
                             <button class="btn-hoy" onclick="irAHoy()">Hoy</button>
                         </div>
                     </div>

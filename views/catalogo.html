@@ -18,6 +18,7 @@
   <meta property="og:description" content="Inspírate con nuestra galería de diseños y trabajos realizados." />
   <meta property="og:image" content="/img/og-galeria.jpg" />
   <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <meta name="theme-color" content="#e91e63">
   <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
@@ -28,7 +29,7 @@
   <!-- HEADER SIMPLE -->
   <header class="galeria-header">
     <div class="header-wrapper">
-      <a href="/" class="back-link">← Volver</a>
+      <a href="/" class="back-link"><i class="fa-solid fa-arrow-left"></i> Volver</a>
       <h1>Galería</h1>
     </div>
   </header>
@@ -47,7 +48,7 @@
 
     <!-- Sin fotos -->
     <div id="sin-fotos" class="sin-fotos hidden">
-      <p>📷</p>
+      <p><i class="fa-solid fa-camera" style="font-size: 3rem; color: #ccc;"></i></p>
       <h2>No hay fotos disponibles</h2>
       <a href="/" class="btn btn-primary">Volver al inicio</a>
     </div>
@@ -55,7 +56,7 @@
 
   <!-- MODAL LIGHTBOX -->
   <div id="lightbox" class="lightbox hidden">
-    <button class="lightbox-btn-close" onclick="cerrarLightbox()">✕</button>
+    <button class="lightbox-btn-close" onclick="cerrarLightbox()"><i class="fa-solid fa-xmark"></i></button>
 
     <button class="lightbox-btn-nav prev" onclick="navegarFoto(-1)" id="btn-prev">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
