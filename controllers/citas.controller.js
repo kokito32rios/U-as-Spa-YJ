@@ -692,11 +692,10 @@ exports.obtenerHorariosDisponibles = async (req, res) => {
 
             for (let minutos = minutosInicio; minutos < minutosFin; minutos += intervalo) {
                 const esAdmin = req.usuario && req.usuario.nombre_rol === 'admin';
-                const esEdicion = !!id_cita_excluir;
-
-                if (esHoy && minutos <= horaActualMinutos) {
-                    if (!esEdicion) continue;
-                    if (!esAdmin) continue;
+                // PERMITIR si es ADMIN (para todos los casos)
+                // BLOQUEAR solo si es usuario normal y la hora ya pasó
+                if (esHoy && minutos <= horaActualMinutos && !esAdmin) {
+                    continue;
                 }
 
                 const hora = Math.floor(minutos / 60);
