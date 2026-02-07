@@ -478,25 +478,36 @@ function actualizarResumenPagos() {
     const montos = document.querySelectorAll('.pago-monto');
 
     let totalPagado = 0;
-    montos.forEach(input => {
-        totalPagado += parseFloat(input.value) || 0;
-    });
 
-    const restante = precioCita - totalPagado;
+    // ... (rest of logic) ...
+}
 
-    document.getElementById('pagos-total-cita').textContent = '$' + precioCita.toLocaleString('es-CO');
-    document.getElementById('pagos-total-pagado').textContent = '$' + totalPagado.toLocaleString('es-CO');
-    document.getElementById('pagos-restante').textContent = '$' + restante.toLocaleString('es-CO');
-
-    // Cambiar color del restante
-    const restanteEl = document.getElementById('pagos-restante');
-    if (Math.abs(restante) < 1) {
-        restanteEl.style.color = '#28a745'; // Verde si está completo
-    } else if (restante < 0) {
-        restanteEl.style.color = '#dc3545'; // Rojo si hay exceso
-    } else {
-        restanteEl.style.color = '#dc3545'; // Rojo si falta
+// Agregar listener al precio para actualizar resumen en tiempo real
+document.addEventListener('DOMContentLoaded', () => {
+    const citaPrecio = document.getElementById('cita-precio');
+    if (citaPrecio) {
+        citaPrecio.addEventListener('input', actualizarResumenPagos);
     }
+});
+montos.forEach(input => {
+    totalPagado += parseFloat(input.value) || 0;
+});
+
+const restante = precioCita - totalPagado;
+
+document.getElementById('pagos-total-cita').textContent = '$' + precioCita.toLocaleString('es-CO');
+document.getElementById('pagos-total-pagado').textContent = '$' + totalPagado.toLocaleString('es-CO');
+document.getElementById('pagos-restante').textContent = '$' + restante.toLocaleString('es-CO');
+
+// Cambiar color del restante
+const restanteEl = document.getElementById('pagos-restante');
+if (Math.abs(restante) < 1) {
+    restanteEl.style.color = '#28a745'; // Verde si está completo
+} else if (restante < 0) {
+    restanteEl.style.color = '#dc3545'; // Rojo si hay exceso
+} else {
+    restanteEl.style.color = '#dc3545'; // Rojo si falta
+}
 }
 
 // =============================================
