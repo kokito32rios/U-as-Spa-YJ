@@ -337,8 +337,10 @@ async function abrirModalNuevaCita() {
     document.getElementById('cita-estado').value = 'pendiente';
 
     // Ocultar método de pago (solo visible cuando estado = completada)
-    document.getElementById('grupo-metodo-pago').style.display = 'none';
-    document.getElementById('cita-metodo-pago').value = '';
+    const grupoMetodoPago = document.getElementById('grupo-metodo-pago');
+    if (grupoMetodoPago) grupoMetodoPago.style.display = 'none';
+    const citaMetodoPago = document.getElementById('cita-metodo-pago');
+    if (citaMetodoPago) citaMetodoPago.value = '';
 
     // Deshabilitar botón guardar hasta que se seleccione horario
     document.getElementById('btn-guardar-cita').disabled = true;
