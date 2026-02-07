@@ -494,7 +494,14 @@ function eliminarFilaPago(btn) {
 // =============================================
 function actualizarResumenPagos() {
     const precioCita = parseFloat(document.getElementById('cita-precio').value) || 0;
+    const checkMixto = document.getElementById('check-pago-mixto');
+    const isMixto = checkMixto ? checkMixto.checked : false;
     const montos = document.querySelectorAll('.pago-monto');
+
+    // En modo simple, sincronizar el monto oculto con el precio de la cita
+    if (!isMixto && montos.length === 1) {
+        montos[0].value = precioCita;
+    }
 
     let totalPagado = 0;
     montos.forEach(input => {
