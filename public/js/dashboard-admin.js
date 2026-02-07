@@ -3199,20 +3199,26 @@ async function verDetalleComisiones(email, nombre) {
 }
 
 function renderizarDetalleComisiones() {
+    console.log('🎨 renderizarDetalleComisiones - INICIANDO');
     const tbody = document.getElementById('detalle-comision-body');
+    console.log('🎨 tbody element:', tbody);
     const porcentaje = parseFloat(document.getElementById('detalle-porcentaje').textContent);
+    console.log('🎨 porcentaje:', porcentaje);
 
     if (detalleComisionesCitas.length === 0) {
+        console.log('🎨 No hay citas - mostrando mensaje vacío');
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay citas registradas</td></tr>';
         return;
     }
 
-    tbody.innerHTML = detalleComisionesCitas.map(cita => {
+    console.log('🎨 Generando HTML para', detalleComisionesCitas.length, 'citas');
+
+    const html = detalleComisionesCitas.map((cita, index) => {
         // Recalcular estimación visual basada en configuración actual si se desea, 
         // o usar la que viene del backend (que usa el % actual)
         const comision = (cita.precio * porcentaje) / 100;
 
-        return `
+        const row = `
         <tr>
             <td>
                 ${cita.estado_pago === 'pendiente'
@@ -3233,7 +3239,14 @@ function renderizarDetalleComisiones() {
             }
             </td>
         </tr>
-    `}).join('');
+    `;
+        if (index < 2) console.log('🎨 Row', index, ':', row.substring(0, 100) + '...');
+        return row;
+    }).join('');
+
+    console.log('🎨 HTML generado, longitud:', html.length);
+    tbody.innerHTML = html;
+    console.log('🎨 innerHTML asignado, filas en DOM:', tbody.querySelectorAll('tr').length);
 
     calcularTotalPagar();
 }

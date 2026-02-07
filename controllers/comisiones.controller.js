@@ -5,18 +5,25 @@ const db = require('../config/db');
 // =============================================
 exports.obtenerResumen = async (req, res) => {
     try {
-        const { tipo, anio, mes, desde, hasta } = req.query;
+        const { tipo, anio, mes, desde, hasta, manicurista } = req.query;
 
-
-        // 1. Obtener lista de manicuristas
-        const [manicuristas] = await db.query(`
+        // 1. Obtener lista de manicuristas (filtrar por email si se proporciona)
+        let manicuristaQuery = `
             SELECT u.email, u.nombre, u.apellido, 
                    COALESCE(cm.porcentaje, 50) as porcentaje_comision
             FROM usuarios u
             LEFT JOIN comisiones_manicuristas cm ON u.email = cm.email_manicurista AND cm.anio = YEAR(CURDATE())
             WHERE u.id_rol = (SELECT id_rol FROM roles WHERE nombre_rol = 'manicurista')
             AND u.activo = 1
-        `);
+        `;
+
+        const manicuristaParams = [];
+        if (manicurista) {
+            manicuristaQuery += ' AND u.email = ?';
+            manicuristaParams.push(manicurista);
+        }
+
+        const [manicuristas] = await db.query(manicuristaQuery, manicuristaParams);
 
 
         const resumen = [];
