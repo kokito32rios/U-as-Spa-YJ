@@ -761,13 +761,8 @@ async function guardarCita() {
             `;
 
             mostrarMensaje('success', '✓', 'Cita Guardada', mensajeDetalle);
-            // Recargar vista activa
-            const seccionActiva = document.querySelector('.content-section.active').id;
-            if (seccionActiva === 'seccion-agenda') {
-                cargarAgenda();
-            } else {
-                cargarCitas();
-            }
+            // Recargar vista activa (cargarCitas preserva los filtros actuales)
+            cargarCitas();
         } else {
             if (data.tipo === 'solapamiento') {
                 mostrarMensaje('warning', '⚠️', 'Conflicto de horario', data.message);
@@ -814,16 +809,12 @@ function limpiarFiltros() {
 // =============================================
 function inicializarAgendamiento() {
     const selectAnio = document.getElementById('agendamiento-filtro-anio');
-    console.log('DEBUG: inicializarAgendamiento called', selectAnio);
     if (selectAnio && selectAnio.options.length === 0) {
-        console.log('DEBUG: Populating years');
         const currentYear = new Date().getFullYear();
         selectAnio.innerHTML = '';
         selectAnio.innerHTML += `<option value="${currentYear}">${currentYear}</option>`;
         selectAnio.innerHTML += `<option value="${currentYear - 1}">${currentYear - 1}</option>`;
         selectAnio.value = currentYear;
-    } else {
-        console.log('DEBUG: Year select not found or already populated', selectAnio ? selectAnio.options.length : 'null');
     }
 
     // Set default date if empty
