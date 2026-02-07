@@ -761,8 +761,13 @@ async function guardarCita() {
             `;
 
             mostrarMensaje('success', '✓', 'Cita Guardada', mensajeDetalle);
-            // Recargar vista activa (cargarCitas preserva los filtros actuales)
-            cargarCitas();
+            // Recargar la vista activa (ambas funciones preservan sus filtros)
+            const seccionActiva = document.querySelector('.content-section.active')?.id;
+            if (seccionActiva === 'seccion-agenda') {
+                cargarAgenda();
+            } else {
+                cargarCitas();
+            }
         } else {
             if (data.tipo === 'solapamiento') {
                 mostrarMensaje('warning', '⚠️', 'Conflicto de horario', data.message);
