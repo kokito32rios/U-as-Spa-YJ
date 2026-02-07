@@ -564,12 +564,21 @@ async function cargarManicuristas() {
         const select = document.getElementById('cita-manicurista');
         const selectFiltro = document.getElementById('filtro-manicurista');
 
+        // Preservar selección actual del filtro antes de repoblar
+        const filtroSeleccionActual = selectFiltro ? selectFiltro.value : '';
+
         const options = listaManicuristas.map(m =>
             `<option value="${m.email}">${m.nombre_completo}</option>`
         ).join('');
 
         if (select) select.innerHTML = '<option value="">Seleccionar manicurista</option>' + options;
-        if (selectFiltro) selectFiltro.innerHTML = '<option value="">Todas</option>' + options;
+        if (selectFiltro) {
+            selectFiltro.innerHTML = '<option value="">Todas</option>' + options;
+            // Restaurar selección previa
+            if (filtroSeleccionActual) {
+                selectFiltro.value = filtroSeleccionActual;
+            }
+        }
 
     } catch (error) {
         console.error('Error:', error);
