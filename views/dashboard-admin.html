@@ -1207,12 +1207,30 @@
           </div>
 
           <div class="form-group" id="grupo-metodo-pago" style="display: none;">
-            <label>Método de Pago *</label>
-            <select id="cita-metodo-pago" class="form-input">
-              <option value="">Seleccione...</option>
-              <option value="efectivo">💵 Efectivo</option>
-              <option value="transferencia">📲 Transferencia</option>
-            </select>
+            <label>Pagos *</label>
+            <div id="pagos-container">
+              <!-- Dynamic payment rows will be added here -->
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="agregarFilaPago()"
+              style="margin-top: 0.5rem; font-size: 0.85rem;">
+              <i class="fa-solid fa-plus"></i> Agregar otro pago
+            </button>
+            <div id="pagos-resumen"
+              style="margin-top: 0.75rem; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; font-size: 0.9rem;">
+              <div style="display: flex; justify-content: space-between;">
+                <span>Valor de la cita:</span>
+                <strong id="pagos-total-cita">$0</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>Total pagado:</span>
+                <strong id="pagos-total-pagado" style="color: #28a745;">$0</strong>
+              </div>
+              <div
+                style="display: flex; justify-content: space-between; border-top: 1px solid #dee2e6; padding-top: 0.5rem; margin-top: 0.5rem;">
+                <span>Restante:</span>
+                <strong id="pagos-restante" style="color: #dc3545;">$0</strong>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -371,9 +371,76 @@ function toggleMetodoPago() {
 
     if (estado === 'completada') {
         grupo.style.display = 'block';
+        // Inicializar con una fila de pago si está vacío
+        const container = document.getElementById('pagos-container');
+        if (container.children.length === 0) {
+            agregarFilaPago();
+        }
+        actualizarResumenPagos();
     } else {
         grupo.style.display = 'none';
-        document.getElementById('cita-metodo-pago').value = '';
+        // Limpiar pagos al cambiar de estado
+        document.getElementById('pagos-container').innerHTML = '';
+    }
+}
+
+// =============================================
+// AGREGAR FILA DE PAGO
+// =============================================
+function agregarFilaPago() {
+    const container = document.getElementById('pagos-container');
+    const index = container.children.length;
+
+    const row = document.createElement('div');
+    row.className = 'pago-row';
+    row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;';
+    row.innerHTML = `
+        <select class="form-input pago-metodo" style="flex: 1;" required>
+            <option value="">Método...</option>
+            <option value="efectivo">💵 Efectivo</option>
+            <option value="transferencia">📲 Transferencia</option>
+        </select>
+        <input type="number" class="form-input pago-monto" placeholder="Monto" style="flex: 1;" min="0" step="100" oninput="actualizarResumenPagos()" required>
+        <input type="text" class="form-input pago-notas" placeholder="Notas (opcional)" style="flex: 1.5;">
+        ${index > 0 ? `<button type="button" class="btn btn-icon" style="color: #dc3545; background: none; border: none; font-size: 1.2rem;" onclick="eliminarFilaPago(this)"><i class="fa-solid fa-trash"></i></button>` : ''}
+    `;
+    container.appendChild(row);
+}
+
+// =============================================
+// ELIMINAR FILA DE PAGO
+// =============================================
+function eliminarFilaPago(btn) {
+    btn.closest('.pago-row').remove();
+    actualizarResumenPagos();
+}
+
+// =============================================
+// ACTUALIZAR RESUMEN DE PAGOS
+// =============================================
+function actualizarResumenPagos() {
+    const precioCita = parseFloat(document.getElementById('cita-precio').value) || 0;
+    const montos = document.querySelectorAll('.pago-monto');
+
+    let totalPagado = 0;
+    montos.forEach(input => {
+        totalPagado += parseFloat(input.value) || 0;
+    });
+
+    const restante = precioCita - totalPagado;
+
+    document.getElementById('pagos-total-cita').textContent = '$' + precioCita.toLocaleString('es-CO');
+    document.getElementById('pagos-total-pagado').textContent = '$' + totalPagado.toLocaleString('es-CO');
+    document.getElementById('pagos-restante').textContent = '$' + restante.toLocaleString('es-CO');
+
+    // Cambiar color del restante
+    const restanteEl = document.getElementById('pagos-restante');
+    if (Math.abs(restante) < 1) {
+        restanteEl.style.color = '#28a745'; // Verde si está completo
+    } else if (restante < 0) {
+        restanteEl.style.color = '#dc3545'; // Rojo si hay exceso
+    } else {
+        restanteEl.style.color = '#dc3545'; // Rojo si falta
     }
 }
 
@@ -545,14 +612,34 @@ async function guardarCita() {
         // datos.estado ya se asignó arriba
         datos.notas_manicurista = document.getElementById('cita-notas-manicurista').value;
 
-        // Si estado = completada, requerir método de pago
+        // Si estado = completada, requerir y recolectar pagos múltiples
         if (datos.estado === 'completada') {
-            const metodoPago = document.getElementById('cita-metodo-pago');
-            if (!metodoPago || !metodoPago.value) {
-                mostrarMensaje('warning', '⚠️', 'Método de pago requerido', 'Debe seleccionar un método de pago para completar la cita');
+            const pagosRows = document.querySelectorAll('.pago-row');
+            const pagosArray = [];
+
+            for (const row of pagosRows) {
+                const metodo = row.querySelector('.pago-metodo').value;
+                const monto = parseFloat(row.querySelector('.pago-monto').value) || 0;
+                const notas = row.querySelector('.pago-notas').value || null;
+
+                if (!metodo) {
+                    mostrarMensaje('warning', '⚠️', 'Método de pago requerido', 'Seleccione un método de pago para cada fila');
+                    return;
+                }
+                if (monto <= 0) {
+                    mostrarMensaje('warning', '⚠️', 'Monto inválido', 'Ingrese un monto válido para cada pago');
+                    return;
+                }
+
+                pagosArray.push({ metodo, monto, notas });
+            }
+
+            if (pagosArray.length === 0) {
+                mostrarMensaje('warning', '⚠️', 'Pago requerido', 'Agregue al menos un pago para completar la cita');
                 return;
             }
-            datos.metodo_pago = metodoPago.value;
+
+            datos.pagos = pagosArray;
         }
     }
 

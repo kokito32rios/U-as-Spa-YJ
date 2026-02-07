@@ -440,26 +440,57 @@ exports.actualizarCita = async (req, res) => {
             });
         }
 
-        // Si es completada, lógica de pagos... (omitted for brevity, assume intact logic below)
-        if (estado === 'completada' && req.body.metodo_pago) {
-            // ... (logica de pagos existente se mantiene si no la cambie)
-            // Nota: Al usar replace_file_content en bloque grande, debo incluir todo lo que estoy reemplazando.
-            // Aquí estoy reemplazando `actualizarCita` completo.
-            // Debo incluir la lógica de pagos.
-            const metodo_pago = req.body.metodo_pago;
+        // Si es completada, lógica de PAGOS MÚLTIPLES
+        // Acepta: req.body.pagos = [{metodo, monto, notas}, ...] O req.body.metodo_pago (legacy)
+        if (estado === 'completada') {
             const [citaData] = await db.query(`SELECT c.precio, c.email_manicurista, YEAR(c.fecha) as anio FROM citas c WHERE c.id_cita = ?`, [id]);
+
             if (citaData.length > 0) {
                 const { precio, email_manicurista, anio } = citaData[0];
-                const monto = precio || 0;
+                const precioTotal = Number(precio) || 0;
+
+                // Calcular comisión de manicurista
                 let porcentaje = 0;
                 const [comisionConfig] = await db.query(`SELECT porcentaje FROM comisiones_manicuristas WHERE email_manicurista = ? AND anio = ?`, [email_manicurista, anio]);
                 if (comisionConfig.length > 0) porcentaje = comisionConfig[0].porcentaje;
-                const comision = (monto * porcentaje) / 100;
-                const [pagoExistente] = await db.query('SELECT id_pago FROM pagos WHERE id_cita = ?', [id]);
-                if (pagoExistente.length === 0) {
-                    await db.query(`INSERT INTO pagos (id_cita, monto_total, comision_manicurista, estado_pago_cliente, metodo_pago_cliente, fecha_pago_cliente) VALUES (?, ?, ?, 'pagado', ?, NOW())`, [id, monto, comision, metodo_pago]);
-                } else {
-                    await db.query(`UPDATE pagos SET monto_total = ?, comision_manicurista = ?, metodo_pago_cliente = ?, fecha_pago_cliente = NOW() WHERE id_cita = ?`, [monto, comision, metodo_pago, id]);
+                const comision = (precioTotal * porcentaje) / 100;
+
+                // Determinar pagos a registrar
+                let pagosArray = [];
+
+                if (req.body.pagos && Array.isArray(req.body.pagos) && req.body.pagos.length > 0) {
+                    // NUEVO: Múltiples pagos
+                    pagosArray = req.body.pagos;
+                } else if (req.body.metodo_pago) {
+                    // LEGACY: Un solo pago
+                    pagosArray = [{ metodo: req.body.metodo_pago, monto: precioTotal, notas: null }];
+                }
+
+                if (pagosArray.length > 0) {
+                    // Validar suma EXACTA
+                    const sumaPagos = pagosArray.reduce((sum, p) => sum + Number(p.monto || 0), 0);
+
+                    if (Math.abs(sumaPagos - precioTotal) > 0.01) { // Tolerancia de 1 centavo por redondeo
+                        return res.status(400).json({
+                            success: false,
+                            message: `La suma de los pagos ($${sumaPagos.toLocaleString()}) debe ser igual al valor de la cita ($${precioTotal.toLocaleString()})`
+                        });
+                    }
+
+                    // Eliminar pagos anteriores (si existían)
+                    await db.query('DELETE FROM pagos WHERE id_cita = ?', [id]);
+
+                    // Insertar nuevos pagos
+                    for (let i = 0; i < pagosArray.length; i++) {
+                        const pago = pagosArray[i];
+                        // Solo el primer pago lleva la comisión calculada
+                        const comisionPago = (i === 0) ? comision : 0;
+
+                        await db.query(`
+                            INSERT INTO pagos (id_cita, monto, comision_manicurista, estado_pago_cliente, metodo_pago_cliente, notas, fecha_pago_cliente) 
+                            VALUES (?, ?, ?, 'pagado', ?, ?, NOW())
+                        `, [id, pago.monto, comisionPago, pago.metodo, pago.notas || null]);
+                    }
                 }
             }
         }
