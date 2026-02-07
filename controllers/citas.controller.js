@@ -542,6 +542,32 @@ exports.eliminarCita = async (req, res) => {
     }
 };
 
+// =============================================
+// OBTENER PAGOS DE UNA CITA
+// =============================================
+exports.obtenerPagosCita = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [pagos] = await db.query(`
+            SELECT metodo_pago_cliente as metodo, monto, notas
+            FROM pagos
+            WHERE id_cita = ?
+            ORDER BY id_pago ASC
+        `, [id]);
+
+        res.json({
+            success: true,
+            pagos
+        });
+    } catch (error) {
+        console.error('Error al obtener pagos:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener los pagos de la cita'
+        });
+    }
+};
+
 // ... (helpers de manicuristas/clientes/horarios sin cambios requeridos, omitidos en replace si no toco intervalo)
 // Pero `obtenerCitasAgenda` SI requiere cambios. Y está MAS ABAJO (fuera del rango 1-450).
 // Así que necesito OTRA llamada para obtenerCitasAgenda.

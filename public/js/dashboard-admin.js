@@ -387,22 +387,27 @@ function toggleMetodoPago() {
 // =============================================
 // AGREGAR FILA DE PAGO
 // =============================================
-function agregarFilaPago() {
+function agregarFilaPago(pagoData = null) {
     const container = document.getElementById('pagos-container');
     const index = container.children.length;
 
     const row = document.createElement('div');
     row.className = 'pago-row';
     row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;';
+
+    const metodo = pagoData ? pagoData.metodo : '';
+    const monto = pagoData ? pagoData.monto : '';
+    const notas = pagoData ? pagoData.notas || '' : '';
+
     row.innerHTML = `
         <select class="form-input pago-metodo" style="flex: 1;" required>
             <option value="">Método...</option>
-            <option value="efectivo">💵 Efectivo</option>
-            <option value="transferencia">📲 Transferencia</option>
+            <option value="efectivo" ${metodo === 'efectivo' ? 'selected' : ''}>💵 Efectivo</option>
+            <option value="transferencia" ${metodo === 'transferencia' ? 'selected' : ''}>📲 Transferencia</option>
         </select>
-        <input type="number" class="form-input pago-monto" placeholder="Monto" style="flex: 1;" min="0" step="100" oninput="actualizarResumenPagos()" required>
-        <input type="text" class="form-input pago-notas" placeholder="Notas (opcional)" style="flex: 1.5;">
-        ${index > 0 ? `<button type="button" class="btn btn-icon" style="color: #dc3545; background: none; border: none; font-size: 1.2rem;" onclick="eliminarFilaPago(this)"><i class="fa-solid fa-trash"></i></button>` : ''}
+        <input type="number" class="form-input pago-monto" placeholder="Monto" style="flex: 1;" min="0" step="100" value="${monto}" oninput="actualizarResumenPagos()" required>
+        <input type="text" class="form-input pago-notas" placeholder="Notas (opcional)" style="flex: 1.5;" value="${notas}">
+        ${index > 0 || pagoData ? `<button type="button" class="btn btn-icon" style="color: #dc3545; background: none; border: none; font-size: 1.2rem;" onclick="eliminarFilaPago(this)"><i class="fa-solid fa-trash"></i></button>` : ''}
     `;
     container.appendChild(row);
 }
@@ -927,11 +932,42 @@ async function editarCita(idCita) {
 
         document.getElementById('cita-hora').value = horaActual;
         document.getElementById('cita-estado').value = cita.estado;
+        // Cargar notas
         document.getElementById('cita-notas-cliente').value = cita.notas_cliente || '';
         document.getElementById('cita-notas-manicurista').value = cita.notas_manicurista || '';
 
-        // Cargar método de pago si existe
-        document.getElementById('cita-metodo-pago').value = cita.metodo_pago_cliente || '';
+        // Limpiar contenedor de pagos
+        document.getElementById('pagos-container').innerHTML = '';
+
+        // Si el estado es completada, cargar pagos desde API
+        if (cita.estado === 'completada') {
+            document.getElementById('grupo-metodo-pago').style.display = 'block';
+
+            try {
+                const response = await fetchConToken(`/api/citas/${cita.id_cita}/pagos`);
+                const data = await response.json();
+
+                if (data.success && data.pagos.length > 0) {
+                    // Cargar pagos existentes
+                    data.pagos.forEach(pago => {
+                        agregarFilaPago(pago);
+                    });
+                } else {
+                    // Si no hay pagos (legacy o error), agregar fila vacía o usar legacy metodo_pago_cliente si viniera
+                    agregarFilaPago();
+                }
+                actualizarResumenPagos();
+            } catch (err) {
+                console.error('Error cargando pagos:', err);
+                agregarFilaPago(); // Fallback
+            }
+        } else {
+            document.getElementById('grupo-metodo-pago').style.display = 'none';
+        }
+
+        // Mostrar modal
+        document.getElementById('modal-cita').classList.remove('hidden');
+        document.getElementById('btn-guardar-cita').disabled = false;
 
         // Mostrar/ocultar método de pago según estado
         toggleMetodoPago();
