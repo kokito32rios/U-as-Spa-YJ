@@ -398,13 +398,29 @@ function togglePagoMixto() {
     // Mostrar/Ocultar botón de agregar
     if (btnAgregar) btnAgregar.style.display = isChecked ? 'block' : 'none';
 
+    // Mostrar/Ocultar inputs de monto en las filas existentes
+    const montosInputs = container.querySelectorAll('.pago-monto');
+    const precioCita = parseFloat(document.getElementById('cita-precio').value) || 0;
+
+    montosInputs.forEach(input => {
+        if (isChecked) {
+            // Modo mixto: mostrar input de monto
+            input.style.display = 'block';
+        } else {
+            // Modo simple: ocultar input y auto-llenar con precio
+            input.style.display = 'none';
+            input.value = precioCita;
+        }
+    });
+
     // Si se desactiva, dejar solo la primera fila
     if (!isChecked && container.children.length > 1) {
         while (container.children.length > 1) {
             container.lastChild.remove();
         }
-        actualizarResumenPagos();
     }
+
+    actualizarResumenPagos();
 }
 
 // =============================================
@@ -424,13 +440,16 @@ function agregarFilaPago(pagoData = null) {
 
     const row = document.createElement('div');
     row.className = 'pago-row';
-    // Layout mejorado: inputs en una fila, notas y eliminar en otra
-    // Estilo tipo tarjeta con sombra suave para mejor foco
     row.style.cssText = 'background: #ffffff; padding: 1rem; border-radius: 8px; border: 1px solid #e9ecef; margin-bottom: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);';
 
     const metodo = pagoData ? pagoData.metodo : '';
-    const monto = pagoData ? pagoData.monto : '';
+    const precioCita = parseFloat(document.getElementById('cita-precio').value) || 0;
+    // Si es modo simple (no mixto) y no hay pagoData, usar el precio de la cita
+    const monto = pagoData ? pagoData.monto : (isMixto ? '' : precioCita);
     const notas = pagoData ? pagoData.notas || '' : '';
+
+    // En modo simple, ocultar el input de monto
+    const montoDisplay = isMixto ? 'block' : 'none';
 
     row.innerHTML = `
         <div style="display: flex; gap: 0.8rem; margin-bottom: 0.8rem; flex-wrap: wrap;">
@@ -439,7 +458,7 @@ function agregarFilaPago(pagoData = null) {
                 <option value="efectivo" ${metodo === 'efectivo' ? 'selected' : ''}>💵 Efectivo</option>
                 <option value="transferencia" ${metodo === 'transferencia' ? 'selected' : ''}>📲 Transferencia</option>
             </select>
-            <input type="number" class="form-input pago-monto" placeholder="Monto $" style="flex: 1; min-width: 120px;" min="0" step="100" value="${monto}" oninput="actualizarResumenPagos()" required>
+            <input type="number" class="form-input pago-monto" placeholder="Monto $" style="flex: 1; min-width: 120px; display: ${montoDisplay};" min="0" step="100" value="${monto}" oninput="actualizarResumenPagos()" required>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
             <input type="text" class="form-input pago-notas" placeholder="Notas adicionales (opcional)..." style="flex: 1;" value="${notas}">
