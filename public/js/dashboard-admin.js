@@ -3185,11 +3185,8 @@ async function verDetalleComisiones(email, nombre) {
 
         if (data.success) {
             detalleComisionesCitas = data.detalle;
-            console.log('🔍 Frontend - Citas recibidas del backend:', detalleComisionesCitas.length);
-            console.log('🔍 Frontend - Datos:', JSON.stringify(detalleComisionesCitas.slice(0, 3), null, 2)); // Solo primeras 3 para no saturar
             document.getElementById('detalle-porcentaje').textContent = data.porcentaje_actual;
             renderizarDetalleComisiones();
-            console.log('🔍 Frontend - Filas renderizadas en DOM:', document.querySelectorAll('#detalle-comision-body tr').length);
             document.getElementById('modal-detalle-comision').classList.remove('hidden');
         }
 
@@ -3199,24 +3196,23 @@ async function verDetalleComisiones(email, nombre) {
 }
 
 function renderizarDetalleComisiones() {
-    console.log('🎨 renderizarDetalleComisiones - INICIANDO');
     const tbody = document.getElementById('detalle-comision-body');
-    console.log('🎨 tbody element:', tbody);
     const porcentaje = parseFloat(document.getElementById('detalle-porcentaje').textContent);
-    console.log('🎨 porcentaje:', porcentaje);
 
     if (detalleComisionesCitas.length === 0) {
-        console.log('🎨 No hay citas - mostrando mensaje vacío');
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay citas registradas</td></tr>';
         return;
     }
-
-    console.log('🎨 Generando HTML para', detalleComisionesCitas.length, 'citas');
 
     const html = detalleComisionesCitas.map((cita, index) => {
         // Recalcular estimación visual basada en configuración actual si se desea, 
         // o usar la que viene del backend (que usa el % actual)
         const comision = (cita.precio * porcentaje) / 100;
+
+        // Fix timezone: parse date string directly to avoid UTC offset issues
+        const fechaStr = cita.fecha.split('T')[0]; // "2026-02-07"
+        const [anio, mes, dia] = fechaStr.split('-');
+        const fechaFormateada = `${dia}/${mes}/${anio}`; // "07/02/2026"
 
         const row = `
         <tr>
@@ -3225,7 +3221,7 @@ function renderizarDetalleComisiones() {
                 ? `<input type="checkbox" class="check-pago" value="${cita.id_cita}" onchange="calcularTotalPagar()">`
                 : '✅'}
             </td>
-            <td>${new Date(cita.fecha).toLocaleDateString()}</td>
+            <td>${fechaFormateada}</td>
             <td>${cita.servicio}</td>
             <td>$${Number(cita.precio).toLocaleString()}</td>
             <td>$${Number(comision).toLocaleString()}</td>
@@ -3240,13 +3236,10 @@ function renderizarDetalleComisiones() {
             </td>
         </tr>
     `;
-        if (index < 2) console.log('🎨 Row', index, ':', row.substring(0, 100) + '...');
         return row;
     }).join('');
 
-    console.log('🎨 HTML generado, longitud:', html.length);
     tbody.innerHTML = html;
-    console.log('🎨 innerHTML asignado, filas en DOM:', tbody.querySelectorAll('tr').length);
 
     calcularTotalPagar();
 }

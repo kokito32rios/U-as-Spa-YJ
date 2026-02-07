@@ -153,17 +153,7 @@ exports.obtenerDetalle = async (req, res) => {
         query += " GROUP BY c.id_cita, c.fecha, s.nombre, c.precio, u.nombre, u.apellido";
         query += " ORDER BY c.fecha DESC";
 
-        // DEBUG: Log the query and parameters
-        console.log('📊 obtenerDetalle - Email:', email);
-        console.log('📊 obtenerDetalle - Filtros:', { tipo, anio, mes, desde, hasta });
-        console.log('📊 obtenerDetalle - Query:', query);
-        console.log('📊 obtenerDetalle - Params:', params);
-
         const [citas] = await db.query(query, params);
-
-        // DEBUG: Log results
-        console.log('📊 obtenerDetalle - Citas encontradas:', citas.length);
-        console.log('📊 obtenerDetalle - Citas:', JSON.stringify(citas, null, 2));
 
 
         // Necesitamos el % actual para calcular la comisión estimada de las pendientes
