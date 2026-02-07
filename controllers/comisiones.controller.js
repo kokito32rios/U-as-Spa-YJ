@@ -251,7 +251,7 @@ exports.registrarPago = async (req, res) => {
                     // Crear nuevo pago
                     // Nota: Si no hay pago del cliente registrado, asumimos que el pago del cliente es independiente o 'pendiente'
                     await connection.query(`
-                        INSERT INTO pagos (id_cita, monto_total, comision_manicurista, estado_pago_manicurista, fecha_pago_manicurista)
+                        INSERT INTO pagos (id_cita, monto, comision_manicurista, estado_pago_manicurista, fecha_pago_manicurista)
                         VALUES (?, ?, ?, 'pagado', NOW())
                     `, [idCita, cita[0].precio, montoComision]);
                 }
