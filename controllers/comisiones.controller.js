@@ -113,8 +113,8 @@ exports.obtenerDetalle = async (req, res) => {
 
         let query = `
             SELECT c.id_cita, c.fecha, s.nombre as servicio, c.precio,
-                   COALESCE(p.comision_manicurista, 0) as comision_pagada,
-                   COALESCE(p.estado_pago_manicurista, 'pendiente') as estado_pago,
+                   COALESCE(MAX(p.comision_manicurista), 0) as comision_pagada,
+                   COALESCE(MAX(p.estado_pago_manicurista), 'pendiente') as estado_pago,
                    COALESCE(u.nombre, 'Cliente') as cliente_nombre, 
                    COALESCE(u.apellido, 'Anónimo') as cliente_apellido
             FROM citas c
@@ -142,6 +142,8 @@ exports.obtenerDetalle = async (req, res) => {
             }
         }
 
+        // GROUP BY to avoid duplicates from multiple payments
+        query += " GROUP BY c.id_cita, c.fecha, s.nombre, c.precio, u.nombre, u.apellido";
         query += " ORDER BY c.fecha DESC";
 
         // DEBUG: Log the query and parameters
