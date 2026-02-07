@@ -671,8 +671,6 @@ async function guardarCita() {
         nombreFinal = 'Cliente Anónimo';
     }
 
-    // DEBUG: Verificar qué nombre está saliendo
-    // alert(`DEBUG: Nombre Final: "${nombreFinal}" | Input: "${nombreCliente}"`);
 
     const datos = {
         email_cliente: emailFinal, // null si es invitado
@@ -2847,7 +2845,7 @@ function cambiarTipoFiltroComision() {
         document.getElementById('filtro-mes-container').style.display = 'block';
     }
 
-    console.log('Cambio de filtro tipo:', tipo); // DEBUG
+
 
     // Gestionar visibilidad de tablas
     const tablaComisiones = document.getElementById('container-tabla-comisiones');
@@ -2989,7 +2987,7 @@ if (document.getElementById('filtro-comision-anio')) {
 // Dispatcher para el botón "Aplicar"
 function aplicarFiltrosComisiones() {
     const tipo = document.getElementById('filtro-comision-tipo').value;
-    console.log('Aplicando filtros. Tipo:', tipo, 'Modo Auditoría:', window.modoAuditoria); // DEBUG
+
 
     // Si estamos en modo auditoría O seleccionaron explicitamente conciliacion
     if (window.modoAuditoria || tipo === 'conciliacion') {

@@ -428,15 +428,8 @@ exports.actualizarCita = async (req, res) => {
             params.push(nombre_cliente || null);
         }
 
-        // DEBUG: Log the estado value received
-        console.log('📝 ActualizarCita - Estado recibido:', estado, '| ID Cita:', id);
-        console.log('📝 ActualizarCita - Body completo:', JSON.stringify(req.body));
-
         query += updates.join(', ') + ' WHERE id_cita = ?';
         params.push(id);
-
-        console.log('📝 ActualizarCita - Query:', query);
-        console.log('📝 ActualizarCita - Params:', params);
 
         const [result] = await db.query(query, params);
 
