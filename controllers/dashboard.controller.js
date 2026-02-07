@@ -38,7 +38,7 @@ exports.obtenerMetricas = async (req, res) => {
         // Ingresos totales (pagos de clientes) - usar fecha de CITA
         const [ingresos] = await db.query(`
             SELECT 
-                COALESCE(SUM(p.monto_total), 0) as total_ingresos,
+                COALESCE(SUM(p.monto), 0) as total_ingresos,
                 COUNT(*) as cantidad_pagos
             FROM pagos p
             INNER JOIN citas c ON p.id_cita = c.id_cita
@@ -130,7 +130,7 @@ exports.obtenerDatosGrafico = async (req, res) => {
         const [ingresosMes] = await db.query(`
             SELECT 
                 MONTH(p.fecha_pago_cliente) as mes,
-                COALESCE(SUM(p.monto_total), 0) as total
+                COALESCE(SUM(p.monto), 0) as total
             FROM pagos p
             WHERE YEAR(p.fecha_pago_cliente) = ? AND p.estado_pago_cliente = 'pagado'
             GROUP BY MONTH(p.fecha_pago_cliente)
@@ -227,7 +227,7 @@ exports.obtenerResumenManicuristas = async (req, res) => {
                 c.email_manicurista,
                 CONCAT(u.nombre, ' ', u.apellido) as nombre_manicurista,
                 COUNT(*) as cantidad_servicios,
-                COALESCE(SUM(p.monto_total), 0) as ingresos_generados,
+                COALESCE(SUM(p.monto), 0) as ingresos_generados,
                 COALESCE(SUM(p.comision_manicurista), 0) as comision_total
             FROM pagos p
             INNER JOIN citas c ON p.id_cita = c.id_cita
@@ -317,7 +317,7 @@ exports.obtenerCuadreCaja = async (req, res) => {
         const [ingresosPorMetodo] = await db.query(`
             SELECT 
                 p.metodo_pago_cliente as metodo,
-                COALESCE(SUM(p.monto_total), 0) as total,
+                COALESCE(SUM(p.monto), 0) as total,
                 COUNT(*) as cantidad
             FROM pagos p
             INNER JOIN citas c ON p.id_cita = c.id_cita
@@ -329,7 +329,7 @@ exports.obtenerCuadreCaja = async (req, res) => {
 
         // Total ingresos - usar fecha de CITA
         const [totalIngresos] = await db.query(`
-            SELECT COALESCE(SUM(p.monto_total), 0) as total
+            SELECT COALESCE(SUM(p.monto), 0) as total
             FROM pagos p
             INNER JOIN citas c ON p.id_cita = c.id_cita
             WHERE p.estado_pago_cliente = 'pagado' 
@@ -403,9 +403,9 @@ exports.obtenerDetallePagos = async (req, res) => {
         const [ingresosPorDia] = await db.query(`
             SELECT 
                 DATE(c.fecha) as fecha,
-                COALESCE(SUM(p.monto_total), 0) as total_ingresos,
-                COALESCE(SUM(CASE WHEN p.metodo_pago_cliente = 'efectivo' THEN p.monto_total ELSE 0 END), 0) as efectivo,
-                COALESCE(SUM(CASE WHEN p.metodo_pago_cliente = 'transferencia' THEN p.monto_total ELSE 0 END), 0) as transferencia
+                COALESCE(SUM(p.monto), 0) as total_ingresos,
+                COALESCE(SUM(CASE WHEN p.metodo_pago_cliente = 'efectivo' THEN p.monto ELSE 0 END), 0) as efectivo,
+                COALESCE(SUM(CASE WHEN p.metodo_pago_cliente = 'transferencia' THEN p.monto ELSE 0 END), 0) as transferencia
             FROM pagos p
             INNER JOIN citas c ON p.id_cita = c.id_cita
             WHERE p.estado_pago_cliente = 'pagado'
