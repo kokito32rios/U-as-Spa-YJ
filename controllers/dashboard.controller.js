@@ -435,11 +435,9 @@ exports.obtenerDetallePagos = async (req, res) => {
             const fechaStr = dia.fecha.toISOString().split('T')[0];
             return {
                 fecha: fechaStr,
-                total_ingresos: parseFloat(dia.total_ingresos),
-                efectivo: parseFloat(dia.efectivo),
-                transferencia: parseFloat(dia.transferencia),
-                nequi: parseFloat(dia.nequi),
-                tarjeta: parseFloat(dia.tarjeta),
+                total_ingresos: parseFloat(dia.total_ingresos) || 0,
+                efectivo: parseFloat(dia.efectivo) || 0,
+                transferencia: parseFloat(dia.transferencia) || 0,
                 total_gastos: gastosMap[fechaStr] || 0
             };
         });
