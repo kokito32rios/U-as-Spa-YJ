@@ -3185,8 +3185,11 @@ async function verDetalleComisiones(email, nombre) {
 
         if (data.success) {
             detalleComisionesCitas = data.detalle;
+            console.log('🔍 Frontend - Citas recibidas del backend:', detalleComisionesCitas.length);
+            console.log('🔍 Frontend - Datos:', JSON.stringify(detalleComisionesCitas.slice(0, 3), null, 2)); // Solo primeras 3 para no saturar
             document.getElementById('detalle-porcentaje').textContent = data.porcentaje_actual;
             renderizarDetalleComisiones();
+            console.log('🔍 Frontend - Filas renderizadas en DOM:', document.querySelectorAll('#detalle-comision-body tr').length);
             document.getElementById('modal-detalle-comision').classList.remove('hidden');
         }
 
