@@ -1207,12 +1207,21 @@
           </div>
 
           <div class="form-group" id="grupo-metodo-pago" style="display: none;">
-            <label>Pagos *</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <label style="margin:0;">Pagos *</label>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" id="check-pago-mixto" onchange="togglePagoMixto()">
+                <label for="check-pago-mixto"
+                  style="margin:0; font-weight: normal; font-size: 0.9rem; cursor: pointer;">Pago Mixto</label>
+              </div>
+            </div>
+
             <div id="pagos-container">
               <!-- Dynamic payment rows will be added here -->
             </div>
-            <button type="button" class="btn btn-secondary" onclick="agregarFilaPago()"
-              style="margin-top: 0.5rem; font-size: 0.85rem;">
+
+            <button type="button" id="btn-agregar-pago" class="btn btn-secondary" onclick="agregarFilaPago()"
+              style="margin-top: 0.5rem; font-size: 0.85rem; display: none; width: 100%;">
               <i class="fa-solid fa-plus"></i> Agregar otro pago
             </button>
             <div id="pagos-resumen"

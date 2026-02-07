@@ -387,29 +387,78 @@ function toggleMetodoPago() {
 // =============================================
 // AGREGAR FILA DE PAGO
 // =============================================
+// =============================================
+// TOGGLE PAGO MIXTO
+// =============================================
+function togglePagoMixto() {
+    const isChecked = document.getElementById('check-pago-mixto').checked;
+    const btnAgregar = document.getElementById('btn-agregar-pago');
+    const container = document.getElementById('pagos-container');
+
+    // Mostrar/Ocultar botón de agregar
+    if (btnAgregar) btnAgregar.style.display = isChecked ? 'block' : 'none';
+
+    // Si se desactiva, dejar solo la primera fila
+    if (!isChecked && container.children.length > 1) {
+        while (container.children.length > 1) {
+            container.lastChild.remove();
+        }
+        actualizarResumenPagos();
+    }
+}
+
+// =============================================
+// AGREGAR FILA DE PAGO
+// =============================================
 function agregarFilaPago(pagoData = null) {
     const container = document.getElementById('pagos-container');
     const index = container.children.length;
 
+    // Si NO es mixto y ya hay 1 fila, no permitir agregar manual (salvo carga inicial)
+    const checkMixto = document.getElementById('check-pago-mixto');
+    const isMixto = checkMixto ? checkMixto.checked : false;
+
+    if (!isMixto && index >= 1 && !pagoData) {
+        return;
+    }
+
     const row = document.createElement('div');
     row.className = 'pago-row';
-    row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;';
+    // Layout mejorado: inputs en una fila, notas y eliminar en otra o misma si cabe
+    // Usamos flex-wrap para responsividad e inputs completos
+    row.style.cssText = 'background: #f8f9fa; padding: 0.75rem; border-radius: 4px; border: 1px solid #e9ecef; margin-bottom: 0.5rem;';
 
     const metodo = pagoData ? pagoData.metodo : '';
     const monto = pagoData ? pagoData.monto : '';
     const notas = pagoData ? pagoData.notas || '' : '';
 
     row.innerHTML = `
-        <select class="form-input pago-metodo" style="flex: 1;" required>
-            <option value="">Método...</option>
-            <option value="efectivo" ${metodo === 'efectivo' ? 'selected' : ''}>💵 Efectivo</option>
-            <option value="transferencia" ${metodo === 'transferencia' ? 'selected' : ''}>📲 Transferencia</option>
-        </select>
-        <input type="number" class="form-input pago-monto" placeholder="Monto" style="flex: 1;" min="0" step="100" value="${monto}" oninput="actualizarResumenPagos()" required>
-        <input type="text" class="form-input pago-notas" placeholder="Notas (opcional)" style="flex: 1.5;" value="${notas}">
-        ${index > 0 || pagoData ? `<button type="button" class="btn btn-icon" style="color: #dc3545; background: none; border: none; font-size: 1.2rem;" onclick="eliminarFilaPago(this)"><i class="fa-solid fa-trash"></i></button>` : ''}
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <select class="form-input pago-metodo" style="flex: 1; min-width: 120px;" required>
+                <option value="">Método...</option>
+                <option value="efectivo" ${metodo === 'efectivo' ? 'selected' : ''}>💵 Efectivo</option>
+                <option value="transferencia" ${metodo === 'transferencia' ? 'selected' : ''}>📲 Transferencia</option>
+            </select>
+            <input type="number" class="form-input pago-monto" placeholder="Monto" style="flex: 1; min-width: 100px;" min="0" step="100" value="${monto}" oninput="actualizarResumenPagos()" required>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" class="form-input pago-notas" placeholder="Notas (opcional)..." style="flex: 1;" value="${notas}">
+            <button type="button" class="btn btn-icon btn-eliminar-pago" style="color: #dc3545; background: none; border: none; font-size: 1.1rem; padding: 0 0.5rem;" onclick="eliminarFilaPago(this)" title="Eliminar pago">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
     `;
     container.appendChild(row);
+
+    actualizarBotonesEliminar();
+}
+
+function actualizarBotonesEliminar() {
+    const container = document.getElementById('pagos-container');
+    const botones = container.querySelectorAll('.btn-eliminar-pago');
+    // Mostrar eliminar solo si hay más de 1 fila 
+    const mostrar = container.children.length > 1;
+    botones.forEach(btn => btn.style.display = mostrar ? 'block' : 'none');
 }
 
 // =============================================
@@ -418,6 +467,7 @@ function agregarFilaPago(pagoData = null) {
 function eliminarFilaPago(btn) {
     btn.closest('.pago-row').remove();
     actualizarResumenPagos();
+    actualizarBotonesEliminar();
 }
 
 // =============================================
@@ -952,14 +1002,33 @@ async function editarCita(idCita) {
                     data.pagos.forEach(pago => {
                         agregarFilaPago(pago);
                     });
+
+                    // Activar check si hay más de 1 pago
+                    const isMixto = data.pagos.length > 1;
+                    const checkMixto = document.getElementById('check-pago-mixto');
+                    if (checkMixto) {
+                        checkMixto.checked = isMixto;
+                        togglePagoMixto();
+                    }
+
                 } else {
-                    // Si no hay pagos (legacy o error), agregar fila vacía o usar legacy metodo_pago_cliente si viniera
+                    // Si no hay pagos, agregar uno por defecto y resetear check
                     agregarFilaPago();
+                    const checkMixto = document.getElementById('check-pago-mixto');
+                    if (checkMixto) {
+                        checkMixto.checked = false;
+                        togglePagoMixto();
+                    }
                 }
                 actualizarResumenPagos();
             } catch (err) {
                 console.error('Error cargando pagos:', err);
-                agregarFilaPago(); // Fallback
+                agregarFilaPago();
+                const checkMixto = document.getElementById('check-pago-mixto');
+                if (checkMixto) {
+                    checkMixto.checked = false;
+                    togglePagoMixto();
+                }
             }
         } else {
             document.getElementById('grupo-metodo-pago').style.display = 'none';
