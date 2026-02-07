@@ -424,26 +424,26 @@ function agregarFilaPago(pagoData = null) {
 
     const row = document.createElement('div');
     row.className = 'pago-row';
-    // Layout mejorado: inputs en una fila, notas y eliminar en otra o misma si cabe
-    // Usamos flex-wrap para responsividad e inputs completos
-    row.style.cssText = 'background: #f8f9fa; padding: 0.75rem; border-radius: 4px; border: 1px solid #e9ecef; margin-bottom: 0.5rem;';
+    // Layout mejorado: inputs en una fila, notas y eliminar en otra
+    // Estilo tipo tarjeta con sombra suave para mejor foco
+    row.style.cssText = 'background: #ffffff; padding: 1rem; border-radius: 8px; border: 1px solid #e9ecef; margin-bottom: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);';
 
     const metodo = pagoData ? pagoData.metodo : '';
     const monto = pagoData ? pagoData.monto : '';
     const notas = pagoData ? pagoData.notas || '' : '';
 
     row.innerHTML = `
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <select class="form-input pago-metodo" style="flex: 1; min-width: 120px;" required>
-                <option value="">Método...</option>
+        <div style="display: flex; gap: 0.8rem; margin-bottom: 0.8rem; flex-wrap: wrap;">
+            <select class="form-input pago-metodo" style="flex: 2; min-width: 160px;" required>
+                <option value="">Método de pago...</option>
                 <option value="efectivo" ${metodo === 'efectivo' ? 'selected' : ''}>💵 Efectivo</option>
                 <option value="transferencia" ${metodo === 'transferencia' ? 'selected' : ''}>📲 Transferencia</option>
             </select>
-            <input type="number" class="form-input pago-monto" placeholder="Monto" style="flex: 1; min-width: 100px;" min="0" step="100" value="${monto}" oninput="actualizarResumenPagos()" required>
+            <input type="number" class="form-input pago-monto" placeholder="Monto $" style="flex: 1; min-width: 120px;" min="0" step="100" value="${monto}" oninput="actualizarResumenPagos()" required>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <input type="text" class="form-input pago-notas" placeholder="Notas (opcional)..." style="flex: 1;" value="${notas}">
-            <button type="button" class="btn btn-icon btn-eliminar-pago" style="color: #dc3545; background: none; border: none; font-size: 1.1rem; padding: 0 0.5rem;" onclick="eliminarFilaPago(this)" title="Eliminar pago">
+            <input type="text" class="form-input pago-notas" placeholder="Notas adicionales (opcional)..." style="flex: 1;" value="${notas}">
+            <button type="button" class="btn btn-icon btn-eliminar-pago" style="color: #dc3545; background: #fff; border: 1px solid #dc3545; border-radius: 4px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="eliminarFilaPago(this)" title="Eliminar pago">
                 <i class="fa-solid fa-trash"></i>
             </button>
         </div>
