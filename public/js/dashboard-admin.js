@@ -294,6 +294,19 @@ function renderizarCitas(citas) {
     tbody.innerHTML = citas.map(cita => {
         const estadoBadge = `badge-${cita.estado}`;
 
+        // Formatear monto
+        const monto = cita.monto_pagado ? `$${Number(cita.monto_pagado).toLocaleString('es-CO')}` : '-';
+
+        // Formatear método de pago con warning si falta
+        let metodoPago = '-';
+        if (cita.estado === 'completada') {
+            if (cita.metodo_pago) {
+                metodoPago = cita.metodo_pago === 'efectivo' ? '💵 Efectivo' : '📲 Transferencia';
+            } else {
+                metodoPago = '<span class="badge badge-danger" title="Sin método de pago">⚠️ Sin método</span>';
+            }
+        }
+
         return `
             <tr>
                 <td>${formatearFecha(cita.fecha)}</td>
@@ -307,6 +320,8 @@ function renderizarCitas(citas) {
                 <td>${cita.nombre_servicio}</td>
                 <td>${cita.nombre_manicurista}</td>
                 <td><span class="badge ${estadoBadge}">${capitalize(cita.estado)}</span></td>
+                <td>${monto}</td>
+                <td>${metodoPago}</td>
                 <td>
                     <div class="table-actions">
                         <button class="btn-icon btn-edit" onclick="editarCita(${cita.id_cita})" title="Editar">

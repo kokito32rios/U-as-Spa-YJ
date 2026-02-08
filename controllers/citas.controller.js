@@ -61,20 +61,20 @@ exports.obtenerCitas = async (req, res) => {
                 ${campoTelefono}, -- Telefono especifico de la cita
                 ${esManicurista ? "'Cliente Reservado' as nombre_cliente" : "CONCAT(uc.nombre, ' ', uc.apellido) as nombre_cliente"},
                 ${campoTelUsuario} as telefono_cliente, -- Telefono del perfil
-                ${campoTelUsuario} as telefono_cliente, -- Telefono del perfil
                 c.email_manicurista,
                 CONCAT(um.nombre, ' ', um.apellido) as nombre_manicurista,
                 c.id_servicio,
                 s.nombre as nombre_servicio,
                 s.precio as precio_servicio,
                 s.duracion_minutos,
-                p.metodo_pago_cliente,
-                c.nombre_cliente as nombre_manual -- Campo directo
+                c.nombre_cliente as nombre_manual,
+                -- Subqueries para pagos (manejan múltiples pagos sin duplicar filas)
+                (SELECT SUM(monto) FROM pagos WHERE id_cita = c.id_cita) as monto_pagado,
+                (SELECT GROUP_CONCAT(DISTINCT metodo_pago_cliente SEPARATOR ', ') FROM pagos WHERE id_cita = c.id_cita AND metodo_pago_cliente IS NOT NULL) as metodo_pago
             FROM citas c
             LEFT JOIN usuarios uc ON c.email_cliente = uc.email
             INNER JOIN usuarios um ON c.email_manicurista = um.email
             INNER JOIN servicios s ON c.id_servicio = s.id_servicio
-            LEFT JOIN pagos p ON c.id_cita = p.id_cita
             WHERE 1=1
         `;
 
