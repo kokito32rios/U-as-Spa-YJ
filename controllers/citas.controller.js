@@ -316,6 +316,16 @@ exports.crearCita = async (req, res) => {
             });
         }
 
+        // Si se enviaron pagos (cita completada), insertarlos
+        if (req.body.pagos && Array.isArray(req.body.pagos) && req.body.pagos.length > 0) {
+            for (const pago of req.body.pagos) {
+                await db.query(`
+                    INSERT INTO pagos (id_cita, monto, metodo_pago_cliente, notas, estado_pago_cliente)
+                    VALUES (?, ?, ?, ?, 'pagado')
+                `, [result.insertId, pago.monto, pago.metodo, pago.notas || null]);
+            }
+        }
+
         res.status(201).json({
             success: true,
             message: 'Cita creada exitosamente',

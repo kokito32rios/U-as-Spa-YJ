@@ -711,40 +711,39 @@ async function guardarCita() {
         estado: document.getElementById('cita-estado').value // Enviar estado siempre
     };
 
-    // Si es edición
+    // Si es edición, agregar notas de manicurista
     if (id) {
-        // datos.estado ya se asignó arriba
         datos.notas_manicurista = document.getElementById('cita-notas-manicurista').value;
+    }
 
-        // Si estado = completada, requerir y recolectar pagos múltiples
-        if (datos.estado === 'completada') {
-            const pagosRows = document.querySelectorAll('.pago-row');
-            const pagosArray = [];
+    // Si estado = completada, requerir y recolectar pagos múltiples (aplica tanto a nueva como edición)
+    if (datos.estado === 'completada') {
+        const pagosRows = document.querySelectorAll('.pago-row');
+        const pagosArray = [];
 
-            for (const row of pagosRows) {
-                const metodo = row.querySelector('.pago-metodo').value;
-                const monto = parseFloat(row.querySelector('.pago-monto').value) || 0;
-                const notas = row.querySelector('.pago-notas').value || null;
+        for (const row of pagosRows) {
+            const metodo = row.querySelector('.pago-metodo').value;
+            const monto = parseFloat(row.querySelector('.pago-monto').value) || 0;
+            const notas = row.querySelector('.pago-notas').value || null;
 
-                if (!metodo) {
-                    mostrarMensaje('warning', '⚠️', 'Método de pago requerido', 'Seleccione un método de pago para cada fila');
-                    return;
-                }
-                if (monto <= 0) {
-                    mostrarMensaje('warning', '⚠️', 'Monto inválido', 'Ingrese un monto válido para cada pago');
-                    return;
-                }
-
-                pagosArray.push({ metodo, monto, notas });
+            if (!metodo) {
+                mostrarMensaje('warning', '⚠️', 'Método de pago requerido', 'Seleccione un método de pago para cada fila');
+                return;
             }
-
-            if (pagosArray.length === 0) {
-                mostrarMensaje('warning', '⚠️', 'Pago requerido', 'Agregue al menos un pago para completar la cita');
+            if (monto <= 0) {
+                mostrarMensaje('warning', '⚠️', 'Monto inválido', 'Ingrese un monto válido para cada pago');
                 return;
             }
 
-            datos.pagos = pagosArray;
+            pagosArray.push({ metodo, monto, notas });
         }
+
+        if (pagosArray.length === 0) {
+            mostrarMensaje('warning', '⚠️', 'Pago requerido', 'Agregue al menos un pago para completar la cita');
+            return;
+        }
+
+        datos.pagos = pagosArray;
     }
 
     const btn = document.getElementById('btn-guardar-cita');
