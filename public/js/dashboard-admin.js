@@ -317,7 +317,6 @@ function renderizarCitas(citas) {
                 <td>
                     ${cita.telefono_contacto || cita.telefono_cliente || '<span class="text-muted">-</span>'}
                 </td>
-                <td>${cita.nombre_servicio}</td>
                 <td>${cita.nombre_manicurista}</td>
                 <td><span class="badge ${estadoBadge}">${capitalize(cita.estado)}</span></td>
                 <td>${monto}</td>
