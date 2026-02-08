@@ -4032,6 +4032,10 @@ async function cargarManicuristasFiltro() {
 
         if (data.success) {
             const select = document.getElementById('dash-filtro-manicurista');
+
+            // Limpiar opciones existentes (excepto la primera "Todas")
+            select.innerHTML = '<option value="">Todas</option>';
+
             // Filtrar solo manicuristas (id_rol = 2) y activos
             data.usuarios
                 .filter(u => u.id_rol === 2 && u.activo === 1)
