@@ -435,7 +435,6 @@ function renderizarVistaSemanal() {
                             <div class="agenda-card" style="border-left: 4px solid ${estadoClass}; margin-bottom: 10px;">
                                 <span class="agenda-time">${horaInicio} - ${horaFin}</span>
                                 <div class="agenda-details">
-                                    <span class="agenda-client">👤 ${cita.nombre_cliente}</span>
                                     <span class="agenda-service">💅 ${cita.nombre_servicio}</span>
                                     <span class="agenda-status" style="background-color: ${estadoClass}20; color: ${estadoClass};">
                                         ${cita.estado.charAt(0).toUpperCase() + cita.estado.slice(1)}
@@ -1343,10 +1342,7 @@ window.mostrarDetalleCita = function (cita) {
     const horaInicio = cita.hora_inicio.substring(0, 5);
     const horaFin = cita.hora_fin.substring(0, 5);
 
-    // Determinar nombre a mostrar (Prioridad: Cliente registrado > Manual > Anónimo)
-    // Nota: El backend ya hace esta lógica y lo devuelve en 'cita.nombre_cliente'
-    // Pero por seguridad visualizamos lo que llegue.
-    const clienteNombre = cita.nombre_cliente || 'Cliente Anónimo';
+    // Notas de la cita (el nombre del cliente no se muestra por políticas de privacidad)
     const notas = cita.notas_cliente || 'Sin notas';
 
     // Generar botones de acción según estado
@@ -1372,9 +1368,7 @@ window.mostrarDetalleCita = function (cita) {
         html: `
             <div style="text-align: left; margin-bottom: 1em;">
                 <p><strong>Hora:</strong> ${horaInicio} - ${horaFin}</p>
-                <p><strong>Cliente:</strong> ${clienteNombre}</p>
                 <p><strong>Servicio:</strong> ${cita.nombre_servicio}</p>
-                <p><strong>Teléfono:</strong> ${cita.telefono_cliente || cita.telefono_contacto_visible || '-'}</p>
                 <p><strong>Notas:</strong> ${notas}</p>
                 <p><strong>Estado:</strong> <span class="badge badge-${cita.estado}">${cita.estado.toUpperCase()}</span></p>
             </div>
