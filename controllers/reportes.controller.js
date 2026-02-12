@@ -13,12 +13,16 @@ exports.crearReporte = async (req, res) => {
             });
         }
 
+        // Usar la fecha enviada por el cliente (o hoy si no se envía)
+        // Esto corrige el problema de zona horaria y reportes después de medianoche
+        const fechaReporte = req.body.fecha || new Date().toISOString().split('T')[0];
+
         const query = `
-            INSERT INTO reportes_manicurista (email_manicurista, fecha, descripcion, valor_reportado)
-            VALUES (?, CURRENT_DATE(), ?, ?)
+            INSERT INTO reportes_manicurista (email_manicurista, fecha, descripcion, valor_reportado, fecha_registro)
+            VALUES (?, ?, ?, ?, NOW())
         `;
 
-        await db.query(query, [email_manicurista, descripcion, valor]);
+        await db.query(query, [email_manicurista, fechaReporte, descripcion, valor]);
 
         // Emitir evento Socket.IO
         if (req.io) {
