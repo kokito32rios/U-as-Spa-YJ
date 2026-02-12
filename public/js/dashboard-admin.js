@@ -717,17 +717,20 @@ async function guardarCita() {
     }
 
     // Si estado = completada, requerir y recolectar pagos múltiples (aplica tanto a nueva como edición)
-    if (datos.estado === 'completada') {
-        const pagosRows = document.querySelectorAll('.pago-row');
-        const pagosArray = [];
+    // Recolectar pagos (si existen filas o si el estado es completada)
+    const pagosRows = document.querySelectorAll('.pago-row');
+    const pagosArray = [];
 
+    // Si hay filas de pago visibles, procesarlas
+    if (pagosRows.length > 0) {
         for (const row of pagosRows) {
             const metodo = row.querySelector('.pago-metodo').value;
             const monto = parseFloat(row.querySelector('.pago-monto').value) || 0;
             const notas = row.querySelector('.pago-notas').value || null;
 
+            // Validar filas activas: si el usuario agregó una fila, debe estar completa
             if (!metodo) {
-                mostrarMensaje('warning', '⚠️', 'Método de pago requerido', 'Seleccione un método de pago para cada fila');
+                mostrarMensaje('warning', '⚠️', 'Método de pago requerido', 'Seleccione un método de pago para cada fila agregada');
                 return;
             }
             if (monto <= 0) {
@@ -737,12 +740,19 @@ async function guardarCita() {
 
             pagosArray.push({ metodo, monto, notas });
         }
+    }
 
+    // Validación específica para estado COMPLETADA: Debe haber al menos un pago
+    if (datos.estado === 'completada') {
         if (pagosArray.length === 0) {
-            mostrarMensaje('warning', '⚠️', 'Pago requerido', 'Agregue al menos un pago para completar la cita');
+            mostrarMensaje('warning', '⚠️', 'Pago requerido', 'Para marcar como completada, debe registrar el pago total.');
             return;
         }
+        // Opcional: Validar que cubra el total, pero por ahora solo requerimos que haya pago.
+    }
 
+    // Asignar array de pagos al objeto datos (si hay pagos)
+    if (pagosArray.length > 0) {
         datos.pagos = pagosArray;
     }
 

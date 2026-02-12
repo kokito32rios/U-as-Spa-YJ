@@ -6,6 +6,9 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Declarar io aquí para que el middleware pueda acceder a él por referencia
+let io;
+
 // =============================================
 // MIDDLEWARES GLOBALES
 // =============================================
@@ -69,6 +72,7 @@ const reportesRoutes = require('./routes/reportes.routes');
 const horariosRoutes = require('./routes/horarios.routes');
 
 // Middleware para inyectar io en req (DEBE IR ANTES DE LAS RUTAS)
+// Middleware para inyectar io en req (DEBE IR ANTES DE LAS RUTAS)
 app.use((req, res, next) => {
   req.io = io;
   next();
@@ -117,7 +121,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 
 const server = http.createServer(app);
-const io = socketIo(server, {
+io = socketIo(server, {
   cors: {
     origin: "*", // Permitir todas las conexiones por ahora
     methods: ["GET", "POST"]
