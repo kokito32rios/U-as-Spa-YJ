@@ -316,13 +316,26 @@ exports.crearCita = async (req, res) => {
             });
         }
 
-        // Si se enviaron pagos (cita completada), insertarlos
+        // Si se enviaron pagos, insertarlos con cálculo de comisión
         if (req.body.pagos && Array.isArray(req.body.pagos) && req.body.pagos.length > 0) {
+
+            // 1. Obtener porcentaje de comisión de la manicurista
+            const [config] = await db.query(`
+                SELECT porcentaje FROM comisiones_manicuristas 
+                WHERE email_manicurista = ? AND anio = YEAR(CURDATE())
+            `, [email_manicurista]);
+
+            const porcentaje = config.length > 0 ? config[0].porcentaje : 50; // Default 50%
+
             for (const pago of req.body.pagos) {
+                // Calcular comisión proporcional al pago
+                const montoPago = parseFloat(pago.monto) || 0;
+                const comision = (montoPago * porcentaje) / 100;
+
                 await db.query(`
-                    INSERT INTO pagos (id_cita, monto, metodo_pago_cliente, notas, estado_pago_cliente)
-                    VALUES (?, ?, ?, ?, 'pagado')
-                `, [result.insertId, pago.monto, pago.metodo, pago.notas || null]);
+                    INSERT INTO pagos (id_cita, monto, metodo_pago_cliente, notas, estado_pago_cliente, comision_manicurista)
+                    VALUES (?, ?, ?, ?, 'pagado', ?)
+                `, [result.insertId, montoPago, pago.metodo, pago.notas || null, comision]);
             }
         }
 
