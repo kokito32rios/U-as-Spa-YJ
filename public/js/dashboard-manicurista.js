@@ -819,11 +819,10 @@ window.editarReporte = function (id, descripcion, valor, fecha) {
     document.getElementById('cuadre-valor').value = valor;
 
     if (fecha) {
-        const dateObj = new Date(fecha);
-        const yyyy = dateObj.getFullYear();
-        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const dd = String(dateObj.getDate()).padStart(2, '0');
-        document.getElementById('cuadre-fecha').value = `${yyyy}-${mm}-${dd}`;
+        // Extraer directamente YYYY-MM-DD para evitar el desfase de zona horaria 
+        // cuando new Date() convierte el UTC a hora local (ej. Colombia -5).
+        const soloFecha = typeof fecha === 'string' ? fecha.split('T')[0] : fecha;
+        document.getElementById('cuadre-fecha').value = soloFecha;
     }
 
     // 3. Cambiar títulos y botones
