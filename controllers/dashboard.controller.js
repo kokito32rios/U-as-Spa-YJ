@@ -226,7 +226,7 @@ exports.obtenerResumenManicuristas = async (req, res) => {
                 DATE(c.fecha) as fecha,
                 c.email_manicurista,
                 CONCAT(u.nombre, ' ', u.apellido) as nombre_manicurista,
-                COUNT(*) as cantidad_servicios,
+                COUNT(DISTINCT c.id_cita) as cantidad_servicios,
                 COALESCE(SUM(p.monto), 0) as ingresos_generados,
                 COALESCE(SUM(p.comision_manicurista), 0) as comision_total
             FROM pagos p

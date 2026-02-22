@@ -120,7 +120,7 @@ exports.obtenerDetalle = async (req, res) => {
 
         let query = `
             SELECT c.id_cita, c.fecha, s.nombre as servicio, c.precio,
-                   COALESCE(MAX(p.comision_manicurista), 0) as comision_pagada,
+                   COALESCE(SUM(p.comision_manicurista), 0) as comision_pagada,
                    COALESCE(MAX(p.estado_pago_manicurista), 'pendiente') as estado_pago,
                    COALESCE(u.nombre, 'Cliente') as cliente_nombre, 
                    COALESCE(u.apellido, 'Anónimo') as cliente_apellido
@@ -239,14 +239,13 @@ exports.registrarPago = async (req, res) => {
                 const montoComision = (cita[0].precio * porcentaje) / 100;
 
                 if (pagoExistente.length > 0) {
-                    // Actualizar pago existente
+                    // Actualizar pago existente (solo ESTADO, NO SOBRESCRIBIR LA COMISIÓN porque puede ser un pago mixto ya distribuido)
                     await connection.query(`
                         UPDATE pagos SET 
-                            comision_manicurista = ?,
                             estado_pago_manicurista = 'pagado',
                             fecha_pago_manicurista = NOW()
                         WHERE id_cita = ?
-                    `, [montoComision, idCita]);
+                    `, [idCita]);
                 } else {
                     // Crear nuevo pago
                     // Nota: Si no hay pago del cliente registrado, asumimos que el pago del cliente es independiente o 'pendiente'
