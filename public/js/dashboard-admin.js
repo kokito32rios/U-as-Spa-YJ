@@ -4492,9 +4492,11 @@ async function cargarDetallePagos(fechaInicio, fechaFin, emailManicurista = '') 
                 totalEfectivo += dia.efectivo;
                 totalTransferencia += dia.transferencia;
 
+                const diaNombre = obtenerNombreDia(dia.fecha);
+
                 return `
                 <tr>
-                    <td><strong>${formatearFechaSinTZ(dia.fecha)}</strong></td>
+                    <td style="text-transform: capitalize;"><strong>${diaNombre}</strong></td>
                     <td class="text-success">$${dia.total_ingresos.toLocaleString('es-CO')}</td>
                     <td class="text-danger">$${dia.total_gastos.toLocaleString('es-CO')}</td>
                     <td>$${dia.efectivo.toLocaleString('es-CO')}</td>
