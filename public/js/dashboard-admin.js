@@ -4243,30 +4243,41 @@ async function cargarResumenManicuristas(fechaInicio, fechaFin, emailManicurista
     }
 }
 
+// Función auxiliar para obtener el nombre del día en español
+function obtenerNombreDia(fechaISO) {
+    const partes = fechaISO.split('T')[0].split('-');
+    const fecha = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+    const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    return dias[fecha.getDay()];
+}
+
 function renderizarResumenManicuristas() {
     const data = window.datosResumenManicuristas_raw;
     const thead = document.getElementById('dash-manicuristas-thead');
     const tbody = document.getElementById('dash-manicuristas-tbody');
     const tfoot = document.getElementById('dash-manicuristas-tfoot');
+    const tableContainer = document.querySelector('.manicuristas-summary .table-container');
 
     if (!data || data.length === 0) {
         thead.innerHTML = `<tr><th>Fecha</th><th>Manicurista</th><th>Ingresos</th><th>Comisión</th><th>💰 Total a Pagar</th></tr>`;
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Sin datos para el período</td></tr>';
         tfoot.innerHTML = '';
+        tableContainer.style.overflowX = 'hidden';
         return;
     }
 
     if (window.vistaResumenManicurista === 'lista') {
         // --- VISTA DETALLADA ORIGINAL ---
+        tableContainer.style.overflowX = 'hidden'; // Evitar scroll innecesario
         thead.innerHTML = `
             <tr>
-                <th>Fecha</th>
-                <th>Manicurista</th>
-                <th>Servicios</th>
-                <th>Ingresos Generados</th>
-                <th>Comisión</th>
-                <th>Deducciones</th>
-                <th>💰 Total a Pagar</th>
+                <th style="padding: 15px;">Fecha</th>
+                <th style="padding: 15px;">Manicurista</th>
+                <th style="padding: 15px;">Servicios</th>
+                <th style="padding: 15px;">Ingresos Generados</th>
+                <th style="padding: 15px;">Comisión</th>
+                <th style="padding: 15px;">Deducciones</th>
+                <th style="padding: 15px;">💰 Total a Pagar</th>
             </tr>
         `;
 
@@ -4285,30 +4296,36 @@ function renderizarResumenManicuristas() {
 
             return `
             <tr>
-                <td><strong>${formatearFechaSinTZ(m.fecha)}</strong></td>
-                <td>${m.nombre_manicurista}</td>
-                <td>${m.cantidad_servicios}</td>
-                <td class="text-success">$${parseFloat(m.ingresos_generados).toLocaleString('es-CO')}</td>
-                <td class="text-warning">$${comision.toLocaleString('es-CO')}</td>
-                <td class="text-danger">$${deducciones.toLocaleString('es-CO')}</td>
-                <td><strong style="color: #007bff;">$${totalAPagar.toLocaleString('es-CO')}</strong></td>
+                <td style="padding: 15px;"><strong>${formatearFechaSinTZ(m.fecha)}</strong></td>
+                <td style="padding: 15px;">${m.nombre_manicurista}</td>
+                <td style="padding: 15px;">${m.cantidad_servicios}</td>
+                <td style="padding: 15px;" class="text-success">$${parseFloat(m.ingresos_generados).toLocaleString('es-CO')}</td>
+                <td style="padding: 15px;" class="text-warning">$${comision.toLocaleString('es-CO')}</td>
+                <td style="padding: 15px;" class="text-danger">$${deducciones.toLocaleString('es-CO')}</td>
+                <td style="padding: 15px;"><strong style="color: #007bff;">$${totalAPagar.toLocaleString('es-CO')}</strong></td>
             </tr>
             `;
         }).join('');
 
         tfoot.innerHTML = `
             <tr style="font-weight: bold; background-color: #f8f9fa;">
-                <td colspan="2">TOTAL</td>
-                <td>${totalServicios}</td>
-                <td class="text-success">$${totalIngresos.toLocaleString('es-CO')}</td>
-                <td class="text-warning">$${totalComision.toLocaleString('es-CO')}</td>
-                <td class="text-danger">$${totalDeducciones.toLocaleString('es-CO')}</td>
-                <td style="color: #007bff; font-size: 1.1em;">$${totalPagar.toLocaleString('es-CO')}</td>
+                <td colspan="2" style="padding: 15px;">TOTAL</td>
+                <td style="padding: 15px;">${totalServicios}</td>
+                <td style="padding: 15px;" class="text-success">$${totalIngresos.toLocaleString('es-CO')}</td>
+                <td style="padding: 15px;" class="text-warning">$${totalComision.toLocaleString('es-CO')}</td>
+                <td style="padding: 15px;" class="text-danger">$${totalDeducciones.toLocaleString('es-CO')}</td>
+                <td style="color: #007bff; font-size: 1.1em; padding: 15px;">$${totalPagar.toLocaleString('es-CO')}</td>
             </tr>
         `;
 
     } else {
         // --- VISTA TABLA DINÁMICA (PIVOT) ---
+        tableContainer.style.overflowX = 'auto'; // Permitir scroll horizontal
+
+        // Estilos para encoger la tabla
+        const thStyle = 'padding: 8px 10px; font-size: 0.85em; text-align: center; white-space: nowrap; border-bottom: 2px solid #ddd;';
+        const tdStyle = 'padding: 8px 10px; font-size: 0.85em; text-align: right; white-space: nowrap; border-bottom: 1px solid #f0f0f0;';
+
         // 1. Obtener listas únicas
         const fechasSet = new Set();
         const manicuristasMap = new Map(); // email -> nombre
@@ -4322,16 +4339,17 @@ function renderizarResumenManicuristas() {
         const manicuristas = Array.from(manicuristasMap.entries()); // [[email, nombre], ...]
 
         // 2. Construir THEAD
-        let theadHTML1 = `<tr><th rowspan="2" style="vertical-align: middle;">Fechas</th>`;
+        let theadHTML1 = `<tr><th rowspan="2" style="${thStyle} text-align: left; vertical-align: middle;">Etiquetas de fila</th>`;
         let theadHTML2 = `<tr>`;
 
         manicuristas.forEach(([email, nombre]) => {
-            theadHTML1 += `<th colspan="2" style="text-align: center; border-left: 1px solid #dee2e6;">${nombre}</th>`;
-            theadHTML2 += `<th style="border-left: 1px solid #dee2e6;">Total</th><th>Comisión</th>`;
+            const nombreCorto = nombre.split(' ')[0];
+            theadHTML1 += `<th colspan="2" style="${thStyle} border-left: 1px solid #dee2e6;">${nombreCorto}</th>`;
+            theadHTML2 += `<th style="${thStyle} border-left: 1px solid #dee2e6;">_Total</th><th style="${thStyle}">_Comisión</th>`;
         });
 
-        theadHTML1 += `<th colspan="2" style="text-align: center; background-color: #e9ecef; border-left: 2px solid #dee2e6;">Totales Generales</th></tr>`;
-        theadHTML2 += `<th style="background-color: #e9ecef; border-left: 2px solid #dee2e6;">Total Día</th><th style="background-color: #e9ecef;">Comisión Día</th></tr>`;
+        theadHTML1 += `<th colspan="2" style="${thStyle} color: #333; background-color: #e9ecef; border-left: 2px solid #dee2e6;">Totales Generales</th></tr>`;
+        theadHTML2 += `<th style="${thStyle} color: #333; background-color: #e9ecef; border-left: 2px solid #dee2e6;">Total_Total</th><th style="${thStyle} color: #333; background-color: #e9ecef;">Total_Manicurista</th></tr>`;
 
         thead.innerHTML = theadHTML1 + theadHTML2;
 
@@ -4346,8 +4364,9 @@ function renderizarResumenManicuristas() {
         });
 
         fechasUnicas.forEach(fechaObj => {
-            const fechaStr = formatearFechaSinTZ(fechaObj);
-            tbodyHTML += `<tr><td><strong>${fechaStr}</strong></td>`;
+            const diaNombre = obtenerNombreDia(fechaObj); // Ej: "lunes"
+
+            tbodyHTML += `<tr><td style="${tdStyle} text-align: left; text-transform: capitalize;">${diaNombre}</td>`;
 
             let ingresosDia = 0;
             let comisionDia = 0;
@@ -4361,10 +4380,7 @@ function renderizarResumenManicuristas() {
 
                 if (registro) {
                     valIngresos = parseFloat(registro.ingresos_generados) || 0;
-                    // Ojo: Para la tabla dinámica, restamos deducciones a la comisión si queremos mostrar "Total a Pagar" 
-                    // o lo dejamos como Comisión cruda. Según la imagen, quieren Comisión pura o Total a pagar.
-                    // Usaremos (Comisión - Deducciones) como ganancia neta.
-                    valComision = (parseFloat(registro.comision_total) || 0) - (parseFloat(registro.deducciones) || 0);
+                    valComision = parseFloat(registro.comision_total) || 0;
 
                     ingresosDia += valIngresos;
                     comisionDia += valComision;
@@ -4374,17 +4390,17 @@ function renderizarResumenManicuristas() {
                 }
 
                 tbodyHTML += valIngresos > 0
-                    ? `<td style="border-left: 1px solid #dee2e6;">$${valIngresos.toLocaleString('es-CO')}</td>`
-                    : `<td style="border-left: 1px solid #dee2e6; color: #ccc;">-</td>`;
+                    ? `<td style="${tdStyle} border-left: 1px solid #dee2e6;">${valIngresos.toLocaleString('es-CO')}</td>`
+                    : `<td style="${tdStyle} border-left: 1px solid #dee2e6; color: #ccc;"></td>`;
 
                 tbodyHTML += valComision > 0
-                    ? `<td class="text-success">$${valComision.toLocaleString('es-CO')}</td>`
-                    : `<td style="color: #ccc;">-</td>`;
+                    ? `<td style="${tdStyle}">${valComision.toLocaleString('es-CO')}</td>`
+                    : `<td style="${tdStyle}; color: #ccc;"></td>`;
             });
 
             // Totales del día
-            tbodyHTML += `<td style="background-color: #f8f9fa; border-left: 2px solid #dee2e6; font-weight: bold;">$${ingresosDia.toLocaleString('es-CO')}</td>`;
-            tbodyHTML += `<td style="background-color: #f8f9fa; font-weight: bold; color: #007bff;">$${comisionDia.toLocaleString('es-CO')}</td>`;
+            tbodyHTML += `<td style="${tdStyle} background-color: #f8f9fa; border-left: 2px solid #dee2e6; color: #333;">${ingresosDia.toLocaleString('es-CO')}</td>`;
+            tbodyHTML += `<td style="${tdStyle} background-color: #f8f9fa; color: #333;">${comisionDia.toLocaleString('es-CO')}</td>`;
             tbodyHTML += `</tr>`;
 
             granTotalIngresosDia += ingresosDia;
@@ -4394,16 +4410,16 @@ function renderizarResumenManicuristas() {
         tbody.innerHTML = tbodyHTML;
 
         // 4. Construir TFOOT
-        let tfootHTML = `<tr style="font-weight: bold; background-color: #e2e3e5; font-size: 1.1em;">
-                            <td>Total General</td>`;
+        let tfootHTML = `<tr style="font-weight: bold; background-color: #e2e3e5;">
+                            <td style="${tdStyle} text-align: left; font-size: 0.9em;">Total general</td>`;
 
         manicuristas.forEach(([email, _]) => {
-            tfootHTML += `<td style="border-left: 1px solid #dee2e6;">$${totalesPorManicurista[email].ingresos.toLocaleString('es-CO')}</td>`;
-            tfootHTML += `<td class="text-success">$${totalesPorManicurista[email].comisiones.toLocaleString('es-CO')}</td>`;
+            tfootHTML += `<td style="${tdStyle} font-size: 0.9em; border-left: 1px solid #dee2e6;">${totalesPorManicurista[email].ingresos.toLocaleString('es-CO')}</td>`;
+            tfootHTML += `<td style="${tdStyle} font-size: 0.9em;">${totalesPorManicurista[email].comisiones.toLocaleString('es-CO')}</td>`;
         });
 
-        tfootHTML += `<td style="background-color: #d6d8db; border-left: 2px solid #dee2e6;">$${granTotalIngresosDia.toLocaleString('es-CO')}</td>`;
-        tfootHTML += `<td style="background-color: #d6d8db; color: #007bff;">$${granTotalComisionDia.toLocaleString('es-CO')}</td></tr>`;
+        tfootHTML += `<td style="${tdStyle} font-size: 0.9em; background-color: #d6d8db; color: #333; border-left: 2px solid #dee2e6;">${granTotalIngresosDia.toLocaleString('es-CO')}</td>`;
+        tfootHTML += `<td style="${tdStyle} font-size: 0.9em; background-color: #d6d8db; color: #333;">${granTotalComisionDia.toLocaleString('es-CO')}</td></tr>`;
 
         tfoot.innerHTML = tfootHTML;
     }
