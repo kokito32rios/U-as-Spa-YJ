@@ -4202,6 +4202,30 @@ async function cargarGraficoDashboard(anio) {
     }
 }
 
+// Estado global para la vista del resumen
+window.vistaResumenManicurista = 'dinamica'; // 'lista' o 'dinamica'
+window.datosResumenManicuristas_raw = [];
+
+// Función para cambiar la vista
+window.cambiarVistaResumen = function (vista) {
+    window.vistaResumenManicurista = vista;
+
+    // Actualizar botones UI
+    document.getElementById('btn-vista-dinamica').classList.remove('btn-primary', 'btn-outline-secondary');
+    document.getElementById('btn-vista-lista').classList.remove('btn-primary', 'btn-outline-secondary');
+
+    if (vista === 'dinamica') {
+        document.getElementById('btn-vista-dinamica').classList.add('btn-primary');
+        document.getElementById('btn-vista-lista').classList.add('btn-outline-secondary');
+    } else {
+        document.getElementById('btn-vista-dinamica').classList.add('btn-outline-secondary');
+        document.getElementById('btn-vista-lista').classList.add('btn-primary');
+    }
+
+    // Volver a renderizar con los datos guardados
+    renderizarResumenManicuristas();
+};
+
 async function cargarResumenManicuristas(fechaInicio, fechaFin, emailManicurista = '') {
     try {
         let url = `/api/dashboard/manicuristas?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
@@ -4211,60 +4235,177 @@ async function cargarResumenManicuristas(fechaInicio, fechaFin, emailManicurista
         const data = await res.json();
 
         if (data.success) {
-            const tbody = document.getElementById('dash-manicuristas-tbody');
-
-            if (data.resumen.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Sin datos para el período</td></tr>';
-                // Reset totals
-                document.getElementById('dash-man-total-servicios').textContent = '0';
-                document.getElementById('dash-man-total-ingresos').textContent = '$0';
-                document.getElementById('dash-man-total-comision').textContent = '$0';
-                document.getElementById('dash-man-total-deducciones').textContent = '$0';
-                document.getElementById('dash-man-total-pagar').textContent = '$0';
-                return;
-            }
-
-            // Calcular totales
-            let totalServicios = 0;
-            let totalIngresos = 0;
-            let totalComision = 0;
-            let totalDeducciones = 0;
-            let totalPagar = 0;
-
-            tbody.innerHTML = data.resumen.map(m => {
-                const comision = parseFloat(m.comision_total);
-                const deducciones = parseFloat(m.deducciones);
-                const totalAPagar = comision - deducciones;
-
-                // Acumular totales
-                totalServicios += parseInt(m.cantidad_servicios);
-                totalIngresos += parseFloat(m.ingresos_generados);
-                totalComision += comision;
-                totalDeducciones += deducciones;
-                totalPagar += totalAPagar;
-
-                return `
-                <tr>
-                    <td><strong>${formatearFechaSinTZ(m.fecha)}</strong></td>
-                    <td>${m.nombre_manicurista}</td>
-                    <td>${m.cantidad_servicios}</td>
-                    <td class="text-success">$${parseFloat(m.ingresos_generados).toLocaleString('es-CO')}</td>
-                    <td class="text-warning">$${comision.toLocaleString('es-CO')}</td>
-                    <td class="text-danger">$${deducciones.toLocaleString('es-CO')}</td>
-                    <td><strong style="color: #007bff;">$${totalAPagar.toLocaleString('es-CO')}</strong></td>
-                </tr>
-                `;
-            }).join('');
-
-            // Actualizar footer con totales
-            document.getElementById('dash-man-total-servicios').textContent = totalServicios;
-            document.getElementById('dash-man-total-ingresos').textContent = `$${totalIngresos.toLocaleString('es-CO')}`;
-            document.getElementById('dash-man-total-comision').textContent = `$${totalComision.toLocaleString('es-CO')}`;
-            document.getElementById('dash-man-total-deducciones').textContent = `$${totalDeducciones.toLocaleString('es-CO')}`;
-            document.getElementById('dash-man-total-pagar').textContent = `$${totalPagar.toLocaleString('es-CO')}`;
+            window.datosResumenManicuristas_raw = data.resumen;
+            renderizarResumenManicuristas();
         }
     } catch (error) {
         console.error('Error cargando resumen manicuristas:', error);
+    }
+}
+
+function renderizarResumenManicuristas() {
+    const data = window.datosResumenManicuristas_raw;
+    const thead = document.getElementById('dash-manicuristas-thead');
+    const tbody = document.getElementById('dash-manicuristas-tbody');
+    const tfoot = document.getElementById('dash-manicuristas-tfoot');
+
+    if (!data || data.length === 0) {
+        thead.innerHTML = `<tr><th>Fecha</th><th>Manicurista</th><th>Ingresos</th><th>Comisión</th><th>💰 Total a Pagar</th></tr>`;
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Sin datos para el período</td></tr>';
+        tfoot.innerHTML = '';
+        return;
+    }
+
+    if (window.vistaResumenManicurista === 'lista') {
+        // --- VISTA DETALLADA ORIGINAL ---
+        thead.innerHTML = `
+            <tr>
+                <th>Fecha</th>
+                <th>Manicurista</th>
+                <th>Servicios</th>
+                <th>Ingresos Generados</th>
+                <th>Comisión</th>
+                <th>Deducciones</th>
+                <th>💰 Total a Pagar</th>
+            </tr>
+        `;
+
+        let totalServicios = 0, totalIngresos = 0, totalComision = 0, totalDeducciones = 0, totalPagar = 0;
+
+        tbody.innerHTML = data.map(m => {
+            const comision = parseFloat(m.comision_total);
+            const deducciones = parseFloat(m.deducciones);
+            const totalAPagar = comision - deducciones;
+
+            totalServicios += parseInt(m.cantidad_servicios);
+            totalIngresos += parseFloat(m.ingresos_generados);
+            totalComision += comision;
+            totalDeducciones += deducciones;
+            totalPagar += totalAPagar;
+
+            return `
+            <tr>
+                <td><strong>${formatearFechaSinTZ(m.fecha)}</strong></td>
+                <td>${m.nombre_manicurista}</td>
+                <td>${m.cantidad_servicios}</td>
+                <td class="text-success">$${parseFloat(m.ingresos_generados).toLocaleString('es-CO')}</td>
+                <td class="text-warning">$${comision.toLocaleString('es-CO')}</td>
+                <td class="text-danger">$${deducciones.toLocaleString('es-CO')}</td>
+                <td><strong style="color: #007bff;">$${totalAPagar.toLocaleString('es-CO')}</strong></td>
+            </tr>
+            `;
+        }).join('');
+
+        tfoot.innerHTML = `
+            <tr style="font-weight: bold; background-color: #f8f9fa;">
+                <td colspan="2">TOTAL</td>
+                <td>${totalServicios}</td>
+                <td class="text-success">$${totalIngresos.toLocaleString('es-CO')}</td>
+                <td class="text-warning">$${totalComision.toLocaleString('es-CO')}</td>
+                <td class="text-danger">$${totalDeducciones.toLocaleString('es-CO')}</td>
+                <td style="color: #007bff; font-size: 1.1em;">$${totalPagar.toLocaleString('es-CO')}</td>
+            </tr>
+        `;
+
+    } else {
+        // --- VISTA TABLA DINÁMICA (PIVOT) ---
+        // 1. Obtener listas únicas
+        const fechasSet = new Set();
+        const manicuristasMap = new Map(); // email -> nombre
+
+        data.forEach(m => {
+            fechasSet.add(m.fecha);
+            manicuristasMap.set(m.email_manicurista, m.nombre_manicurista);
+        });
+
+        const fechasUnicas = Array.from(fechasSet).sort(); // Ordenadas
+        const manicuristas = Array.from(manicuristasMap.entries()); // [[email, nombre], ...]
+
+        // 2. Construir THEAD
+        let theadHTML1 = `<tr><th rowspan="2" style="vertical-align: middle;">Fechas</th>`;
+        let theadHTML2 = `<tr>`;
+
+        manicuristas.forEach(([email, nombre]) => {
+            theadHTML1 += `<th colspan="2" style="text-align: center; border-left: 1px solid #dee2e6;">${nombre}</th>`;
+            theadHTML2 += `<th style="border-left: 1px solid #dee2e6;">Total</th><th>Comisión</th>`;
+        });
+
+        theadHTML1 += `<th colspan="2" style="text-align: center; background-color: #e9ecef; border-left: 2px solid #dee2e6;">Totales Generales</th></tr>`;
+        theadHTML2 += `<th style="background-color: #e9ecef; border-left: 2px solid #dee2e6;">Total Día</th><th style="background-color: #e9ecef;">Comisión Día</th></tr>`;
+
+        thead.innerHTML = theadHTML1 + theadHTML2;
+
+        // 3. Construir TBODY (y acumular totales globales por manicurista)
+        let tbodyHTML = '';
+        let granTotalIngresosDia = 0;
+        let granTotalComisionDia = 0;
+        const totalesPorManicurista = {}; // email -> { ingresos, comisiones }
+
+        manicuristas.forEach(([email, _]) => {
+            totalesPorManicurista[email] = { ingresos: 0, comisiones: 0 };
+        });
+
+        fechasUnicas.forEach(fechaObj => {
+            const fechaStr = formatearFechaSinTZ(fechaObj);
+            tbodyHTML += `<tr><td><strong>${fechaStr}</strong></td>`;
+
+            let ingresosDia = 0;
+            let comisionDia = 0;
+
+            manicuristas.forEach(([email, _]) => {
+                // Buscar si esta manicurista trabajó en esta fecha
+                const registro = data.find(m => m.fecha === fechaObj && m.email_manicurista === email);
+
+                let valIngresos = 0;
+                let valComision = 0;
+
+                if (registro) {
+                    valIngresos = parseFloat(registro.ingresos_generados) || 0;
+                    // Ojo: Para la tabla dinámica, restamos deducciones a la comisión si queremos mostrar "Total a Pagar" 
+                    // o lo dejamos como Comisión cruda. Según la imagen, quieren Comisión pura o Total a pagar.
+                    // Usaremos (Comisión - Deducciones) como ganancia neta.
+                    valComision = (parseFloat(registro.comision_total) || 0) - (parseFloat(registro.deducciones) || 0);
+
+                    ingresosDia += valIngresos;
+                    comisionDia += valComision;
+
+                    totalesPorManicurista[email].ingresos += valIngresos;
+                    totalesPorManicurista[email].comisiones += valComision;
+                }
+
+                tbodyHTML += valIngresos > 0
+                    ? `<td style="border-left: 1px solid #dee2e6;">$${valIngresos.toLocaleString('es-CO')}</td>`
+                    : `<td style="border-left: 1px solid #dee2e6; color: #ccc;">-</td>`;
+
+                tbodyHTML += valComision > 0
+                    ? `<td class="text-success">$${valComision.toLocaleString('es-CO')}</td>`
+                    : `<td style="color: #ccc;">-</td>`;
+            });
+
+            // Totales del día
+            tbodyHTML += `<td style="background-color: #f8f9fa; border-left: 2px solid #dee2e6; font-weight: bold;">$${ingresosDia.toLocaleString('es-CO')}</td>`;
+            tbodyHTML += `<td style="background-color: #f8f9fa; font-weight: bold; color: #007bff;">$${comisionDia.toLocaleString('es-CO')}</td>`;
+            tbodyHTML += `</tr>`;
+
+            granTotalIngresosDia += ingresosDia;
+            granTotalComisionDia += comisionDia;
+        });
+
+        tbody.innerHTML = tbodyHTML;
+
+        // 4. Construir TFOOT
+        let tfootHTML = `<tr style="font-weight: bold; background-color: #e2e3e5; font-size: 1.1em;">
+                            <td>Total General</td>`;
+
+        manicuristas.forEach(([email, _]) => {
+            tfootHTML += `<td style="border-left: 1px solid #dee2e6;">$${totalesPorManicurista[email].ingresos.toLocaleString('es-CO')}</td>`;
+            tfootHTML += `<td class="text-success">$${totalesPorManicurista[email].comisiones.toLocaleString('es-CO')}</td>`;
+        });
+
+        tfootHTML += `<td style="background-color: #d6d8db; border-left: 2px solid #dee2e6;">$${granTotalIngresosDia.toLocaleString('es-CO')}</td>`;
+        tfootHTML += `<td style="background-color: #d6d8db; color: #007bff;">$${granTotalComisionDia.toLocaleString('es-CO')}</td></tr>`;
+
+        tfoot.innerHTML = tfootHTML;
     }
 }
 

@@ -352,10 +352,19 @@
 
         <!-- Resumen por manicurista -->
         <div class="manicuristas-summary">
-          <h3>👩 Resumen por Manicurista</h3>
-          <div class="table-container">
-            <table class="data-table">
-              <thead>
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="margin-bottom: 0;">👩 Resumen por Manicurista</h3>
+            <div class="btn-group" role="group">
+              <button type="button" id="btn-vista-dinamica" class="btn btn-primary btn-sm"
+                onclick="cambiarVistaResumen('dinamica')">Tabla Dinámica</button>
+              <button type="button" id="btn-vista-lista" class="btn btn-outline-secondary btn-sm"
+                onclick="cambiarVistaResumen('lista')">Vista de Lista</button>
+            </div>
+          </div>
+          <div class="table-container" style="overflow-x: auto;">
+            <table class="data-table" id="dash-manicuristas-table">
+              <thead id="dash-manicuristas-thead">
                 <tr>
                   <th>Fecha</th>
                   <th>Manicurista</th>
@@ -371,7 +380,7 @@
                   <td colspan="7" style="text-align:center;">Cargando...</td>
                 </tr>
               </tbody>
-              <tfoot>
+              <tfoot id="dash-manicuristas-tfoot">
                 <tr style="font-weight: bold; background-color: #f8f9fa;">
                   <td colspan="2">TOTAL</td>
                   <td id="dash-man-total-servicios">0</td>
