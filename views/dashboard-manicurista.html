@@ -461,8 +461,24 @@
                 </div>
 
                 <!-- Tabla de Reportes -->
-                <div class="table-container">
-                    <h4>📜 Registros</h4>
+                <div class="cuadre-summary" style="margin-top: 20px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 15px;">
+                        <h4>📜 Registros</h4>
+                        <div class="vista-toggle">
+                            <button id="btn-vista-lista-cuadre" class="btn btn-primary btn-sm"
+                                onclick="cambiarVistaCuadre('lista')">
+                                Vista de Lista
+                            </button>
+                            <button id="btn-vista-dinamica-cuadre" class="btn btn-outline-secondary btn-sm"
+                                onclick="cambiarVistaCuadre('dinamica')">
+                                Vista Resumida
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container view-cuadre-lista">
                     <table class="data-table" id="tabla-cuadre">
                         <thead>
                             <tr>
@@ -485,6 +501,20 @@
                                 <td id="cuadre-total-ganancia" class="text-success">$0</td>
                                 <td></td>
                             </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="table-container view-cuadre-dinamica" style="display: none;">
+                    <table class="data-table" id="tabla-cuadre-dinamica">
+                        <thead id="cuadre-dinamica-thead">
+                            <!-- JS -->
+                        </thead>
+                        <tbody id="cuadre-dinamica-tbody">
+                            <!-- JS -->
+                        </tbody>
+                        <tfoot id="cuadre-dinamica-tfoot">
+                            <!-- JS -->
                         </tfoot>
                     </table>
                 </div>

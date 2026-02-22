@@ -4082,6 +4082,7 @@ async function cargarManicuristasFiltro() {
 
 
 async function cargarDashboard() {
+    cambiarPeriodoDashboard();
     const { fechaInicio, fechaFin } = obtenerFechasDashboard();
 
     if (!fechaInicio || !fechaFin) {
@@ -4351,11 +4352,11 @@ function renderizarResumenManicuristas() {
         manicuristas.forEach(([email, nombre]) => {
             const nombreCorto = nombre.split(' ')[0];
             theadHTML1 += `<th colspan="2" style="${thStyle} border-left: 1px solid #dee2e6;">${nombreCorto}</th>`;
-            theadHTML2 += `<th style="${thStyle} border-left: 1px solid #dee2e6;">_Total</th><th style="${thStyle}">_Comisión</th>`;
+            theadHTML2 += `<th style="${thStyle} border-left: 1px solid #dee2e6;">Total</th><th style="${thStyle}">Comisión</th>`;
         });
 
         theadHTML1 += `<th colspan="2" style="${thStyle} color: #333; background-color: #e9ecef; border-left: 2px solid #dee2e6;">Totales Generales</th></tr>`;
-        theadHTML2 += `<th style="${thStyle} color: #333; background-color: #e9ecef; border-left: 2px solid #dee2e6;">Total_Total</th><th style="${thStyle} color: #333; background-color: #e9ecef;">Total_Manicurista</th></tr>`;
+        theadHTML2 += `<th style="${thStyle} color: #333; background-color: #e9ecef; border-left: 2px solid #dee2e6;">Total General</th><th style="${thStyle} color: #333; background-color: #e9ecef;">Total Comisiones</th></tr>`;
 
         thead.innerHTML = theadHTML1 + theadHTML2;
 

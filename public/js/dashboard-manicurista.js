@@ -832,8 +832,140 @@ window.editarReporte = function (id, descripcion, valor, fecha) {
 }
 
 window.cancelarEdicion = function () {
-    // Legacy placeholder si algo lo llama, pero ahora usamos cerrarModalRegistro
     cerrarModalRegistro();
+}
+
+// === LÓGICA DE TABLA DINÁMICA (CUADRE) ===
+window.vistaCuadre = 'lista';
+window.datosCuadre_raw = [];
+
+window.cambiarVistaCuadre = function (vista) {
+    window.vistaCuadre = vista;
+
+    const btnLista = document.getElementById('btn-vista-lista-cuadre');
+    const btnDinamica = document.getElementById('btn-vista-dinamica-cuadre');
+
+    if (vista === 'lista') {
+        btnLista.classList.replace('btn-outline-secondary', 'btn-primary');
+        btnDinamica.classList.replace('btn-primary', 'btn-outline-secondary');
+        document.querySelector('.view-cuadre-lista').style.display = 'block';
+        document.querySelector('.view-cuadre-dinamica').style.display = 'none';
+    } else {
+        btnLista.classList.replace('btn-primary', 'btn-outline-secondary');
+        btnDinamica.classList.replace('btn-outline-secondary', 'btn-primary');
+        document.querySelector('.view-cuadre-lista').style.display = 'none';
+        document.querySelector('.view-cuadre-dinamica').style.display = 'block';
+    }
+
+    if (window.datosCuadre_raw.length > 0) {
+        window.renderizarCuadre();
+    }
+};
+
+window.renderizarCuadre = function () {
+    const data = window.datosCuadre_raw;
+    const bodyLista = document.getElementById('cuadre-tbody');
+    const totalDiaEl = document.getElementById('cuadre-total-dia');
+    const totalGananciaEl = document.getElementById('cuadre-total-ganancia');
+
+    const headDinamica = document.getElementById('cuadre-dinamica-thead');
+    const bodyDinamica = document.getElementById('cuadre-dinamica-tbody');
+    const footDinamica = document.getElementById('cuadre-dinamica-tfoot');
+
+    let totalReportadoGlobal = 0;
+    let totalGananciaGlobal = 0;
+
+    data.forEach(r => {
+        totalReportadoGlobal += parseFloat(r.valor_reportado) || 0;
+        totalGananciaGlobal += parseFloat(r.ganancia_estimada) || 0;
+    });
+
+    if (window.vistaCuadre === 'lista') {
+        if (data.length === 0) {
+            if (bodyLista) bodyLista.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay registros para este filtro</td></tr>';
+            if (totalDiaEl) totalDiaEl.textContent = formatCurrency(0);
+            if (totalGananciaEl) totalGananciaEl.textContent = formatCurrency(0);
+            return;
+        }
+
+        bodyLista.innerHTML = data.map(r => {
+            const descSafe = r.descripcion.replace(/'/g, "\\'");
+            const fechaVisual = r.fecha.split('T')[0];
+            return `
+                <tr>
+                    <td>${fechaVisual}</td>
+                    <td>${r.descripcion}</td>
+                    <td class="font-bold text-dark">${formatCurrency(r.valor_reportado)}</td>
+                    <td><span class="badge badge-info">${r.porcentaje_aplicado || '?'}%</span></td>
+                    <td class="font-bold text-success">${formatCurrency(r.ganancia_estimada)}</td>
+                    <td>
+                        <button class="btn-sm btn-warning" style="margin-right:5px;" 
+                            onclick="editarReporte(${r.id_reporte}, '${descSafe}', ${r.valor_reportado}, '${r.fecha}')" 
+                            title="Editar">✏️</button>
+                        <button class="btn-sm btn-danger" onclick="eliminarReporte(${r.id_reporte})" title="Eliminar">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        if (totalDiaEl) totalDiaEl.textContent = formatCurrency(totalReportadoGlobal);
+        if (totalGananciaEl) totalGananciaEl.textContent = formatCurrency(totalGananciaGlobal);
+
+    } else {
+        // Vista dinámica
+        if (data.length === 0) {
+            headDinamica.innerHTML = '<tr><th>Fecha</th><th>Total Valor</th><th>Total Ganancia</th></tr>';
+            bodyDinamica.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No hay registros para este filtro</td></tr>';
+            footDinamica.innerHTML = '';
+            return;
+        }
+
+        const thStyle = 'padding: 8px 10px; font-size: 0.9em; text-align: center; border-bottom: 2px solid #ddd; background-color: #f8f9fa; white-space: nowrap;';
+        const tdStyle = 'padding: 8px 10px; font-size: 0.9em; text-align: right; border-bottom: 1px solid #f0f0f0; white-space: nowrap;';
+
+        headDinamica.innerHTML = `
+            <tr>
+                <th style="${thStyle} text-align: left; vertical-align: middle;">Fecha</th>
+                <th style="${thStyle}">Total Valor</th>
+                <th style="${thStyle}">Total Ganancia</th>
+            </tr>
+        `;
+
+        const agrupado = {};
+        data.forEach(r => {
+            const fechaVal = r.fecha.split('T')[0];
+            if (!agrupado[fechaVal]) {
+                agrupado[fechaVal] = { reportado: 0, ganancia: 0 };
+            }
+            agrupado[fechaVal].reportado += parseFloat(r.valor_reportado) || 0;
+            agrupado[fechaVal].ganancia += parseFloat(r.ganancia_estimada) || 0;
+        });
+
+        const fechasOrdenadas = Object.keys(agrupado).sort((a, b) => new Date(a) - new Date(b));
+
+        bodyDinamica.innerHTML = fechasOrdenadas.map(f => {
+            const partes = f.split('-');
+            const dateObj = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+            const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const diaV = dias[dateObj.getDay()];
+
+            return `
+            <tr>
+                <td style="${tdStyle} text-align: left; text-transform: capitalize;"><strong>${diaV}</strong> (${f})</td>
+                <td style="${tdStyle}" class="text-dark">${formatCurrency(agrupado[f].reportado)}</td>
+                <td style="${tdStyle}" class="text-success font-bold">${formatCurrency(agrupado[f].ganancia)}</td>
+            </tr>
+            `;
+        }).join('');
+
+        footDinamica.innerHTML = `
+            <tr style="font-weight: bold; background-color: #e9ecef;">
+                <td style="padding: 10px; text-align: left; border-top: 2px solid #ddd;">TOTAL GENERAL:</td>
+                <td style="padding: 10px; text-align: right; border-top: 2px solid #ddd;" class="text-dark">${formatCurrency(totalReportadoGlobal)}</td>
+                <td style="padding: 10px; text-align: right; border-top: 2px solid #ddd;" class="text-success">${formatCurrency(totalGananciaGlobal)}</td>
+            </tr>
+        `;
+    }
 }
 
 window.cargarReportes = async function () {
@@ -841,15 +973,15 @@ window.cargarReportes = async function () {
     const totalDiaEl = document.getElementById('cuadre-total-dia');
     const totalGananciaEl = document.getElementById('cuadre-total-ganancia');
 
-    if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando...</td></tr>';
+    if (window.vistaCuadre === 'lista' && tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando...</td></tr>';
+    }
 
-    // Obtener filtros
     const tipo = document.getElementById('filtro-cuadre-tipo').value;
     const anio = document.getElementById('filtro-cuadre-anio').value;
     const mes = document.getElementById('filtro-cuadre-mes').value;
 
     let url = `/api/reportes?tipo=${tipo}&anio=${anio}`;
-    // ... Agregar lógica de params (igual a anterior) ...
     if (tipo === 'mes') {
         url += `&mes=${mes}`;
     } else if (tipo === 'semana') {
@@ -870,58 +1002,16 @@ window.cargarReportes = async function () {
         const data = await response.json();
 
         if (data.success) {
-            if (data.reportes.length === 0) {
-                if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No hay registros para este filtro</td></tr>';
-                if (totalDiaEl) totalDiaEl.textContent = formatCurrency(0);
-                if (totalGananciaEl) totalGananciaEl.textContent = formatCurrency(0);
-                return;
-            }
-
-            if (tbody) {
-                tbody.innerHTML = data.reportes.map(r => {
-                    // Pasar datos seguros a la función editar
-                    // Escapar strings es buena práctica
-                    const descSafe = r.descripcion.replace(/'/g, "\\'");
-
-                    // Ajuste de fecha para visualizar y para editar
-                    // OJO: La fecha de BD viene en UTC o local dependiendo driver.
-                    // Para display usamos toLocaleDateString
-                    // Para editar enviamos r.fecha tal cual (ISO string)
-
-                    const fechaObj = new Date(r.fecha);
-                    // Importante: al crear fecha con string YYYY-MM-DD javascript asume UTC.
-                    // Usamos getUTCDate para mostrar la fecha correcta almacenada
-                    // O simplemente split
-                    const fechaVisual = r.fecha.split('T')[0];
-
-                    return `
-                        <tr>
-                            <td>${fechaVisual}</td>
-                            <td>${r.descripcion}</td>
-                            <td class="font-bold text-dark">${formatCurrency(r.valor_reportado)}</td>
-                            <td><span class="badge badge-info">${r.porcentaje_aplicado || '?'}%</span></td>
-                            <td class="font-bold text-success">${formatCurrency(r.ganancia_estimada)}</td>
-                            <td>
-                                <button class="btn-sm btn-warning" style="margin-right:5px;" 
-                                    onclick="editarReporte(${r.id_reporte}, '${descSafe}', ${r.valor_reportado}, '${r.fecha}')" 
-                                    title="Editar">✏️</button>
-                                <button class="btn-sm btn-danger" onclick="eliminarReporte(${r.id_reporte})" title="Eliminar">🗑️</button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            }
-
-            if (totalDiaEl) totalDiaEl.textContent = formatCurrency(data.totalReportado);
-            if (totalGananciaEl) totalGananciaEl.textContent = formatCurrency(data.totalGanancia);
-
+            window.datosCuadre_raw = data.reportes || [];
+            window.renderizarCuadre();
         } else {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-red">Error al cargar datos</td></tr>';
+            console.error('Error del server:', data.message);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-red">Error al cargar datos</td></tr>';
         }
 
     } catch (error) {
         console.error('Error:', error);
-        if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-red">Error de conexión</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-red">Error de conexión</td></tr>';
     }
 }
 
