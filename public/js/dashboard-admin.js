@@ -923,7 +923,9 @@ function poblarSemanasAgendamiento() {
     const opciones = selectSemana.options;
     for (let i = 0; i < opciones.length; i++) {
         const [desde, hasta] = opciones[i].value.split('|');
-        if (hoy >= new Date(desde) && hoy <= new Date(hasta)) {
+        const fechaDesde = new Date(desde + "T00:00:00");
+        const fechaHasta = new Date(hasta + "T23:59:59");
+        if (hoy >= fechaDesde && hoy <= fechaHasta) {
             selectSemana.selectedIndex = i;
             break;
         }
@@ -2932,7 +2934,9 @@ function poblarSemanasComision() {
     const opciones = selectSemana.options;
     for (let i = 0; i < opciones.length; i++) {
         const [desde, hasta] = opciones[i].value.split('|');
-        if (hoy >= new Date(desde) && hoy <= new Date(hasta)) {
+        const fechaDesde = new Date(desde + "T00:00:00");
+        const fechaHasta = new Date(hasta + "T23:59:59");
+        if (hoy >= fechaDesde && hoy <= fechaHasta) {
             selectSemana.selectedIndex = i;
             break;
         }
@@ -4040,7 +4044,9 @@ function poblarSemanasDashboard() {
     const opciones = selectSemana.options;
     for (let i = 0; i < opciones.length; i++) {
         const [desde, hasta] = opciones[i].value.split('|');
-        if (hoy >= new Date(desde) && hoy <= new Date(hasta)) {
+        const fechaDesde = new Date(desde + "T00:00:00");
+        const fechaHasta = new Date(hasta + "T23:59:59");
+        if (hoy >= fechaDesde && hoy <= fechaHasta) {
             selectSemana.selectedIndex = i;
             break;
         }
@@ -4486,7 +4492,9 @@ async function cargarDetallePagos(fechaInicio, fechaFin, emailManicurista = '') 
             let totalEfectivo = 0;
             let totalTransferencia = 0;
 
-            tbody.innerHTML = data.resumen.map(dia => {
+            const resumenOrdenado = [...data.resumen].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+            tbody.innerHTML = resumenOrdenado.map(dia => {
                 totalIngresos += dia.total_ingresos;
                 totalGastos += dia.total_gastos;
                 totalEfectivo += dia.efectivo;
@@ -4590,7 +4598,9 @@ function poblarSemanasGastos() {
     const opciones = selectSemana.options;
     for (let i = 0; i < opciones.length; i++) {
         const [desde, hasta] = opciones[i].value.split('|');
-        if (hoy >= new Date(desde) && hoy <= new Date(hasta)) {
+        const fechaDesde = new Date(desde + "T00:00:00");
+        const fechaHasta = new Date(hasta + "T23:59:59");
+        if (hoy >= fechaDesde && hoy <= fechaHasta) {
             selectSemana.selectedIndex = i;
             break;
         }
