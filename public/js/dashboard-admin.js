@@ -3038,8 +3038,8 @@ function cambiarVistaComisiones(vista) {
     if (vista === 'conciliacion') {
         select.value = 'conciliacion';
     } else {
-        // Default a mes si no es conciliacion
-        select.value = 'mes';
+        // Default a semana si no es conciliacion
+        select.value = 'semana';
     }
 
     // Disparar cambio de UI y carga de datos
